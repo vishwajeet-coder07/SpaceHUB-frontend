@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
 
-
-const LoginPage = () => {
+const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [rememberMe, setRememberMe] = useState(false);
 
   const images = [login0, login1, login2];
 
-
-  useEffect(() => {
+  React.useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, 3000);
@@ -24,13 +20,13 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Login attempt:', { email, password });
+    console.log('Forgot password attempt:', { email });
   };
 
   return (
     <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden">
-
-  <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen" style={{backgroundColor: '#B9DDFF'}}>
+      {/* Desktop Left side - Image Slideshow */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen" style={{backgroundColor: '#B9DDFF'}}>
         {images.map((image, index) => (
           <div
             key={index}
@@ -45,7 +41,6 @@ const LoginPage = () => {
             />
           </div>
         ))}
-    
       </div>
 
       {/* Mobile Image Section */}
@@ -77,15 +72,18 @@ const LoginPage = () => {
         </div>
       </div>
 
-  <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+      {/* Right side - Forgot Password Form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="mx-auto h-40 w-40 flex items-center justify-center ">
-              <img src="/favicon.png" alt="Logo" className="h-22 w-28" />
-            </div>
-            <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-3">Login to your account</h2>
+            {/* Logo */}
+             <div className="mx-auto h-40 w-40 flex items-center justify-center">
+               <img src="/favicon.png" alt="Logo" className="h-22 w-28" />
+             </div>
+            
+            <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-3">Verify your email</h2>
             <p className="text-base text-gray-600 font-normal">
-              Welcome back, Please enter your details
+              Verify your email to reset your password
             </p>
           </div>
 
@@ -114,70 +112,17 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 text-left">
-                Enter Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
-                  placeholder="Enter your password"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-gray-700">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Forget password?
-                </Link>
-              </div>
-            </div>
-
             <button
               type="submit"
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
             >
-              Login
+              Verify
             </button>
 
             <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Not have any account?{' '}
-                <Link to="/signup" className="font-semibold text-blue-600 hover:text-blue-700">
-                  Signup
-                </Link>
-              </p>
+              <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">
+                Back to login
+              </Link>
             </div>
           </form>
         </div>
@@ -186,4 +131,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default ForgotPasswordPage;

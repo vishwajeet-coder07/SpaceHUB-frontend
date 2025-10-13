@@ -46,8 +46,8 @@ const SignupPage = () => {
   }, [images.length]);
 
   return (
-    <div className="w-screen h-screen min-h-screen min-w-screen flex overflow-hidden fixed top-0 left-0">
-      {/* Left side - Image Slideshow with animation */}
+    <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden">
+      {/* Desktop Left side - Image Slideshow with animation */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen" style={{backgroundColor: '#B9DDFF'}}>
         {images.map((image, index) => (
           <div
@@ -63,17 +63,44 @@ const SignupPage = () => {
         ))}
       </div>
 
+      {/* Mobile Image Section */}
+      <div className="lg:hidden w-full min-h-80 bg-blue-100 flex flex-col justify-center items-center px-0 py-4">
+        <div className="text-left mb-4 w-full px-6">
+          <h1 className="text-2xl font-bold text-blue-800 leading-tight">
+            Platform to build and<br />
+            grow communities.
+          </h1>
+        </div>
+        
+        <div className="w-full">
+          <div className="relative w-full h-80 flex items-center justify-center">
+            {images.map((image, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <img
+                  src={image}
+                  alt={`Auth slide ${index + 1}`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
         {/* Right side - Signup Form (scrollable) */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white h-full min-h-screen overflow-y-auto">
+        <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-blue-100 mb-6">
-                <svg className="h-8 w-8 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Create your account</h2>
-              <p className="text-sm text-gray-500">
+               <div className="mx-auto h-40 w-40 flex items-center justify-center ">
+                 <img src="/favicon.png" alt="Logo" className="h-22 w-28" />
+               </div>
+              <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-3">Create your account</h2>
+              <p className="text-base text-gray-600 font-normal">
                 Welcome! Please enter your details
               </p>
              
@@ -81,7 +108,7 @@ const SignupPage = () => {
             {step === 1 ? (
               <form className="space-y-6" onSubmit={handleStepOneSubmit}>
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2 text-left">
                     First Name
                   </label>
                   <input
@@ -91,12 +118,12 @@ const SignupPage = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
                     placeholder="First Name"
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2 text-left">
                     Last Name
                   </label>
                   <input
@@ -106,21 +133,21 @@ const SignupPage = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
                     placeholder="Last Name"
                   />
                 </div>
                 <div className="text-center mb-2">
                   <p className="text-sm text-gray-600">
                     Already have an account?{' '}
-                    <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 underline">
+                    <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">
                       Login
                     </Link>
                   </p>
                 </div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-medium"
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
                 >
                   Next
                 </button>
@@ -128,7 +155,7 @@ const SignupPage = () => {
             ) : (
               <form className="space-y-6" onSubmit={handleSubmit}>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 text-left">
                     Enter email
                   </label>
                   <div className="relative">
@@ -145,14 +172,14 @@ const SignupPage = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+                      className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
                       placeholder="Enter your email"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 text-left">
                     Enter Password
                   </label>
                   <div className="relative">
@@ -169,7 +196,7 @@ const SignupPage = () => {
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+                      className="w-full pl-10 pr-12 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
                       placeholder="Enter your password"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -182,7 +209,7 @@ const SignupPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-bold text-gray-700 mb-2 text-left">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2 text-left">
                     Confirm Password
                   </label>
                   <input
@@ -193,7 +220,7 @@ const SignupPage = () => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
                     placeholder="Confirm your password"
                   />
                 </div>
@@ -201,7 +228,7 @@ const SignupPage = () => {
                 <div className="text-center mb-2">
                   <p className="text-sm text-gray-600">
                     Already have an account?{' '}
-                    <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 underline">
+                    <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">
                       Login
                     </Link>
                   </p>
@@ -209,7 +236,7 @@ const SignupPage = () => {
 
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-medium"
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
                 >
                   Create Account
                 </button>
