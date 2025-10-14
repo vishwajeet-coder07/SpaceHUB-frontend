@@ -8,7 +8,7 @@ import ForgotPasswordPage from './component/ForgotPasswordPage'
 function App() {
   return (
     <Router>
-      <div className="App">
+      <div>
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
