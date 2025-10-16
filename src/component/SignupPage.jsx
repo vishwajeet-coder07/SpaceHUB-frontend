@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { registerUser } from './API';
+import { registerUser, requestSignupOtp, verifySignupOtp } from './API';
 import { Link, useNavigate } from 'react-router-dom';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
@@ -14,9 +14,12 @@ const SignupPage = () => {
     password: '',
     confirmPassword: ''
   });
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: name, 2: credentials, 3: otp
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -64,17 +67,53 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleRequestOtpAndNext = (e) => {
     e.preventDefault();
-    const { firstName, lastName, email, password } = formData;
-    registerUser({ firstName, lastName, email, password })
+    if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch) {
+      return;
+    }
+    setLoading(true);
+    requestSignupOtp(formData.email)
       .then(() => {
-        console.log('Registration successful');
+        setStep(3);
+      })
+      .catch((err) => {
+        console.error('Failed to send OTP:', err.message);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleVerifyOtpAndRegister = (e) => {
+    e.preventDefault();
+    const onlyDigits = otp.replace(/\D/g, '');
+    if (!/^\d{6}$/.test(onlyDigits)) {
+      setOtpError(true);
+      return;
+    }
+    setOtpError(false);
+    setLoading(true);
+    verifySignupOtp({ email: formData.email, otp: onlyDigits })
+      .then(() => {
+        const { firstName, lastName, email, password } = formData;
+        return registerUser({ firstName, lastName, email, password });
+      })
+      .then(() => {
         navigate('/dashboard');
       })
       .catch((err) => {
-        console.error('Registration failed:', err.message);
-      });
+        console.error('OTP verification or registration failed:', err.message);
+        setOtpError(true);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleResendOtp = (e) => {
+    e.preventDefault();
+    if (!formData.email) return;
+    setLoading(true);
+    requestSignupOtp(formData.email)
+      .catch((err) => console.error('Failed to resend OTP:', err.message))
+      .finally(() => setLoading(false));
   };
 
   const images = [login0, login1, login2];
@@ -215,8 +254,8 @@ const SignupPage = () => {
                   Next
                 </button>
               </form>
-            ) : (
-              <form className="space-y-6" onSubmit={handleSubmit}>
+            ) : step === 2 ? (
+              <form className="space-y-6" onSubmit={handleRequestOtpAndNext}>
                 <div>
                   <label htmlFor="email" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
                     Enter email <p className='text-red-500 text-md font-thin'>{emailError && '(Invalid credential)'}</p>
@@ -339,9 +378,52 @@ const SignupPage = () => {
 
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
+                  disabled={loading}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
                 >
-                  Create Account
+                  {loading ? 'Sending OTP...' : 'Send OTP'}
+                </button>
+              </form>
+            ) : (
+              <form className="space-y-6" onSubmit={handleVerifyOtpAndRegister}>
+                <div>
+                  <label htmlFor="otp" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                    Enter otp
+                  </label>
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    maxLength={6}
+                    onChange={(e) => {
+                      const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtp(onlyDigits);
+                      if (onlyDigits && onlyDigits.length !== 6) {
+                        setOtpError(true);
+                      } else {
+                        setOtpError(false);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${otpError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    placeholder="Enter otp"
+                  />
+                  <div className="text-right mt-2">
+                    <a href="#" onClick={handleResendOtp} className="text-default underline hover:text-blue-700 font-medium">Resend otp</a>
+                  </div>
+                  {otpError && (
+                    <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
+                >
+                  {loading ? 'Verifying...' : 'Verify & Create Account'}
                 </button>
               </form>
             )}
