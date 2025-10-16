@@ -45,7 +45,7 @@ const LoginPage = () => {
   };
 
   const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&]).{6,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9]).{8,}$/;
     return passwordRegex.test(password);
   };
 
@@ -60,7 +60,33 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
+    <>
+      <style>
+        {`
+          .password-input[type="password"]:not([data-show="true"]):not(:placeholder-shown) {
+            -webkit-text-security: disc;
+            text-security: disc;
+            color: #3b82f6;
+            font-size: 1.75rem;
+            line-height: 1;
+            letter-spacing: 0.2em;
+            font-family: 'Arial', sans-serif;
+          }
+          
+          .password-input[type="password"]:not([data-show="true"]):placeholder-shown {
+            -webkit-text-security: none;
+            text-security: none;
+            color: #9ca3af;
+            font-size: 1rem;
+            line-height: normal;
+            letter-spacing: normal;
+            font-family: inherit;
+          }
+          
+          
+        `}
+      </style>
+      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
 
   <div className="hidden lg:flex lg:w-[50%] relative overflow-hidden h-full min-h-screen bg-accent">
         {images.map((image, index) => (
@@ -165,7 +191,8 @@ const LoginPage = () => {
                   required
                   value={password}
                   onChange={handlePasswordChange}
-                  className={`w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                  data-show={showPassword}
+                  className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500`}
                   placeholder="Enter your password"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -178,8 +205,8 @@ const LoginPage = () => {
                     className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                   >
                     {showPassword ?  (
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M2.5 8.99959C2.49963 8.63682 2.63074 8.2862 2.86905 8.01268C3.10736 7.73916 3.43673 7.56127 3.79614 7.51197C4.15555 7.46266 4.52065 7.54528 4.82381 7.74452C5.12698 7.94376 5.34767 8.24612 5.445 8.59559C7.392 15.0976 16.603 15.0986 18.554 8.60059C18.6088 8.41055 18.7007 8.23322 18.8243 8.07883C18.9479 7.92443 19.1009 7.796 19.2743 7.70094C19.4478 7.60588 19.6383 7.54607 19.835 7.52494C20.0317 7.50381 20.2305 7.52178 20.4202 7.57783C20.6099 7.63387 20.7867 7.72687 20.9403 7.85149C21.0939 7.9761 21.2213 8.12986 21.3152 8.30392C21.4092 8.47798 21.4678 8.6689 21.4876 8.8657C21.5075 9.06249 21.4883 9.26127 21.431 9.45059C21.0893 10.6182 20.5395 11.7145 19.808 12.6866L20.768 13.6466C20.9112 13.785 21.0254 13.9506 21.1039 14.1336C21.1824 14.3167 21.2237 14.5135 21.2254 14.7127C21.227 14.9119 21.189 15.1094 21.1134 15.2937C21.0379 15.478 20.9265 15.6454 20.7856 15.7862C20.6447 15.927 20.4771 16.0383 20.2928 16.1136C20.1084 16.1889 19.9108 16.2268 19.7117 16.225C19.5125 16.2231 19.3157 16.1817 19.1327 16.103C18.9498 16.0243 18.7843 15.9099 18.646 15.7666L17.636 14.7566C17.111 15.1162 16.5516 15.4227 15.966 15.6716L16.209 16.5776C16.3012 16.9582 16.2409 17.3597 16.041 17.6964C15.8411 18.0331 15.5175 18.2783 15.1393 18.3796C14.761 18.4809 14.3582 18.4303 14.0167 18.2386C13.6753 18.0469 13.4224 17.7293 13.312 17.3536L13.061 16.4186C12.356 16.4916 11.644 16.4916 10.939 16.4186L10.689 17.3536C10.5861 17.7379 10.3347 18.0656 9.99024 18.2645C9.64574 18.4635 9.2363 18.5175 8.852 18.4146C8.4677 18.3117 8.14002 18.0603 7.94105 17.7158C7.74207 17.3713 7.6881 16.9619 7.791 16.5776L8.033 15.6706C7.44777 15.4219 6.88869 15.1158 6.364 14.7566L5.354 15.7666C5.2157 15.9099 5.05023 16.0243 4.86727 16.103C4.6843 16.1817 4.48749 16.2231 4.28832 16.225C4.08915 16.2268 3.89162 16.1889 3.70724 16.1136C3.52286 16.0383 3.35533 15.927 3.21442 15.7862C3.07352 15.6454 2.96206 15.478 2.88655 15.2937C2.81104 15.1094 2.773 14.9119 2.77463 14.7127C2.77627 14.5135 2.81756 14.3167 2.89608 14.1336C2.97461 13.9506 3.0888 13.785 3.232 13.6466L4.192 12.6866C3.46223 11.7161 2.91344 10.6219 2.572 9.45659C2.52451 9.3089 2.50022 9.15473 2.5 8.99959Z" fill="#176CBF"/>
                       </svg>
                     ) : (
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,12 +243,24 @@ const LoginPage = () => {
             </div>
           </form>
           
-          {(emailError || passwordError) && (
+          {emailError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600 font-medium mb-2">Email Requirements:</p>
+              <ul className="text-xs text-red-500 space-y-1">
+                <li>• Must be a valid email address</li>
+                <li>• Must contain @ symbol</li>
+                <li>• Must contain a domain name</li>
+              </ul>
+            </div>
+          )}
+          
+          {passwordError && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600 font-medium mb-2">Password Requirements:</p>
               <ul className="text-xs text-red-500 space-y-1">
-                <li>• Must be at least 6 characters long</li>
+                <li>• Must be at least 8 characters long</li>
                 <li>• Must contain at least one uppercase letter</li>
+                <li>• Must contain at least one digit (0-9)</li>
                 <li>• Must contain at least one special character (#, @, !, %, &)</li>
               </ul>
             </div>
@@ -229,6 +268,7 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
