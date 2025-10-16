@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #2B6CB0; /* blue-700 approximation, replace with Figma token if different */
+  --color-primary-600: #2563eb; /* blue-600 */
+  --color-primary-700: #1d4ed8; /* blue-700 */
+  --color-bg-accent: #B9DDFF; /* left panel bg in auth */
+  --color-text: #111827; /* gray-900 */
+  --color-text-muted: #ADADAD; /* gray-500/600 */
+  --color-border: #D1D5DB; /* gray-300 */
+  --radius-lg: 1.5rem; /* 24px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-sm: 0.5rem; /* 8px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem;   /* 32px */
+  --space-12: 3rem;  /* 48px */
+  --font-heading: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+@layer utilities {
+  .text-heading { font-family: var(--font-heading); }
+  .text-body { font-family: var(--font-body); }
+  .bg-accent { background-color: var(--color-bg-accent); }
+  .text-muted { color: var(--color-text-muted); }
+  .text-default { color: var(--color-text); }
+  .btn-primary { background-color: var(--color-primary-600); }
+  .btn-primary:hover { background-color: var(--color-primary-700); }
+  .ring-primary:focus { outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5); }
+  .rounded-lgx { border-radius: var(--radius-md); }
+  .rounded-card { border-top-left-radius: var(--radius-lg); border-bottom-left-radius: var(--radius-lg); }
+}

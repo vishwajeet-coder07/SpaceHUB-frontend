@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
 
 const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [emailError, setEmailError] = useState(false);
+  const [step, setStep] = useState('email');
 
   const images = [login0, login1, login2];
 
@@ -20,13 +24,48 @@ const ForgotPasswordPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Forgot password attempt:', { email });
+    if (step === 'email') {
+      // TODO: call API to send OTP to email
+      console.log('Forgot password: sending OTP to', email);
+      setStep('otp');
+    } else {
+      // TODO: verify OTP
+      console.log('Verifying OTP', { email, otp });
+      navigate('/reset');
+    }
+  };
+
+  const handleResendOtp = (e) => {
+    e.preventDefault();
+    // TODO: call API to resend OTP
+    console.log('Resend OTP to', email);
+  };
+
+  const handleBackToEmail = (e) => {
+    e.preventDefault();
+    setStep('email');
+    setOtp('');
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    if (value && !validateEmail(value)) {
+      setEmailError(true);
+    } else {
+      setEmailError(false);
+    }
   };
 
   return (
-    <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden">
+    <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
       {/* Desktop Left side - Image Slideshow */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen" style={{backgroundColor: '#B9DDFF'}}>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen bg-accent">
         {images.map((image, index) => (
           <div
             key={index}
@@ -44,9 +83,9 @@ const ForgotPasswordPage = () => {
       </div>
 
       {/* Mobile Image Section */}
-      <div className="lg:hidden w-full min-h-80 bg-blue-100 flex flex-col justify-center items-center px-0 py-4">
+      <div className="lg:hidden w-full min-h-80 bg-accent flex flex-col justify-center items-center px-0 py-4">
         <div className="text-left mb-4 w-full px-6">
-          <h1 className="text-2xl font-bold text-blue-800 leading-tight">
+          <h1 className="text-2xl font-bold text-blue-800 leading-tight text-heading">
             Platform to build and<br />
             grow communities.
           </h1>
@@ -77,54 +116,100 @@ const ForgotPasswordPage = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             {/* Logo */}
-             <div className="mx-auto h-40 w-40 flex items-center justify-center">
-               <img src="/favicon.png" alt="Logo" className="h-22 w-28" />
+             <div className="mx-auto h-40 w-40 flex items-center justify-center pt-10 ">
+               <img src="/favicon.png" alt="Logo" className="h-15 w-22" />
              </div>
-            
-            <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-3">Verify your email</h2>
-            <p className="text-base text-gray-600 font-normal">
-              Verify your email to reset your password
-            </p>
+            {step === 'email' ? (
+              <>
+                <h3 className="text-[1.75rem] lg:text-[1.75rem] font-semibold text-default mb-1">Verify your email</h3>
+                <p className="text-muted text-[1.25rem] font-normal">Verify your email to reset your password</p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-[1.75rem] lg:text-[1.75rem] font-semibold text-default mb-1">Enter otp</h3>
+                <p className="text-muted text-[1.25rem] font-normal">Verify your email to reset your password</p>
+              </>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 text-left">
-                Enter email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+            {step === 'email' ? (
+              <div>
+                <label htmlFor="email" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
+                  Enter email <p className='text-red-500 text-md font-thin'>{emailError && '(Invalid credential)'}</p>
+                </label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                       <path d="M22 7.53516V17.0002C22 17.7654 21.7077 18.5017 21.1827 19.0584C20.6578 19.6152 19.9399 19.9503 19.176 19.9952L19 20.0002H5C4.23479 20.0002 3.49849 19.7078 2.94174 19.1829C2.38499 18.6579 2.04989 17.9401 2.005 17.1762L2 17.0002V7.53516L11.445 13.8322L11.561 13.8982C11.6977 13.965 11.8478 13.9997 12 13.9997C12.1522 13.9997 12.3023 13.965 12.439 13.8982L12.555 13.8322L22 7.53516Z" fill="#ADADAD"/>
+                       <path d="M19 4C20.08 4 21.027 4.57 21.555 5.427L12 11.797L2.44501 5.427C2.6958 5.01982 3.0403 4.6785 3.44978 4.43149C3.85926 4.18448 4.32186 4.03894 4.79901 4.007L5.00001 4H19Z" fill="#ADADAD"/>
+                     </svg>
+                   </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={handleEmailChange}
+                    className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    placeholder="Enter your email"
+                  />
                 </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500"
-                  placeholder="Enter your email"
-                />
               </div>
-            </div>
+            ) : (
+              <div>
+                <label htmlFor="otp" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                  Enter otp
+                </label>
+                <input
+                  id="otp"
+                  name="otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500"
+                  placeholder="Enter otp"
+                />
+                <div className="text-right mt-2">
+                  <a href="#" onClick={handleResendOtp} className="text-default underline hover:text-blue-700 font-medium">Resend otp</a>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
             >
-              Verify
+              {step === 'email' ? 'Verify' : 'Verify'}
             </button>
 
             <div className="text-center">
-              <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">
-                Back to login
-              </Link>
+              {step === 'email' ? (
+                <p className="text-sm text-black">
+                  <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 underline">Back</Link>
+                </p>
+              ) : (
+                <p className="text-sm text-black">
+                  <a href="#" onClick={handleBackToEmail} className="font-semibold text-blue-600 hover:text-blue-700 underline">Back</a>
+                </p>
+              )}
             </div>
           </form>
+          
+          {emailError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600 font-medium mb-2">Email Requirements:</p>
+              <ul className="text-xs text-red-500 space-y-1">
+                <li>• Must be a valid email address</li>
+                <li>• Must contain @ symbol</li>
+                <li>• Must contain a domain name</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
