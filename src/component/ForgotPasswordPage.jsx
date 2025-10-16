@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { requestForgotPassword, validateOtp } from './API';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
@@ -10,6 +11,7 @@ const ForgotPasswordPage = () => {
   const [otp, setOtp] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [emailError, setEmailError] = useState(false);
+  const [otpError, setOtpError] = useState(false);
   const [step, setStep] = useState('email');
 
   const images = [login0, login1, login2];
@@ -26,12 +28,24 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     if (step === 'email') {
       // TODO: call API to send OTP to email
-      console.log('Forgot password: sending OTP to', email);
-      setStep('otp');
+      requestForgotPassword(email)
+        .then(() => setStep('otp'))
+        .catch((err) => {
+          console.error('Failed to send OTP:', err.message);
+        });
     } else {
-      // TODO: verify OTP
-      console.log('Verifying OTP', { email, otp });
-      navigate('/reset');
+      // Verify OTP format: exactly 6 digits
+      if (!/^\d{6}$/.test(otp)) {
+        setOtpError(true);
+        return;
+      }
+      setOtpError(false);
+      validateOtp({ email, otp, type: 'FORGOT PASSWORD' })
+        .then(() => navigate('/reset'))
+        .catch((err) => {
+          console.error('Invalid OTP:', err.message);
+          setOtpError(true);
+        });
     }
   };
 
@@ -170,13 +184,25 @@ const ForgotPasswordPage = () => {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  maxLength={6}
+                  onChange={(e) => {
+                    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtp(onlyDigits);
+                    if (onlyDigits && onlyDigits.length !== 6) {
+                      setOtpError(true);
+                    } else {
+                      setOtpError(false);
+                    }
+                  }}
                   className="w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500"
                   placeholder="Enter otp"
                 />
                 <div className="text-right mt-2">
                   <a href="#" onClick={handleResendOtp} className="text-default underline hover:text-blue-700 font-medium">Resend otp</a>
                 </div>
+                {otpError && (
+                  <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
+                )}
               </div>
             )}
 
