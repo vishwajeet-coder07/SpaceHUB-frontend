@@ -44,6 +44,26 @@ export async function resetPassword(payload) {
   return handleJson(response);
 }
 
+// --- Signup OTP helpers ---
+export async function requestSignupOtp(email) {
+  const url = `http://codewithketan.me/api/v1/signup-otp?email=${encodeURIComponent(email)}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handleJson(response);
+}
+
+export async function verifySignupOtp(payload) {
+  // expected payload: { email, otp }
+  const response = await fetch('http://codewithketan.me/api/v1/verify-signup-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(response);
+}
+
 async function handleJson(response) {
   let data;
   try {
