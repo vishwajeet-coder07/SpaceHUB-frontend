@@ -11,7 +11,7 @@ export async function loginUser(payload) {
   const response = await fetch('https://codewithketan.me/api/v1/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
   return handleJson(response);
 }
