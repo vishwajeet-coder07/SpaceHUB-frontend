@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { registerUser, requestSignupOtp, verifySignupOtp } from './API';
+import { registerUser, validateRegisterOtp, loginUser } from './API';
 import { Link, useNavigate } from 'react-router-dom';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
@@ -72,13 +72,13 @@ const SignupPage = () => {
     if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch) {
       return;
     }
+    // Backend contract: calling registration triggers sending OTP to email
     setLoading(true);
-    requestSignupOtp(formData.email)
-      .then(() => {
-        setStep(3);
-      })
+    const { firstName, lastName, email, password } = formData;
+    registerUser({ firstName, lastName, email, password })
+      .then(() => setStep(3))
       .catch((err) => {
-        console.error('Failed to send OTP:', err.message);
+        console.error('Failed to initiate registration/OTP:', err.message);
       })
       .finally(() => setLoading(false));
   };
@@ -92,16 +92,11 @@ const SignupPage = () => {
     }
     setOtpError(false);
     setLoading(true);
-    verifySignupOtp({ email: formData.email, otp: onlyDigits })
-      .then(() => {
-        const { firstName, lastName, email, password } = formData;
-        return registerUser({ firstName, lastName, email, password });
-      })
-      .then(() => {
-        navigate('/dashboard');
-      })
+    validateRegisterOtp({ email: formData.email, otp: onlyDigits })
+      .then(() => loginUser({ email: formData.email, password: formData.password }))
+      .then(() => navigate('/dashboard'))
       .catch((err) => {
-        console.error('OTP verification or registration failed:', err.message);
+        console.error('OTP verification or login failed:', err.message);
         setOtpError(true);
       })
       .finally(() => setLoading(false));
@@ -109,9 +104,11 @@ const SignupPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    if (!formData.email) return;
+    // Resend by re-triggering registration call per backend flow
+    if (!formData.email || !formData.password) return;
     setLoading(true);
-    requestSignupOtp(formData.email)
+    const { firstName, lastName, email, password } = formData;
+    registerUser({ firstName, lastName, email, password })
       .catch((err) => console.error('Failed to resend OTP:', err.message))
       .finally(() => setLoading(false));
   };
