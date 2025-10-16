@@ -72,7 +72,6 @@ const SignupPage = () => {
     if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch) {
       return;
     }
-    // Backend contract: calling registration triggers sending OTP to email
     setLoading(true);
     const { firstName, lastName, email, password } = formData;
     registerUser({ firstName, lastName, email, password })
@@ -104,7 +103,6 @@ const SignupPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    // Resend by re-triggering registration call per backend flow
     if (!formData.email || !formData.password) return;
     setLoading(true);
     const { firstName, lastName, email, password } = formData;

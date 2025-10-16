@@ -17,7 +17,7 @@ export async function loginUser(payload) {
 }
 
 export async function requestForgotPassword(email) {
-  const url = `http://codewithketan.me/api/v1/forgotpassword?email=${encodeURIComponent(email)}`;
+  const url = `https://codewithketan.me/api/v1/forgotpassword?email=${encodeURIComponent(email)}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' }
@@ -36,7 +36,7 @@ export async function validateOtp(payload) {
 }
 
 export async function resetPassword(payload) {
-  const response = await fetch('http://codewithketan.me/api/v1/resetpassword', {
+  const response = await fetch('https://codewithketan.me/api/v1/resetpassword', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
