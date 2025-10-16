@@ -17,10 +17,10 @@ export async function loginUser(payload) {
 }
 
 export async function requestForgotPassword(email) {
-  const url = `https://codewithketan.me/api/v1/forgotpassword?email=${encodeURIComponent(email)}`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+  const response = await fetch('https://codewithketan.me/api/v1/forgotpassword', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
   });
   return handleJson(response);
 }
