@@ -92,7 +92,7 @@ const SignupPage = () => {
     }
     setOtpError(false);
     setLoading(true);
-    validateRegisterOtp({ email: formData.email, otp: onlyDigits })
+    validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
       .then(() => loginUser({ email: formData.email, password: formData.password }))
       .then(() => navigate('/dashboard'))
       .catch((err) => {

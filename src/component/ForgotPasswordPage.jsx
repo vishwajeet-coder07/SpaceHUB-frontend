@@ -41,7 +41,10 @@ const ForgotPasswordPage = () => {
       }
       setOtpError(false);
       validateOtp({ email, otp, type: 'FORGOT PASSWORD' })
-        .then(() => navigate('/reset'))
+        .then(() => {
+          try { sessionStorage.setItem('resetEmail', email); } catch {}
+          return navigate('/reset');
+        })
         .catch((err) => {
           console.error('Invalid OTP:', err.message);
           setOtpError(true);
