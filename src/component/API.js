@@ -52,11 +52,11 @@ export async function resendRegisterOtp(email, registrationToken) {
   return handleJson(response);
 }
 
-export async function resendForgotOtp(email, forgotToken) {
+export async function resendForgotOtp(forgotToken) {
   const response = await fetch('https://codewithketan.me/api/v1/resendforgototp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email, sessionToken: forgotToken })
+    body: JSON.stringify({tempToken: forgotToken })
   });
   return handleJson(response);
 }

@@ -61,8 +61,8 @@ const ForgotPasswordPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    if (!forgotToken || !email) return;
-    resendForgotOtp(email, forgotToken)
+    if (!forgotToken) return;
+    resendForgotOtp(forgotToken)
       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
       });

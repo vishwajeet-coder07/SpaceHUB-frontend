@@ -14,7 +14,7 @@ const SignupPage = () => {
     password: '',
     confirmPassword: ''
   });
-  const [step, setStep] = useState(1); // 1: name, 2: credentials, 3: otp
+  const [step, setStep] = useState(1);
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [otp, setOtp] = useState('');
