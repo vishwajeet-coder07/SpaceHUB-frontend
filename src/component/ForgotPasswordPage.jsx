@@ -27,22 +27,24 @@ const ForgotPasswordPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (step === 'email') {
-      // TODO: call API to send OTP to email
       requestForgotPassword(email)
         .then(() => setStep('otp'))
         .catch((err) => {
           console.error('Failed to send OTP:', err.message);
         });
     } else {
-      // Verify OTP format: exactly 6 digits
       if (!/^\d{6}$/.test(otp)) {
         setOtpError(true);
         return;
       }
       setOtpError(false);
-      validateOtp({ email, otp, type: 'FORGOT PASSWORD' })
-        .then(() => {
-          try { sessionStorage.setItem('resetEmail', email); } catch {}
+      validateOtp({ email, otp })
+        .then((res) => {
+          try {
+            sessionStorage.setItem('resetEmail', email);
+            const token = (res && res.data && res.data.accessToken) ? res.data.accessToken : (res && res.accessToken);
+            if (token) sessionStorage.setItem('resetAccessToken', token);
+          } catch {}
           return navigate('/reset');
         })
         .catch((err) => {
@@ -54,8 +56,11 @@ const ForgotPasswordPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    // TODO: call API to resend OTP
-    console.log('Resend OTP to', email);
+    requestForgotPassword(email)
+      .then(() => setStep('otp'))
+      .catch((err) => {
+        console.error('Failed to resend OTP:', err.message);
+      });
   };
 
   const handleBackToEmail = (e) => {

@@ -46,14 +46,10 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     if (!passwordError && !passwordMismatch && password && confirmPassword) {
       const email = sessionStorage.getItem('resetEmail') || '';
-      resetPassword({ email, newPassword: password })
-        .then(() => {
-          console.log('Password reset successful');
-          navigate('/dashboard');
-        })
-        .catch((err) => {
-          console.error('Reset failed:', err.message);
-        });
+      const accessToken = sessionStorage.getItem('resetAccessToken') || '';
+      resetPassword({ email, newPassword: password }, accessToken)
+        .then(() => navigate('/dashboard'))
+        .catch((err) => console.error('Reset failed:', err.message));
     }
   };
 

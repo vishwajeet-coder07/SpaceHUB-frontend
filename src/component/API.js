@@ -25,9 +25,8 @@ export async function requestForgotPassword(email) {
   return handleJson(response);
 }
 
-// Validate OTP uses the login endpoint per spec
 export async function validateOtp(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/login', {
+  const response = await fetch('https://codewithketan.me/api/v1/validateforgototp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -35,18 +34,20 @@ export async function validateOtp(payload) {
   return handleJson(response);
 }
 
-export async function resetPassword(payload) {
+export async function resetPassword(payload, accessToken) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
   const response = await fetch('https://codewithketan.me/api/v1/resetpassword', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload)
   });
   return handleJson(response);
 }
 
-// --- Signup OTP helpers ---
 export async function validateRegisterOtp(payload) {
-  // expected payload: { email, otp }
   const response = await fetch('https://codewithketan.me/api/v1/validateregisterotp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
