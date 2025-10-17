@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { registerUser, validateRegisterOtp, loginUser } from './API';
+import { registerUser, validateRegisterOtp, loginUser, resendRegisterOtp } from './API';
 import { Link, useNavigate } from 'react-router-dom';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
@@ -20,6 +20,7 @@ const SignupPage = () => {
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [registrationToken, setRegistrationToken] = useState('');
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -75,7 +76,11 @@ const SignupPage = () => {
     setLoading(true);
     const { firstName, lastName, email, password } = formData;
     registerUser({ firstName, lastName, email, password })
-      .then(() => setStep(3))
+      .then((res) => {
+        const token = (res && res.data) ? res.data : '';
+        setRegistrationToken(token);
+        setStep(3);
+      })
       .catch((err) => {
         console.error('Failed to initiate registration/OTP:', err.message);
       })
@@ -103,10 +108,9 @@ const SignupPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) return;
+    if (!registrationToken || !formData.email) return;
     setLoading(true);
-    const { firstName, lastName, email, password } = formData;
-    registerUser({ firstName, lastName, email, password })
+    resendRegisterOtp(formData.email, registrationToken)
       .catch((err) => console.error('Failed to resend OTP:', err.message))
       .finally(() => setLoading(false));
   };

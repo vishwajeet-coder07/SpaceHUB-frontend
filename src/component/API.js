@@ -34,15 +34,29 @@ export async function validateOtp(payload) {
   return handleJson(response);
 }
 
-export async function resetPassword(payload, accessToken) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
+export async function resetPassword(payload) {
   const response = await fetch('https://codewithketan.me/api/v1/resetpassword', {
     method: 'POST',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
+  });
+  return handleJson(response);
+}
+
+export async function resendRegisterOtp(email, registrationToken) {
+  const response = await fetch('https://codewithketan.me/api/v1/resendotp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, sessionToken: registrationToken }),
+  });
+  return handleJson(response);
+}
+
+export async function resendForgotOtp(email, forgotToken) {
+  const response = await fetch('https://codewithketan.me/api/v1/resendforgototp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, sessionToken: forgotToken })
   });
   return handleJson(response);
 }

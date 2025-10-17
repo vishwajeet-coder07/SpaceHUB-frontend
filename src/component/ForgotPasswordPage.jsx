@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { requestForgotPassword, validateOtp } from './API';
+import { requestForgotPassword, validateOtp, resendForgotOtp } from './API';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
@@ -13,10 +13,11 @@ const ForgotPasswordPage = () => {
   const [emailError, setEmailError] = useState(false);
   const [otpError, setOtpError] = useState(false);
   const [step, setStep] = useState('email');
+  const [forgotToken, setForgotToken] = useState('');
 
   const images = [login0, login1, login2];
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, 3000);
@@ -28,7 +29,11 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     if (step === 'email') {
       requestForgotPassword(email)
-        .then(() => setStep('otp'))
+        .then((res) => {
+          const token = (res && res.data) ? res.data : '';
+          setForgotToken(token);
+          setStep('otp');
+        })
         .catch((err) => {
           console.error('Failed to send OTP:', err.message);
         });
@@ -56,8 +61,8 @@ const ForgotPasswordPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    requestForgotPassword(email)
-      .then(() => setStep('otp'))
+    if (!forgotToken || !email) return;
+    resendForgotOtp(email, forgotToken)
       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
       });

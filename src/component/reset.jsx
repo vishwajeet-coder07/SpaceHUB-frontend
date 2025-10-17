@@ -46,8 +46,8 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     if (!passwordError && !passwordMismatch && password && confirmPassword) {
       const email = sessionStorage.getItem('resetEmail') || '';
-      const accessToken = sessionStorage.getItem('resetAccessToken') || '';
-      resetPassword({ email, newPassword: password }, accessToken)
+      const tempToken = sessionStorage.getItem('resetAccessToken') || '';
+      resetPassword({ email, newPassword: password, tempToken })
         .then(() => navigate('/dashboard'))
         .catch((err) => console.error('Reset failed:', err.message));
     }
