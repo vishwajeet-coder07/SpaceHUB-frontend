@@ -68,7 +68,7 @@ const LoginPage = () => {
   };
 
   const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9]).{8,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
     return passwordRegex.test(password);
   };
 
@@ -113,12 +113,12 @@ const LoginPage = () => {
       </style>
       <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
         {error && (
-          <div className="fixed z-50 text-red-600 bg-blue-100" style={{ width: '16.8125rem', height: '3.875rem', top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem' }}>
-            <div className="flex items-center h-full" style={{ paddingTop: '1.1875rem', paddingRight: '2rem', paddingBottom: '1.1875rem', paddingLeft: '1.875rem' }}>
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <div className="fixed z-50 text-red-600 bg-blue-100 max-w-sm" style={{ top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem', minHeight: '3.875rem' }}>
+            <div className="flex items-start p-4">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              {error}
+              <span className="text-sm leading-relaxed break-words">{error}</span>
             </div>
           </div>
         )}
@@ -296,6 +296,7 @@ const LoginPage = () => {
                 <li>• Must contain at least one uppercase letter</li>
                 <li>• Must contain at least one digit (0-9)</li>
                 <li>• Must contain at least one special character (#, @, !, %, &)</li>
+                <li>• Must not contain spaces</li>
               </ul>
             </div>
           )}
