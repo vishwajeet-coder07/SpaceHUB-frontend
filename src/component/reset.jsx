@@ -13,6 +13,8 @@ const ResetPasswordPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const images = [login0, login1, login2];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -45,11 +47,17 @@ const ResetPasswordPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!passwordError && !passwordMismatch && password && confirmPassword) {
+      setLoading(true);
+      setError('');
       const email = sessionStorage.getItem('resetEmail') || '';
       const tempToken = sessionStorage.getItem('resetAccessToken') || '';
       resetPassword({ email, newPassword: password, tempToken })
         .then(() => navigate('/dashboard'))
-        .catch((err) => console.error('Reset failed:', err.message));
+        .catch((err) => {
+          console.error('Reset failed:', err.message);
+          setError(err.message);
+        })
+        .finally(() => setLoading(false));
     }
   };
 
@@ -78,6 +86,16 @@ const ResetPasswordPage = () => {
         `}
       </style>
       <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
+        {error && (
+          <div className="fixed z-50 text-red-600 bg-blue-100" style={{ width: '16.8125rem', height: '3.875rem', top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem' }}>
+            <div className="flex items-center h-full" style={{ paddingTop: '1.1875rem', paddingRight: '2rem', paddingBottom: '1.1875rem', paddingLeft: '1.875rem' }}>
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </div>
+          </div>
+        )}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen bg-accent">
           {images.map((image, index) => (
             <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}>
@@ -112,7 +130,7 @@ const ResetPasswordPage = () => {
                     value={password}
                     onChange={onPasswordChange}
                     data-show={showPassword}
-                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowPassword((p)=>!p)} tabIndex={-1}>
@@ -144,7 +162,7 @@ const ResetPasswordPage = () => {
                     value={confirmPassword}
                     onChange={onConfirmChange}
                     data-show={showConfirmPassword}
-                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Re-enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowConfirmPassword((p)=>!p)} tabIndex={-1}>
@@ -161,7 +179,9 @@ const ResetPasswordPage = () => {
                 </div>
               </div>
 
-              <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base">Create</button>
+              <button type="submit" disabled={loading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60">
+                {loading ? 'Creating...' : 'Create'}
+              </button>
 
               <div className="text-center">
                 <p className="text-sm text-black">

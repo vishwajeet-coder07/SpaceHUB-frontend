@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #2B6CB0; /* blue-700 approximation, replace with Figma token if different */
+  --color-primary: #2B6CB0; /* blue-700 approximation */
   --color-primary-600: #2563eb; /* blue-600 */
   --color-primary-700: #1d4ed8; /* blue-700 */
   --color-bg-accent: #B9DDFF; /* left panel bg in auth */

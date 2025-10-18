@@ -14,6 +14,9 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [invalidCredentials, setInvalidCredentials] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const images = [login0, login1, login2];
 
@@ -28,6 +31,9 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setInvalidCredentials(false);
+    setError('');
+    setLoading(true);
     loginUser({ email, password })
       .then(() => {
         console.log('Login successful');
@@ -35,7 +41,13 @@ const LoginPage = () => {
       })
       .catch((err) => {
         console.error('Login failed:', err.message);
-      });
+        if (err.message.includes('Invalid credentials')) {
+          setInvalidCredentials(true);
+        } else {
+          setError(err.message);
+        }
+      })
+      .finally(() => setLoading(false));
   };
 
   const validateEmail = (email) => {
@@ -46,6 +58,8 @@ const LoginPage = () => {
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setEmail(value);
+    setInvalidCredentials(false);
+    setError('');
     if (value && !validateEmail(value)) {
       setEmailError(true);
     } else {
@@ -61,6 +75,8 @@ const LoginPage = () => {
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     setPassword(value);
+    setInvalidCredentials(false);
+    setError('');
     if (value && !validatePassword(value)) {
       setPasswordError(true);
     } else {
@@ -96,6 +112,16 @@ const LoginPage = () => {
         `}
       </style>
       <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
+        {error && (
+          <div className="fixed z-50 text-red-600 bg-blue-100" style={{ width: '16.8125rem', height: '3.875rem', top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem' }}>
+            <div className="flex items-center h-full" style={{ paddingTop: '1.1875rem', paddingRight: '2rem', paddingBottom: '1.1875rem', paddingLeft: '1.875rem' }}>
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </div>
+          </div>
+        )}
 
   <div className="hidden lg:flex lg:w-[50%] relative overflow-hidden h-full min-h-screen bg-accent">
         {images.map((image, index) => (
@@ -115,7 +141,6 @@ const LoginPage = () => {
     
       </div>
 
-      {/* Mobile Image Section */}
       <div className="lg:hidden w-full min-h-[320px] bg-accent flex flex-col justify-center items-center px-0 py-4">
         <div className="text-left mb-4 w-full px-6">
           <h1 className="text-2xl font-bold text-blue-800 leading-tight text-heading">
@@ -159,7 +184,7 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
-                Enter email <p className='text-red-500 text-md font-thin'>{emailError && '(Invalid credential)'}</p>
+                Enter email <p className='text-red-500 text-md font-thin'>{invalidCredentials && '(Invalid credential)'}</p>
               </label>
               <div className="relative">
                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -176,7 +201,7 @@ const LoginPage = () => {
                    required
                    value={email}
                    onChange={handleEmailChange}
-                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary  transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary  transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                    placeholder="Enter your email"
                  />
               </div>
@@ -184,7 +209,7 @@ const LoginPage = () => {
 
             <div>
               <label htmlFor="password" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
-                Enter Password <p className='text-red-500 text-md font-thin'>{passwordError && '(Invalid credential)'}</p>
+                Enter Password 
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -201,7 +226,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={handlePasswordChange}
                   data-show={showPassword}
-                  className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500`}
+                  className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500`}
                   placeholder="Enter your password"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -236,9 +261,10 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
             >
-              Login
+              {loading ? 'Logging in...' : 'Login'}
             </button>
 
             <div className="text-center">

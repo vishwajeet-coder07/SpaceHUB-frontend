@@ -12,8 +12,11 @@ const ForgotPasswordPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [emailError, setEmailError] = useState(false);
   const [otpError, setOtpError] = useState(false);
+  const [invalidOtp, setInvalidOtp] = useState(false);
   const [step, setStep] = useState('email');
   const [forgotToken, setForgotToken] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const images = [login0, login1, login2];
 
@@ -27,7 +30,9 @@ const ForgotPasswordPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
     if (step === 'email') {
+      setLoading(true);
       requestForgotPassword(email)
         .then((res) => {
           const token = (res && res.data) ? res.data : '';
@@ -36,36 +41,49 @@ const ForgotPasswordPage = () => {
         })
         .catch((err) => {
           console.error('Failed to send OTP:', err.message);
-        });
+          setError(err.message);
+        })
+        .finally(() => setLoading(false));
     } else {
       if (!/^\d{6}$/.test(otp)) {
         setOtpError(true);
         return;
       }
       setOtpError(false);
+      setLoading(true);
       validateOtp({ email, otp })
         .then((res) => {
           try {
             sessionStorage.setItem('resetEmail', email);
             const token = (res && res.data && res.data.accessToken) ? res.data.accessToken : (res && res.accessToken);
             if (token) sessionStorage.setItem('resetAccessToken', token);
-          } catch {}
+          } catch {
+            // error ke liye
+          }
           return navigate('/reset');
         })
         .catch((err) => {
           console.error('Invalid OTP:', err.message);
-          setOtpError(true);
-        });
+          setError(err.message);
+          if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
+            setInvalidOtp(true);
+          }
+        })
+        .finally(() => setLoading(false));
     }
   };
 
   const handleResendOtp = (e) => {
     e.preventDefault();
     if (!forgotToken) return;
+    setLoading(true);
+    setError('');
     resendForgotOtp(forgotToken)
-      .catch((err) => {
+       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
-      });
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
   };
 
   const handleBackToEmail = (e) => {
@@ -90,7 +108,17 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
+      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
+        {error && (
+          <div className="fixed z-50 text-red-600 bg-blue-100" style={{ width: '16.8125rem', height: '3.875rem', top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem' }}>
+            <div className="flex items-center h-full" style={{ paddingTop: '1.1875rem', paddingRight: '2rem', paddingBottom: '1.1875rem', paddingLeft: '1.875rem' }}>
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </div>
+          </div>
+        )}
       {/* Desktop Left side - Image Slideshow */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen bg-accent">
         {images.map((image, index) => (
@@ -180,38 +208,55 @@ const ForgotPasswordPage = () => {
                     required
                     value={email}
                     onChange={handleEmailChange}
-                    className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter your email"
-                  />
+                    />
+                  </div>
+                  {emailError && (
+                    <p className="mt-2 text-sm text-red-600">Please enter a valid email address</p>
+                  )}
                 </div>
-              </div>
             ) : (
               <div>
                 <label htmlFor="otp" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
-                  Enter otp
+                  Enter otp {invalidOtp && <span className="text-red-500 font-normal">(Invalid otp)</span>}
                 </label>
-                <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  value={otp}
-                  maxLength={6}
-                  onChange={(e) => {
-                    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setOtp(onlyDigits);
-                    if (onlyDigits && onlyDigits.length !== 6) {
-                      setOtpError(true);
-                    } else {
-                      setOtpError(false);
-                    }
-                  }}
-                  className="w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500"
-                  placeholder="Enter otp"
-                />
+                <div className="relative">
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    maxLength={6}
+                    onChange={(e) => {
+                      const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtp(onlyDigits);
+                      setInvalidOtp(false);
+                      if (onlyDigits && onlyDigits.length !== 6) {
+                        setOtpError(true);
+                      } else {
+                        setOtpError(false);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 pr-12 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    placeholder="Enter otp"
+                  />
+                  {invalidOtp && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="text-right mt-2">
-                  <a href="#" onClick={handleResendOtp} className="text-default underline hover:text-blue-700 font-medium">Resend otp</a>
+                  <a href="#" onClick={handleResendOtp} className={`text-default underline hover:text-blue-700 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {loading ? 'Sending...' : 'Resend otp'}
+                  </a>
                 </div>
                 {otpError && (
                   <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
@@ -221,9 +266,10 @@ const ForgotPasswordPage = () => {
 
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
             >
-              {step === 'email' ? 'Verify' : 'Verify'}
+              {loading ? (step === 'email' ? 'Sending...' : 'Verifying...') : (step === 'email' ? 'Send OTP' : 'Verify')}
             </button>
 
             <div className="text-center">

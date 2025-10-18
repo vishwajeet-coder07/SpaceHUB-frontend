@@ -19,8 +19,10 @@ const SignupPage = () => {
   const [passwordError, setPasswordError] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState(false);
+  const [invalidOtp, setInvalidOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registrationToken, setRegistrationToken] = useState('');
+  const [error, setError] = useState('');
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -59,6 +61,7 @@ const SignupPage = () => {
 
   const handleStepOneSubmit = (e) => {
     e.preventDefault();
+    setError('');
     if (formData.firstName && formData.lastName) {
       setStep(2);
     }
@@ -74,6 +77,7 @@ const SignupPage = () => {
       return;
     }
     setLoading(true);
+    setError('');
     const { firstName, lastName, email, password } = formData;
     registerUser({ firstName, lastName, email, password })
       .then((res) => {
@@ -83,6 +87,7 @@ const SignupPage = () => {
       })
       .catch((err) => {
         console.error('Failed to initiate registration/OTP:', err.message);
+        setError(err.message);
       })
       .finally(() => setLoading(false));
   };
@@ -96,12 +101,17 @@ const SignupPage = () => {
     }
     setOtpError(false);
     setLoading(true);
+    setError('');
+    setInvalidOtp(false);
     validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
       .then(() => loginUser({ email: formData.email, password: formData.password }))
       .then(() => navigate('/dashboard'))
       .catch((err) => {
         console.error('OTP verification or login failed:', err.message);
-        setOtpError(true);
+        setError(err.message);
+        if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
+          setInvalidOtp(true);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -110,8 +120,12 @@ const SignupPage = () => {
     e.preventDefault();
     if (!registrationToken || !formData.email) return;
     setLoading(true);
+    setError('');
     resendRegisterOtp(formData.email, registrationToken)
-      .catch((err) => console.error('Failed to resend OTP:', err.message))
+      .catch((err) => {
+        console.error('Failed to resend OTP:', err.message);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -150,7 +164,17 @@ const SignupPage = () => {
           }
         `}
       </style>
-      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
+      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
+        {error && (
+          <div className="fixed z-50 text-red-600 bg-blue-100" style={{ width: '16.8125rem', height: '3.875rem', top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem' }}>
+            <div className="flex items-center h-full" style={{ paddingTop: '1.1875rem', paddingRight: '2rem', paddingBottom: '1.1875rem', paddingLeft: '1.875rem' }}>
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </div>
+          </div>
+        )}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen bg-accent">
         {images.map((image, index) => (
           <div
@@ -194,23 +218,24 @@ const SignupPage = () => {
         </div>
       </div>
 
-         <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
-          <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-               <div className="mx-auto h-40 w-40 flex items-center justify-center pt-10 ">
-                 <img src="/favicon.png" alt="Logo" className="h-15 w-22" />
+         <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-[2.25rem] rounded-l-[2.25rem] lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+          <div className="w-full max-w-[32rem] mb-30">
+            <div className="text-center mb-17">
+               <div className="mx-auto h-40 w-40 flex items-center justify-center pt-25 ">
+                 <img src="/favicon.png" alt="Logo" className="h-17 w-24" />
                </div>
-                <h3 className="text-[1.75rem] lg:text-[1.75rem] font-semibold text-default mb-1">Create your account</h3>
-              <p className="text-muted text-[1.25rem] font-normal">
-                Welcome! Please enter your details
+        
+                <h3 className="text-[1.75rem] lg:text-[1.75rem] font-medium text-default mb-2 ">Signup to your account</h3>
+              <p className="text-muted text-[1.25rem] font-body">
+               Create your account to start collaborating.
               </p>
-             
+         
             </div>
             {step === 1 ? (
               <form className="space-y-6" onSubmit={handleStepOneSubmit}>
-                <div>
+                <div className='mt-3'>
                   <label htmlFor="firstName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
-                    First Name
+                    First name
                   </label>
                   <input
                     id="firstName"
@@ -219,13 +244,13 @@ const SignupPage = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lgx ring-primary focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem]"
-                    placeholder="First Name"
+                    className="w-full px-4 text-base border border-gray-400 rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.6rem] max-w-[32rem]"
+                    placeholder="Enter first name"
                   />
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
-                    Last Name
+                    Last name
                   </label>
                   <input
                     id="lastName"
@@ -234,30 +259,31 @@ const SignupPage = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lgx ring-primary focus:border-blue-500 transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem]"
-                    placeholder="Last Name"
+                    className="w-full px-4 text-base border border-gray-400 rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.75rem] max-w-[32rem]"
+                    placeholder="Enter last name"
                   />
                 </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-lgx text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
+                  >
+                    {loading ? 'Loading...' : 'Continue'}
+                  </button>
                 <div className="text-center mb-2">
-                  <p className="text-sm text-black">
-                    Already have an account?{' '}
+                  <p className="text-md text-zinc-700">
+                    <span className="font-semibold ">Have an account?</span>{' '}
                     <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 underline">
                       Login
                     </Link>
                   </p>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base"
-                >
-                  Next
-                </button>
               </form>
             ) : step === 2 ? (
               <form className="space-y-6" onSubmit={handleRequestOtpAndNext}>
                 <div>
                   <label htmlFor="email" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
-                    Enter email <p className='text-red-500 text-md font-thin'>{emailError && '(Invalid credential)'}</p>
+                    Enter email
                   </label>
                   <div className="relative">
                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -274,7 +300,7 @@ const SignupPage = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`w-full pl-10 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your email"
                     />
                   </div>
@@ -282,7 +308,7 @@ const SignupPage = () => {
 
                 <div>
                   <label htmlFor="password" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
-                    Enter Password <p className='text-red-500 text-md font-thin'>{passwordError && '(Invalid credential)'}</p>
+                    Enter Password
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -299,7 +325,7 @@ const SignupPage = () => {
                       value={formData.password}
                       onChange={handleChange}
                       data-show={showPassword}
-                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -340,14 +366,13 @@ const SignupPage = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       data-show={showConfirmPassword}
-                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Confirm your password"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <button
                         type="button"
                         onClick={() => {
-                          console.log('Confirm password eye button clicked, current showConfirmPassword:', showConfirmPassword);
                           setShowConfirmPassword(!showConfirmPassword);
                         }}
                         className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
@@ -366,28 +391,25 @@ const SignupPage = () => {
                   </div>
                 </div>
 
-                <div className="text-center mb-2">
-                  <p className="text-sm text-black">
-                    Already have an account?{' '}
-                    <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 underline">
-                      Login
-                    </Link>
-                  </p>
-                </div>
 
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
                 >
-                  {loading ? 'Sending OTP...' : 'Send OTP'}
+                  {loading ? 'Sending OTP...' : 'Get Started'}
                 </button>
+                <div className="text-center mb-2">
+                  <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 underline">
+                    Back
+                  </Link>
+                </div>
               </form>
             ) : (
               <form className="space-y-6" onSubmit={handleVerifyOtpAndRegister}>
                 <div>
                   <label htmlFor="otp" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
-                    Enter otp
+                    Enter otp {invalidOtp && <span className="text-red-500 font-normal">(Invalid otp)</span>}
                   </label>
                   <input
                     id="otp"
@@ -397,20 +419,23 @@ const SignupPage = () => {
                     autoComplete="one-time-code"
                     value={otp}
                     maxLength={6}
-                    onChange={(e) => {
-                      const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setOtp(onlyDigits);
-                      if (onlyDigits && onlyDigits.length !== 6) {
-                        setOtpError(true);
-                      } else {
-                        setOtpError(false);
-                      }
-                    }}
-                    className={`w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-gray-500 h-[2.75rem] max-w-[30.875rem] ${otpError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      onChange={(e) => {
+                        const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setOtp(onlyDigits);
+                        setInvalidOtp(false);
+                        if (onlyDigits && onlyDigits.length !== 6) {
+                          setOtpError(true);
+                        } else {
+                          setOtpError(false);
+                        }
+                      }}
+                    className={`w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter otp"
                   />
                   <div className="text-right mt-2">
-                    <a href="#" onClick={handleResendOtp} className="text-default underline hover:text-blue-700 font-medium">Resend otp</a>
+                    <a href="#" onClick={handleResendOtp} className={`text-default underline hover:text-blue-700 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      {loading ? 'Sending...' : 'Resend otp'}
+                    </a>
                   </div>
                   {otpError && (
                     <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
@@ -420,10 +445,15 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
+                  className="w-full h-[2.75rem] flex justify-center pt-[0.4rem] px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
                 >
-                  {loading ? 'Verifying...' : 'Verify & Create Account'}
+                  {loading ? 'Verifying...' : 'Verify'}
                 </button>
+                <div className="text-center mb-2">
+                  <Link to="/signup" className="font-semibold text-blue-600 hover:text-blue-700 underline">
+                    Back to signup
+                  </Link>
+                </div>
               </form>
             )}
             
