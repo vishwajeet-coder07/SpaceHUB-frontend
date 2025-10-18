@@ -418,7 +418,7 @@ const SignupPage = () => {
                   {loading ? 'Sending OTP...' : 'Get Started'}
                 </button>
                 <div className="text-center mb-2">
-                  <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700 underline">
+                  <Link to="#" onClick={handleBackToStepOne} className="font-semibold text-blue-600 hover:text-blue-700 underline">
                     Back
                   </Link>
                 </div>
