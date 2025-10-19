@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { resetPassword } from './API';
+import { useAuth } from '../contexts/AuthContext';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,14 +54,18 @@ const ResetPasswordPage = () => {
       const email = sessionStorage.getItem('resetEmail') || '';
       const tempToken = sessionStorage.getItem('resetAccessToken') || '';
       resetPassword({ email, newPassword: password, tempToken })
-        .then(() => navigate('/dashboard'))
+        .then((data) => {
+          // Use the login function from AuthContext
+          login(data.user, data.accessToken);
+          navigate('/dashboard');
+        })
         .catch((err) => {
           console.error('Reset failed:', err.message);
           setError(err.message);
         })
         .finally(() => setLoading(false));
     }
-  };
+  }; 
 
   return (
     <>

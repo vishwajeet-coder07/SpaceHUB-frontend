@@ -13,7 +13,17 @@ export async function loginUser(payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
-  return handleJson(response);
+  const data = await handleJson(response);
+  
+  // Store authentication data if login is successful
+  if (data && data.accessToken) {
+    localStorage.setItem('accessToken', data.accessToken);
+    if (data.user) {
+      localStorage.setItem('userData', JSON.stringify(data.user));
+    }
+  }
+  
+  return data;
 }
 
 export async function requestForgotPassword(email) {
@@ -40,7 +50,17 @@ export async function resetPassword(payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  return handleJson(response);
+  const data = await handleJson(response);
+  
+  // Store authentication data if reset is successful
+  if (data && data.accessToken) {
+    localStorage.setItem('accessToken', data.accessToken);
+    if (data.user) {
+      localStorage.setItem('userData', JSON.stringify(data.user));
+    }
+  }
+  
+  return data;
 }
 
 export async function resendRegisterOtp(email, registrationToken) {
@@ -83,5 +103,36 @@ async function handleJson(response) {
   }
   return data;
 }
+
+// Helper function to get auth headers
+export const getAuthHeaders = () => {
+  const token = localStorage.getItem('accessToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
+// Helper function to make authenticated requests
+export const authenticatedFetch = async (url, options = {}) => {
+  const headers = getAuthHeaders();
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers
+    }
+  });
+  
+  // If unauthorized, clear auth data
+  if (response.status === 401) {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userData');
+    window.location.href = '/login';
+  }
+  
+  return response;
+};
 
 

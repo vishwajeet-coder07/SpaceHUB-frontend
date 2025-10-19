@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { loginUser } from './API';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import login0 from '../assets/Auth.page/login0.png';
 import login1 from '../assets/Auth.page/login1.png';
 import login2 from '../assets/Auth.page/login2.png';
@@ -8,6 +9,7 @@ import login2 from '../assets/Auth.page/login2.png';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -35,8 +37,10 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     loginUser({ email, password })
-      .then(() => {
+      .then((data) => {
         console.log('Login successful');
+        // Use the login function from AuthContext
+        login(data.user, data.accessToken);
         navigate('/dashboard');
       })
       .catch((err) => {
