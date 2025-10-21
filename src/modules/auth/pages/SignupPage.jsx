@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { registerUser, validateRegisterOtp, loginUser, resendRegisterOtp } from './API';
+import { registerUser, validateRegisterOtp, loginUser, resendRegisterOtp } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
-import login0 from '../assets/Auth.page/login0.png';
-import login1 from '../assets/Auth.page/login1.png';
-import login2 from '../assets/Auth.page/login2.png';
+import login0 from '../../../assets/Auth.page/login0.png';
+import login1 from '../../../assets/Auth.page/login1.png';
+import login2 from '../../../assets/Auth.page/login2.png';
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -17,14 +17,55 @@ const SignupPage = () => {
   const [step, setStep] = useState(1);
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [firstNameError, setFirstNameError] = useState(false);
+  const [lastNameError, setLastNameError] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState(false);
   const [invalidOtp, setInvalidOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registrationToken, setRegistrationToken] = useState('');
   const [error, setError] = useState('');
+
+
+  const validateName = (name, trimmedValue) => {
+    if (name && trimmedValue.length === 0) {
+      return true;
+    } else if (name && trimmedValue.length < 2) {
+      return true;
+    } else if (name && trimmedValue.length > 50) {
+      return true;
+    } else if (name && !/^[A-Za-z]+$/.test(trimmedValue)) {
+      return true;
+    }
+    return false;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'firstName' || name === 'lastName') {
+      // allow only letters (remove digits, punctuation and spaces)
+      const cleanValue = value.replace(/[^A-Za-z]/g, '');
+      const limitedValue = cleanValue.slice(0, 50);
+      
+      setFormData({
+        ...formData,
+        [name]: limitedValue
+      });
+      
+      const trimmedValue = limitedValue.trim();
+      
+      if (name === 'firstName') {
+        setFirstNameError(validateName(limitedValue, trimmedValue));
+      }
+      
+      if (name === 'lastName') {
+        setLastNameError(validateName(limitedValue, trimmedValue));
+      }
+      
+      return;
+    }
+    
     setFormData({
       ...formData,
       [name]: value
@@ -62,7 +103,23 @@ const SignupPage = () => {
   const handleStepOneSubmit = (e) => {
     e.preventDefault();
     setError('');
-    if (formData.firstName && formData.lastName) {
+    
+    const trimmedFirstName = formData.firstName.trim();
+    const trimmedLastName = formData.lastName.trim();
+    
+    const isFirstNameValid = !validateName(formData.firstName, trimmedFirstName);
+    const isLastNameValid = !validateName(formData.lastName, trimmedLastName);
+    
+    setFirstNameError(!isFirstNameValid);
+    setLastNameError(!isLastNameValid);
+    
+    setFormData({
+      ...formData,
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName
+    });
+    
+    if (isFirstNameValid && isLastNameValid) {
       setStep(2);
     }
   };
@@ -134,6 +191,8 @@ const SignupPage = () => {
     setStep(1);
     setOtp('');
     setError('');
+    setInvalidOtp(false);
+    setOtpError(false);
   };
 
   const images = [login0, login1, login2];
@@ -225,7 +284,7 @@ const SignupPage = () => {
         </div>
       </div>
 
-         <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-[2.25rem] rounded-l-[2.25rem] lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+         <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-[2.25rem] rounded-t-[2.25rem] rounded-l-[2.25rem] lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-[32rem] mb-30">
             <div className="text-center mb-17">
                <div className="mx-auto h-40 w-40 flex items-center justify-center pt-25 ">
@@ -251,7 +310,7 @@ const SignupPage = () => {
             </div>
             {step === 1 ? (
               <form className="space-y-6" onSubmit={handleStepOneSubmit}>
-                <div className='mt-3'>
+                <div className="m-0 p-0">
                   <label htmlFor="firstName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
                     First name
                   </label>
@@ -262,9 +321,32 @@ const SignupPage = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full px-4 text-base border border-gray-400 rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.6rem] max-w-[32rem]"
-                    placeholder="Enter first name"
+                    className={`w-full px-4 text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.6rem] max-w-[32rem] ${
+                      firstNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
+                    }`}
+                    placeholder="Enter first name (letters only, no spaces, max 50)"
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    {firstNameError && (
+                      <p className="text-red-500 text-sm">
+                        {formData.firstName.trim().length === 0 
+                          ? "First name is required" 
+                          : formData.firstName.trim().length < 2 
+                          ? "First name must be at least 2 characters long"
+                        : formData.firstName.trim().length > 50
+                        ? "First name cannot exceed 50 characters"
+                          : "First name can only contain letters (no spaces)"
+                        }
+                      </p>
+                    )}
+                    <p className={`text-xs ml-auto ${
+                      formData.firstName.length > 40 ? 'text-orange-500' : 
+                      formData.firstName.length > 30 ? 'text-yellow-500' : 
+                      'text-gray-400'
+                    }`}>
+                      {formData.firstName.length}/50
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
@@ -277,13 +359,36 @@ const SignupPage = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full px-4 text-base border border-gray-400 rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.75rem] max-w-[32rem]"
-                    placeholder="Enter last name"
+                    className={`w-full px-4 text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.75rem] max-w-[32rem] ${
+                      lastNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
+                    }`}
+                      placeholder="Enter last name (letters only, no spaces, max 50)"
                   />
+                  <div className="flex justify-between items-center mt-1">
+                    {lastNameError && (
+                      <p className="text-red-500 text-sm">
+                        {formData.lastName.trim().length === 0 
+                          ? "Last name is required" 
+                          : formData.lastName.trim().length < 2 
+                          ? "Last name must be at least 2 characters long"
+                        : formData.lastName.trim().length > 50
+                        ? "Last name cannot exceed 50 characters"
+                          : "Last name can only contain letters (no spaces)"
+                        }
+                      </p>
+                    )}
+                    <p className={`text-xs ml-auto ${
+                      formData.lastName.length > 40 ? 'text-orange-500' : 
+                      formData.lastName.length > 30 ? 'text-yellow-500' : 
+                      'text-gray-400'
+                    }`}>
+                      {formData.lastName.length}/50
+                    </p>
+                  </div>
                 </div>
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || firstNameError || lastNameError || !formData.firstName.trim() || !formData.lastName.trim()}
                     className="w-full h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-lgx text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
                   >
                     {loading ? 'Loading...' : 'Continue'}

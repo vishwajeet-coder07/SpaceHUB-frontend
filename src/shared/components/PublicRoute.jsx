@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../shared/contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children }) => {
+const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
@@ -12,13 +12,14 @@ const ProtectedRoute = ({ children }) => {
     return <LoadingSpinner message="Checking authentication..." />;
   }
 
-  // If not authenticated, redirect to login with return url
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // If authenticated, redirect to dashboard or intended page
+  if (isAuthenticated) {
+    const from = location.state?.from?.pathname || '/dashboard';
+    return <Navigate to={from} replace />;
   }
 
-  // If authenticated, render the protected component
+  // If not authenticated, render the public component
   return children;
 };
 
-export default ProtectedRoute;
+export default PublicRoute;

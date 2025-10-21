@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { requestForgotPassword, validateOtp, resendForgotOtp } from './API';
-import login0 from '../assets/Auth.page/login0.png';
-import login1 from '../assets/Auth.page/login1.png';
-import login2 from '../assets/Auth.page/login2.png';
+import { requestForgotPassword, validateOtp, resendForgotOtp } from '../../../shared/services/API';
+import login0 from '../../../assets/Auth.page/login0.png';
+import login1 from '../../../assets/Auth.page/login1.png';
+import login2 from '../../../assets/Auth.page/login2.png';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -90,6 +90,8 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     setStep('email');
     setOtp('');
+    setInvalidOtp(false);
+    setOtpError(false);
   };
 
   const validateEmail = (email) => {
@@ -164,7 +166,7 @@ const ForgotPasswordPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
              <div className="mx-auto h-40 w-40 flex items-center justify-center pt-10 ">

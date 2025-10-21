@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { loginUser } from './API';
+import { loginUser } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import login0 from '../assets/Auth.page/login0.png';
-import login1 from '../assets/Auth.page/login1.png';
-import login2 from '../assets/Auth.page/login2.png';
+import { useAuth } from '../../../shared/contexts/AuthContext';
+import login0 from '../../../assets/Auth.page/login0.png';
+import login1 from '../../../assets/Auth.page/login1.png';
+import login2 from '../../../assets/Auth.page/login2.png';
 
 
 const LoginPage = () => {
@@ -98,7 +98,7 @@ const LoginPage = () => {
             color: #3b82f6;
             font-size: 1.75rem;
             line-height: 1;
-            letter-spacing: 0.2em;
+            letter-spacing: 0.1em;
             font-family: 'Arial', sans-serif;
           }
           

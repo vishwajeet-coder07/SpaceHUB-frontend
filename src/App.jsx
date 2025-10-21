@@ -1,15 +1,10 @@
 import './App.css'
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import ProtectedRoute from './components/ProtectedRoute'
-import PublicRoute from './components/PublicRoute'
-import LoginPage from './component/LoginPage'
-import SignupPage from './component/SignupPage'
-import ForgotPasswordPage from './component/ForgotPasswordPage'
-import ResetPasswordPage from './component/reset'
-import LandingPage from './component/LandingPage/landing'
-import Dashboard from './component/Dashboard'
+import { AuthProvider, ProtectedRoute, PublicRoute } from './shared'
+import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
+import { LandingPage } from './modules/landing'
+import { Dashboard } from './modules/dashboard'
 
 function App() {
   return (
@@ -18,10 +13,9 @@ function App() {
         <div>
           <div style={{ fontFamily: 'Inter, sans-serif' }}>
             <Routes>
-              {/* Public routes - accessible to everyone */}
-              <Route path="/" element={<LandingPage />} />
               
-              {/* Auth routes - only accessible when not logged in */}
+              <Route path="/" element={<LandingPage />} />
+    
               <Route 
                 path="/login" 
                 element={
@@ -54,8 +48,7 @@ function App() {
                   </PublicRoute>
                 } 
               />
-              
-              {/* Protected routes - only accessible when logged in */}
+        
               <Route 
                 path="/dashboard" 
                 element={
@@ -64,8 +57,6 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              
-              {/* Catch all route - redirect to dashboard if authenticated, otherwise to landing */}
               <Route path="*" element={<LandingPage />} />
             </Routes>
           </div>

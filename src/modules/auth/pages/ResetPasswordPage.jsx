@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { resetPassword } from './API';
-import { useAuth } from '../contexts/AuthContext';
-import login0 from '../assets/Auth.page/login0.png';
-import login1 from '../assets/Auth.page/login1.png';
-import login2 from '../assets/Auth.page/login2.png';
+import { resetPassword } from '../../../shared/services/API';
+import { useAuth } from '../../../shared/contexts/AuthContext';
+import login0 from '../../../assets/Auth.page/login0.png';
+import login1 from '../../../assets/Auth.page/login1.png';
+import login2 from '../../../assets/Auth.page/login2.png';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -55,7 +55,6 @@ const ResetPasswordPage = () => {
       const tempToken = sessionStorage.getItem('resetAccessToken') || '';
       resetPassword({ email, newPassword: password, tempToken })
         .then((data) => {
-          // Use the login function from AuthContext
           login(data.user, data.accessToken);
           navigate('/dashboard');
         })
@@ -110,7 +109,7 @@ const ResetPasswordPage = () => {
           ))}
         </div>
 
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-3xl rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
               <div className="mx-auto h-40 w-40 flex items-center justify-center pt-10 ">
