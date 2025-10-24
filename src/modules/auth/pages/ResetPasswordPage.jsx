@@ -137,7 +137,7 @@ const ResetPasswordPage = () => {
           </div>
         </div>
 
-  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-md">
             <div className="text-center mb-6 lg:mb-8">
               <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
@@ -178,6 +178,13 @@ const ResetPasswordPage = () => {
                     )}
                   </button>
                 </div>
+                {passwordError && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
+                      <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter and one special character (#, @, !, %, &).</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -210,6 +217,11 @@ const ResetPasswordPage = () => {
                     )}
                   </button>
                 </div>
+                {passwordMismatch && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                    <p className="text-xs text-blue-600 font-medium">Passwords do not match.</p>
+                  </div>
+                )}
               </div>
 
               <button type="submit" disabled={loading} className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60">
@@ -222,22 +234,6 @@ const ResetPasswordPage = () => {
                 </p>
               </div>
             </form>
-
-            {(passwordError || passwordMismatch) && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600 font-medium mb-2">Password Requirements:</p>
-                <ul className="text-xs text-red-500 space-y-1">
-                  <li>• Must be at least 8 characters long</li>
-                  <li>• Must contain at least one uppercase letter</li>
-                  <li>• Must contain at least one digit (0-9)</li>
-                  <li>• Must contain at least one special character (#, @, !, %, &)</li>
-                  <li>• Must not contain spaces</li>
-                </ul>
-                {passwordMismatch && (
-                  <p className="text-sm text-red-600 font-medium mt-2">Passwords do not match.</p>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

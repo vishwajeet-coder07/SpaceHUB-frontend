@@ -166,7 +166,7 @@ const ForgotPasswordPage = () => {
         </div>
       </div>
 
-  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
         <div className="w-full max-w-md">
           <div className="text-center mb-6 lg:mb-8">
              <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
@@ -211,7 +211,13 @@ const ForgotPasswordPage = () => {
                     />
                   </div>
                   {emailError && (
-                    <p className="mt-2 text-sm text-red-600">Please enter a valid email address</p>
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                      <p className="text-xs text-blue-600 font-medium mb-1">Email Requirements :
+                        <span className="text-xs text-blue-500 space-y-0.5">
+                          Must be a valid email address, must contain @ symbol and a domain name.
+                        </span>
+                      </p>
+                    </div>
                   )}
                 </div>
             ) : (
@@ -282,17 +288,6 @@ const ForgotPasswordPage = () => {
               )}
             </div>
           </form>
-          
-          {emailError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 font-medium mb-2">Email Requirements:</p>
-              <ul className="text-xs text-red-500 space-y-1">
-                <li>• Must be a valid email address</li>
-                <li>• Must contain @ symbol</li>
-                <li>• Must contain a domain name</li>
-              </ul>
-            </div>
-          )}
         </div>
       </div>
     </div>
