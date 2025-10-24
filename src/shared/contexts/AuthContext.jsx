@@ -9,14 +9,12 @@ export const useAuth = () => {
   }
   return context;
 };
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for existing authentication on app load
     checkAuthStatus();
   }, []);
 
@@ -55,7 +53,6 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('userData');
-      // Clear session storage as well
       sessionStorage.removeItem('resetEmail');
       sessionStorage.removeItem('resetAccessToken');
       setUser(null);

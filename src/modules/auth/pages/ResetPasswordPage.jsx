@@ -109,19 +109,47 @@ const ResetPasswordPage = () => {
           ))}
         </div>
 
-  <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+        <div className="lg:hidden w-full min-h-48 bg-accent flex flex-col justify-center items-center px-0 py-2">
+          <div className="text-left mb-2 w-full px-4">
+            <h1 className="text-lg font-bold text-blue-800 leading-tight text-heading">
+              Platform to build and<br />
+              grow communities.
+            </h1>
+          </div>
+          
+          <div className="w-full">
+            <div className="relative w-full h-48 flex items-center justify-center">
+              {images.map((image, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                    index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`Auth slide ${index + 1}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-3xl rounded-t-[2.25rem] rounded-l-3xl lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-              <div className="mx-auto h-40 w-40 flex items-center justify-center pt-10 ">
-                <img src="/favicon.png" alt="Logo" className="h-15 w-22" />
+            <div className="text-center mb-6 lg:mb-8">
+              <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
+                <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
               </div>
-              <h3 className="text-[1.75rem] lg:text-[1.75rem] font-semibold text-default mb-1">Create new password</h3>
-              <p className="text-muted text-[1.25rem] font-normal">Choose a new pass to keep your account safe</p>
+              <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Create new password</h3>
+              <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Choose a new pass to keep your account safe</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
               <div>
-                <label htmlFor="password" className="block text-[1.25rem] font-medium text-default mb-2 text-left">Enter Password</label>
+                <label htmlFor="password" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">Enter Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg width="20" height="20" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -135,7 +163,7 @@ const ResetPasswordPage = () => {
                     value={password}
                     onChange={onPasswordChange}
                     data-show={showPassword}
-                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowPassword((p)=>!p)} tabIndex={-1}>
@@ -153,7 +181,7 @@ const ResetPasswordPage = () => {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-[1.25rem] font-medium text-default mb-2 text-left">Confirm Password</label>
+                <label htmlFor="confirmPassword" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">Confirm Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg width="20" height="20" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -167,7 +195,7 @@ const ResetPasswordPage = () => {
                     value={confirmPassword}
                     onChange={onConfirmChange}
                     data-show={showConfirmPassword}
-                    className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Re-enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowConfirmPassword((p)=>!p)} tabIndex={-1}>
@@ -184,7 +212,7 @@ const ResetPasswordPage = () => {
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60">
+              <button type="submit" disabled={loading} className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60">
                 {loading ? 'Creating...' : 'Create'}
               </button>
 

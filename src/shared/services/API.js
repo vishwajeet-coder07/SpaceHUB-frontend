@@ -104,7 +104,6 @@ async function handleJson(response) {
   return data;
 }
 
-// Helper function to get auth headers
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('accessToken');
   return {
@@ -113,7 +112,6 @@ export const getAuthHeaders = () => {
   };
 };
 
-// Helper function to make authenticated requests
 export const authenticatedFetch = async (url, options = {}) => {
   const headers = getAuthHeaders();
   
@@ -125,7 +123,6 @@ export const authenticatedFetch = async (url, options = {}) => {
     }
   });
   
-  // If unauthorized, clear auth data
   if (response.status === 401) {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userData');

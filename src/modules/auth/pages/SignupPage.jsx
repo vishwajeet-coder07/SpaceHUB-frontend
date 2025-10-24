@@ -256,16 +256,16 @@ const SignupPage = () => {
         ))}
       </div>
 
-      <div className="lg:hidden w-full min-h-80 bg-accent flex flex-col justify-center items-center px-0 py-4">
-        <div className="text-left mb-4 w-full px-6">
-          <h1 className="text-2xl font-bold text-blue-800 leading-tight text-heading">
+      <div className="lg:hidden w-full min-h-48 bg-accent flex flex-col justify-center items-center px-0 py-2">
+        <div className="text-left mb-2 w-full px-4">
+          <h1 className="text-lg font-bold text-blue-800 leading-tight text-heading">
             Platform to build and<br />
             grow communities.
           </h1>
         </div>
         
         <div className="w-full">
-          <div className="relative w-full h-80 flex items-center justify-center">
+          <div className="relative w-full h-48 flex items-center justify-center">
             {images.map((image, index) => (
               <div
                 key={index}
@@ -284,24 +284,24 @@ const SignupPage = () => {
         </div>
       </div>
 
-         <div className="flex-1 flex items-center justify-center p-8 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-[2.25rem] rounded-t-[2.25rem] rounded-l-[2.25rem] lg:-ml-4 -mt-4 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
-          <div className="w-full max-w-[32rem] mb-30">
-            <div className="text-center mb-17">
-               <div className="mx-auto h-40 w-40 flex items-center justify-center pt-25 ">
-                 <img src="/favicon.png" alt="Logo" className="h-17 w-24" />
+         <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-[2.25rem] rounded-t-[2.25rem] rounded-l-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+          <div className="w-full max-w-[32rem] mb-8 lg:mb-30">
+            <div className="text-center mb-8 lg:mb-17">
+               <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-25 ">
+                 <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-17 lg:w-24" />
                </div>
         
                 {step === 3 ? (
                   <>
-                    <h3 className="text-[1.75rem] lg:text-[1.75rem] font-medium text-default mb-2 ">Verify your Email</h3>
-                    <p className="text-muted text-[1.25rem] font-body">
+                    <h3 className="text-xl lg:text-[1.75rem] font-medium text-default mb-1 lg:mb-2">Verify your Email</h3>
+                    <p className="text-muted text-sm lg:text-[1.25rem] font-body">
                      Please verify your email to activate your account
                     </p>
                   </>
                 ) : (
                   <>
-                    <h3 className="text-[1.75rem] lg:text-[1.75rem] font-medium text-default mb-2 ">Signup to your account</h3>
-                    <p className="text-muted text-[1.25rem] font-body">
+                    <h3 className="text-xl lg:text-[1.75rem] font-medium text-default mb-1 lg:mb-2">Signup to your account</h3>
+                    <p className="text-muted text-sm lg:text-[1.25rem] font-body">
                      Create your account to start collaborating.
                     </p>
                   </>
@@ -309,9 +309,9 @@ const SignupPage = () => {
          
             </div>
             {step === 1 ? (
-              <form className="space-y-6" onSubmit={handleStepOneSubmit}>
+              <form className="space-y-4 lg:space-y-6" onSubmit={handleStepOneSubmit}>
                 <div className="m-0 p-0">
-                  <label htmlFor="firstName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="firstName" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     First name
                   </label>
                   <input
@@ -321,7 +321,7 @@ const SignupPage = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className={`w-full px-4 text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.6rem] max-w-[32rem] ${
+                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.6rem] max-w-[32rem] ${
                       firstNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
                     placeholder="Enter first name (letters only, no spaces, max 50)"
@@ -349,7 +349,7 @@ const SignupPage = () => {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="lastName" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Last name
                   </label>
                   <input
@@ -359,7 +359,7 @@ const SignupPage = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className={`w-full px-4 text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.75rem] max-w-[32rem] ${
+                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[32rem] ${
                       lastNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
                       placeholder="Enter last name (letters only, no spaces, max 50)"
@@ -389,7 +389,7 @@ const SignupPage = () => {
                   <button
                     type="submit"
                     disabled={loading || firstNameError || lastNameError || !formData.firstName.trim() || !formData.lastName.trim()}
-                    className="w-full h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-lgx text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
+                    className="w-full h-[2.4rem] lg:h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-lgx text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-base lg:text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
                   >
                     {loading ? 'Loading...' : 'Continue'}
                   </button>
@@ -403,9 +403,9 @@ const SignupPage = () => {
                 </div>
               </form>
             ) : step === 2 ? (
-              <form className="space-y-6" onSubmit={handleRequestOtpAndNext}>
+              <form className="space-y-4 lg:space-y-6" onSubmit={handleRequestOtpAndNext}>
                 <div>
-                  <label htmlFor="email" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Enter email
                   </label>
                   <div className="relative">
@@ -423,14 +423,14 @@ const SignupPage = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-10 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`w-full pl-10 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your email"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="flex items-center gap-2 text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="password" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Enter Password
                   </label>
                   <div className="relative">
@@ -448,7 +448,7 @@ const SignupPage = () => {
                       value={formData.password}
                       onChange={handleChange}
                       data-show={showPassword}
-                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -471,7 +471,7 @@ const SignupPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="confirmPassword" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -489,7 +489,7 @@ const SignupPage = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       data-show={showConfirmPassword}
-                      className={`password-input w-full pl-10 pr-12 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Confirm your password"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -518,7 +518,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-base disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
                 >
                   {loading ? 'Sending OTP...' : 'Get Started'}
                 </button>
@@ -529,9 +529,9 @@ const SignupPage = () => {
                 </div>
               </form>
             ) : (
-              <form className="space-y-6" onSubmit={handleVerifyOtpAndRegister}>
+              <form className="space-y-4 lg:space-y-6" onSubmit={handleVerifyOtpAndRegister}>
                 <div>
-                  <label htmlFor="otp" className="block text-[1.25rem] font-medium text-default mb-2 text-left">
+                  <label htmlFor="otp" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Enter otp {invalidOtp && <span className="text-red-500 font-normal">(Invalid otp)</span>}
                   </label>
                   <input
@@ -552,7 +552,7 @@ const SignupPage = () => {
                           setOtpError(false);
                         }
                       }}
-                    className={`w-full px-4 py-3 text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter otp"
                   />
                   <div className="text-right mt-2">
@@ -568,7 +568,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[2.75rem] flex justify-center pt-[0.4rem] px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
                 >
                   {loading ? 'Verifying...' : 'Verify'}
                 </button>
