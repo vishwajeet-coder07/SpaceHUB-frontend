@@ -284,8 +284,11 @@ const SignupPage = () => {
         </div>
       </div>
 
-         <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
-          <div className="w-full max-w-[32rem] mb-8 lg:mb-30">
+         <div
+           className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg"
+           style={{ paddingTop: error ? '6rem' : undefined }}
+         >
+          <div className="w-full max-w-[32rem] mb-8 lg:mb-15">
             <div className="text-center mb-8 lg:mb-17">
                <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-25 ">
                  <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-17 lg:w-24" />
@@ -482,7 +485,7 @@ const SignupPage = () => {
                   {passwordError && (
                     <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
                       <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
-                        <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter and one special character (#, @, !, %, &).</span>
+                        <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter, with a number and one special character (#, @, !, %, &).</span>
                       </p>
                     </div>
                   )}
@@ -531,7 +534,7 @@ const SignupPage = () => {
                     </div>
                   </div>
                   {passwordMismatch && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
                       <p className="text-xs text-blue-600 font-medium">Passwords do not match.</p>
                     </div>
                   )}

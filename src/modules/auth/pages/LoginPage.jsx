@@ -262,7 +262,7 @@ const LoginPage = () => {
               {passwordError && (
                 <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
                   <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
-                    <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter and one special character (#, @, !, %, &).</span>
+                    <span className="text-xs text-blue-500">Password must be at least 8 characters, with a number, with one uppercase letter and one special character (#, @, !, %, &).</span>
                   </p>
                 </div>
               )}
