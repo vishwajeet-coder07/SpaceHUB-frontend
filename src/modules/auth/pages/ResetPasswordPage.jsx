@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { resetPassword } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import login0 from '../../../assets/Auth.page/login0.png';
-import login1 from '../../../assets/Auth.page/login1.png';
-import login2 from '../../../assets/Auth.page/login2.png';
+import AuthSlides from '../components/AuthSlides';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -17,16 +15,6 @@ const ResetPasswordPage = () => {
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const images = [login0, login1, login2];
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [images.length]);
 
   const validatePassword = (value) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
@@ -101,41 +89,8 @@ const ResetPasswordPage = () => {
             </div>
           </div>
         )}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden h-full min-h-screen bg-accent">
-          {images.map((image, index) => (
-            <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}>
-              <img src={image} alt={`Auth slide ${index + 1}`} className="w-full h-full object-contain" />
-            </div>
-          ))}
-        </div>
-
-        <div className="lg:hidden w-full min-h-48 bg-accent flex flex-col justify-center items-center px-0 py-2">
-          <div className="text-left mb-2 w-full px-4">
-            <h1 className="text-lg font-bold text-blue-800 leading-tight text-heading">
-              Platform to build and<br />
-              grow communities.
-            </h1>
-          </div>
-          
-          <div className="w-full">
-            <div className="relative w-full h-48 flex items-center justify-center">
-              {images.map((image, index) => (
-                <div
-                  key={index}
-                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                    index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`Auth slide ${index + 1}`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        
+        <AuthSlides />
 
   <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
           <div className="w-full max-w-md">

@@ -2,12 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import bgPattern from '../../../assets/landing/bg 1.svg';
+import discoverSvg from '../../../assets/landing/discover.svg';
 
 const LandingPage = () => {
     return (
         <div className="min-h-screen bg-[#f3f3f3] text-gray-900">
             {/* Header */}
-            <header id="Home" className="w-full px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm">
+            <header id="Home" className="w-full sticky t-0 l-0 px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3">
                             <img
                                 src={logo}
@@ -47,7 +48,7 @@ const LandingPage = () => {
                             <p className="text-gray-800 font-medium text-sm sm:text-base">Connect your team and collaborate seamlessly</p>
                         </div>
 
-                    </div>
+                        </div>
 
 
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-[500] text-gray-900 mb-4 sm:mb-6 leading-normal mt-10">
@@ -74,18 +75,17 @@ const LandingPage = () => {
                         Get started
                     </Link>
                 </div>
-            </section>
+                </section>
 
 
-            <section id='About' className="bg-black text-white py-12 sm:py-16">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-                    <div className="inline-block bg-white border border-white rounded-lg px-4 sm:px-6 py-2 sm:py-3 mb-4 sm:mb-6">
-                        <h2 className="text-gray-900 font-bold text-lg sm:text-xl">Discover SPACEHUB</h2>
+            <section id='About' className=" max-w-screen">
+                    <div className="m-6 sm:mb-8">
+                        <img 
+                            src={discoverSvg} 
+                            alt="Discover SPACEHUB" 
+                            className="w-full mx-auto h-auto"
+                        />
                     </div>
-                    <p className="text-lg sm:text-xl text-white max-w-2xl mx-auto">
-                        A collaborative space built to connect teams, spark conversations, and grow ideas.
-                    </p>
-                </div>
             </section>
 
             
