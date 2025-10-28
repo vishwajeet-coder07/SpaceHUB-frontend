@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { resetPassword } from '../../../shared/services/API';
-import { useAuth } from '../../../shared/contexts/AuthContext';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import AuthSlides from '../components/AuthSlides';
 
 const ResetPasswordPage = () => {

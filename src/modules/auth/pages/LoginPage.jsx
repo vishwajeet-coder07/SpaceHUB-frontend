@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { loginUser } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../shared/contexts/AuthContext';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import AuthSlides from '../components/AuthSlides';
 
 

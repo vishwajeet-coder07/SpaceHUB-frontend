@@ -1,5 +1,6 @@
+const BASE_URL = 'https://codewithketan.me/api/v1/';
 export async function registerUser(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/registration', {
+  const response = await fetch(`${BASE_URL}registration`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -8,14 +9,14 @@ export async function registerUser(payload) {
 }
 
 export async function loginUser(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/login', {
+  const response = await fetch(`${BASE_URL}login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
   const data = await handleJson(response);
   
-  // Store authentication data if login is successful
+
   if (data && data.accessToken) {
     localStorage.setItem('accessToken', data.accessToken);
     if (data.user) {
@@ -27,7 +28,7 @@ export async function loginUser(payload) {
 }
 
 export async function requestForgotPassword(email) {
-  const response = await fetch('https://codewithketan.me/api/v1/forgotpassword', {
+  const response = await fetch(`${BASE_URL}forgotpassword`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
@@ -36,7 +37,7 @@ export async function requestForgotPassword(email) {
 }
 
 export async function validateOtp(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/validateforgototp', {
+  const response = await fetch(`${BASE_URL}validateforgototp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -45,14 +46,14 @@ export async function validateOtp(payload) {
 }
 
 export async function resetPassword(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/resetpassword', {
+  const response = await fetch(`${BASE_URL}resetpassword`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   const data = await handleJson(response);
   
-  // Store authentication data if reset is successful
+
   if (data && data.accessToken) {
     localStorage.setItem('accessToken', data.accessToken);
     if (data.user) {
@@ -61,10 +62,10 @@ export async function resetPassword(payload) {
   }
   
   return data;
-}
+} 
 
 export async function resendRegisterOtp(email, registrationToken) {
-  const response = await fetch('https://codewithketan.me/api/v1/resendotp', {
+  const response = await fetch(`${BASE_URL}resendotp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email, sessionToken: registrationToken }),
@@ -73,7 +74,7 @@ export async function resendRegisterOtp(email, registrationToken) {
 }
 
 export async function resendForgotOtp(forgotToken) {
-  const response = await fetch('https://codewithketan.me/api/v1/resendforgototp', {
+  const response = await fetch(`${BASE_URL}resendforgototp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({tempToken: forgotToken })
@@ -82,7 +83,7 @@ export async function resendForgotOtp(forgotToken) {
 }
 
 export async function validateRegisterOtp(payload) {
-  const response = await fetch('https://codewithketan.me/api/v1/validateregisterotp', {
+  const response = await fetch(`${BASE_URL}validateregisterotp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -94,7 +95,7 @@ async function handleJson(response) {
   let data;
   try {
     data = await response.json();
-  } catch (e) {
+  } catch {
     data = null;
   }
   if (!response.ok) {

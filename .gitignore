@@ -25,3 +25,4 @@ dist-ssr
 
 #file
 MODULAR_STRUCTURE.md
+.env

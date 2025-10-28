@@ -3,6 +3,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider, ProtectedRoute, PublicRoute } from './shared'
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
+import { ProfileSetupPage } from './modules/profile'
 import { LandingPage } from './modules/landing'
 import { Dashboard } from './modules/dashboard'
 
@@ -56,6 +57,14 @@ function App() {
                     <Dashboard />
                   </ProtectedRoute>
                 } 
+              />
+              <Route 
+                path="/profile/setup" 
+                element={
+                  <ProtectedRoute>
+                    <ProfileSetupPage />
+                  </ProtectedRoute>
+                }
               />
               <Route path="*" element={<LandingPage />} />
             </Routes>

@@ -160,7 +160,7 @@ const SignupPage = () => {
     setInvalidOtp(false);
     validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
       .then(() => loginUser({ email: formData.email, password: formData.password }))
-      .then(() => navigate('/dashboard'))
+      .then(() => navigate('/profile/setup'))
       .catch((err) => {
         console.error('OTP verification or login failed:', err.message);
         setError(err.message);
