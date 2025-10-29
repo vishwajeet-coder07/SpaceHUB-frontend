@@ -105,16 +105,18 @@ async function handleJson(response) {
   return data;
 }
 
-export const getAuthHeaders = () => {
+export const getAuthHeaders = (isFormData = false) => {
   const token = localStorage.getItem('accessToken');
   return {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 
 export const authenticatedFetch = async (url, options = {}) => {
-  const headers = getAuthHeaders();
+  // Check if body is FormData to determine headers
+  const isFormData = options.body instanceof FormData;
+  const headers = getAuthHeaders(isFormData);
   
   const response = await fetch(url, {
     ...options,

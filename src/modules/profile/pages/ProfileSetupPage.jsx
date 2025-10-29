@@ -1,14 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../../../shared/services/API';
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const BASE_URL = 'https://codewithketan.me/api/v1/';
 const USERNAME_API = `${BASE_URL}dashboard/set-username`;
 const UPLOAD_API = `${BASE_URL}dashboard/upload-profile-image`;
 
 const interestsSeed = [
   'Technology','Science','Art','Music','Sports','Gaming','Travel','Food','Books','Movies','Finance','Fitness'
 ];
+
+// Preset avatar images placed in public/avatars
+const presetAvatarUrls = [
+  '/avatars/avatar-1.png',
+  '/avatars/avatar-2.png',
+  '/avatars/avatar-3.png',
+  '/avatars/avatar-4.png',
+  '/avatars/avatar-5.png',
+  '/avatars/avatar-6.png',
+  '/avatars/avatar-7.png',
+  '/avatars/avatar-8.png',
+];
+
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2MB
 
 const AvatarPlaceholder = ({ src }) => (
   <div className="w-56 h-56 rounded-full bg-white shadow-inner flex items-center justify-center overflow-hidden">
@@ -27,9 +41,11 @@ const ProfileSetupPage = () => {
   const [displayName, setDisplayName] = useState('');
   const [uploadPreview, setUploadPreview] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const userDataRaw = localStorage.getItem('userData');
@@ -37,6 +53,7 @@ const ProfileSetupPage = () => {
       try {
         const data = JSON.parse(userDataRaw);
         setDisplayName(data?.name || '');
+        setEmail(data?.email || '');
       } catch {
         // JSON parse error ko ignore ke liye
       }
@@ -55,19 +72,76 @@ const ProfileSetupPage = () => {
   const onFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError('Image must be 2MB or smaller');
+      e.target.value = '';
+      return;
+    }
     setUploadFile(file);
     const url = URL.createObjectURL(file);
+    setUploadPreview(url);
+    setSelectedAvatarUrl('');
+  };
+
+  const onSelectPresetAvatar = (url) => {
+    setSelectedAvatarUrl(url);
+    setUploadFile(null);
     setUploadPreview(url);
   };
 
   const uploadAvatar = async () => {
-    if (!uploadFile) return;
-    const form = new FormData();
-    form.append('image', uploadFile);
-    const response = await authenticatedFetch(UPLOAD_API, { method: 'POST', body: form });
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      throw new Error((data && (data.message || data.error)) || 'Upload failed');
+    // If a file was manually chosen, upload that
+    if (uploadFile) {
+      const formData = new FormData();
+      let emailToSend = (email && email.trim()) || '';
+      if (!emailToSend) {
+        try {
+          const raw = localStorage.getItem('userData');
+          if (raw) emailToSend = JSON.parse(raw)?.email || '';
+        } catch {
+          //for errors
+        }
+      }
+      formData.append('email', emailToSend);
+      formData.append('image', uploadFile);
+      const response = await authenticatedFetch(UPLOAD_API, { method: 'POST', body: formData });
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        let data = null;
+        try { data = JSON.parse(text); } catch {//for errors
+        }
+        throw new Error((data && (data.message || data.error)) || text || 'Upload failed');
+      }
+      return;
+    }
+
+    // If a preset was selected, fetch it and upload as Blob
+    if (selectedAvatarUrl) {
+      const res = await fetch(selectedAvatarUrl);
+      const blob = await res.blob();
+      if (blob.size > MAX_UPLOAD_BYTES) {
+        throw new Error('Selected avatar exceeds 2MB limit');
+      }
+      const fileFromBlob = new File([blob], 'avatar.png', { type: blob.type || 'image/png' });
+      const formData = new FormData();
+      let emailToSend = (email && email.trim()) || '';
+      if (!emailToSend) {
+        try {
+          const raw = localStorage.getItem('userData');
+          if (raw) emailToSend = JSON.parse(raw)?.email || '';
+        } catch { //for errors
+        }
+      }
+      formData.append('email', emailToSend);
+      formData.append('image', fileFromBlob);
+      const response = await authenticatedFetch(UPLOAD_API, { method: 'POST', body: formData });
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        let data = null;
+        try { data = JSON.parse(text); } catch {//for errors
+        }
+        throw new Error((data && (data.message || data.error)) || text || 'Upload failed');
+      }
     }
   };
 
@@ -75,7 +149,7 @@ const ProfileSetupPage = () => {
     const response = await authenticatedFetch(USERNAME_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, displayName, interests: selectedInterests }),
+      body: JSON.stringify({ email: email, username: username }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
@@ -95,7 +169,7 @@ const ProfileSetupPage = () => {
     setError('');
     setSaving(true);
     try {
-      if (uploadFile) await uploadAvatar();
+      if (uploadFile || selectedAvatarUrl) await uploadAvatar();
       await setUserName();
       navigate('/dashboard');
     } catch (e) {
@@ -120,8 +194,16 @@ const ProfileSetupPage = () => {
             <div className="flex flex-col items-center gap-6">
               <AvatarPlaceholder src={uploadPreview} />
               <div className="grid grid-cols-5 gap-4">
-                {Array.from({ length: 10 }).map((_, idx) => (
-                  <div key={idx} className="w-12 h-12 rounded-full bg-white" />
+                {presetAvatarUrls.map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => onSelectPresetAvatar(url)}
+                    className={`w-12 h-12 rounded-full overflow-hidden border ${selectedAvatarUrl === url ? 'border-indigo-500' : 'border-transparent'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    aria-label="Select preset avatar"
+                  >
+                    <img src={url} alt="avatar option" className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
               <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-lg">Upload your profile</button>
@@ -163,5 +245,6 @@ const ProfileSetupPage = () => {
 };
 
 export default ProfileSetupPage;
+
 
 

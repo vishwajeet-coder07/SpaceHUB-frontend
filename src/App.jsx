@@ -1,7 +1,7 @@
 import './App.css'
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { AuthProvider, ProtectedRoute, PublicRoute } from './shared'
+import { AuthProvider, ProtectedRoute, PublicRoute, ResetPasswordRoute } from './shared'
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
 import { ProfileSetupPage } from './modules/profile'
 import { LandingPage } from './modules/landing'
@@ -44,9 +44,9 @@ function App() {
               <Route 
                 path="/reset" 
                 element={
-                  <PublicRoute>
+                  <ResetPasswordRoute>
                     <ResetPasswordPage />
-                  </PublicRoute>
+                  </ResetPasswordRoute>
                 } 
               />
         

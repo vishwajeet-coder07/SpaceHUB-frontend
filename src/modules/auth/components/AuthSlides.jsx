@@ -26,7 +26,7 @@ const AuthSlides = ({
   return (
     <>
 
-      <div className="hidden lg:flex lg:w-[50%] relative overflow-hidden h-full min-h-screen bg-accent">
+      <div className="hidden lg:flex lg:w-[50%] relative overflow-hidden h-full min-h-screen bg-[#FFFFFF]">
         {images.map((image, index) => (
           <div
             key={index}

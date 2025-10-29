@@ -25,7 +25,8 @@ const LoginPage = () => {
     loginUser({ email, password })
       .then((data) => {
         console.log('Login successful');
-        login(data.user, data.accessToken);
+        const userWithEmail = { ...(data?.user || {}), email };
+        login(userWithEmail, data.accessToken);
         navigate('/dashboard');
       })
       .catch((err) => {
@@ -97,7 +98,7 @@ const LoginPage = () => {
           }
         `}
       </style>
-      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
+      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-white">
         {error && (
           <div className="fixed z-50 text-red-600 bg-blue-100 max-w-sm" style={{ top: '4.5rem', right: '0', borderRadius: '0.75rem 0 0 0.75rem', minHeight: '3.875rem' }}>
             <div className="flex items-start p-4">
@@ -111,7 +112,7 @@ const LoginPage = () => {
 
       <AuthSlides />
 
-  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
         <div className="w-full max-w-[31rem] pb-5 mb-5">
           <div className="text-center mb-6 lg:mb-8">
             <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">

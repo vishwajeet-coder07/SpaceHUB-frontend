@@ -1,63 +1,129 @@
-import React from 'react';
+import React, { useState } from 'react';
+import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import DashboardMainSection from '../components/DashboardMainSection';
+import DashboardRightSidebar from '../components/DashboardRightSidebar';
+import Discover from '../components/Discover';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [selectedView, setSelectedView] = useState('dashboard');
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F5F5F7] p-4">
-      <header className="h-14 bg-white border rounded-xl px-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src="/favicon.png" alt="logo" className="w-8 h-8" />
-          <span className="font-semibold">SpaceHUB</span>
+
+    return (
+      <div className="h-screen bg-gray-100 flex flex-col overflow-x-hidden">
+        {/* Top Navbar */}
+        <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+          </div>
+          <div className="flex-1 text-center">
+            <h1 className="text-lg font-semibold text-gray-800">
+              {selectedView === 'discover' ? 'Discover' : 'Dashboard'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="w-7 h-7 flex items-center justify-center">
+              <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center">
+              <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <nav className="flex items-center gap-3">
-          <Link to="/" className="text-indigo-600">Home</Link>
-          <button onClick={handleLogout} className="px-3 py-1.5 rounded-lg bg-red-600 text-white">Logout</button>
-        </nav>
-      </header>
 
-      <div className="grid grid-cols-12 gap-4 mt-4">
-        <aside className="col-span-2 bg-white border rounded-2xl p-3 flex flex-col gap-3">
-          <div className="h-10 rounded-lg bg-gray-100 flex items-center px-3 gap-2 font-medium"><span>Dashboard</span></div>
-          <div className="h-10 rounded-lg bg-gray-50 flex items-center px-3">Discover</div>
-          <div className="h-10 rounded-lg bg-gray-50 flex items-center px-3">Create/Join</div>
-          <div className="mt-2 text-sm text-gray-500">Direct message</div>
-          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">+</div>
-        </aside>
-
-        <main className="col-span-7 bg-white border rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <button className="px-3 py-1.5 rounded-lg bg-gray-800 text-white">Community</button>
-            <button className="px-3 py-1.5 rounded-lg bg-gray-200">Group</button>
-            <button className="px-3 py-1.5 rounded-lg bg-gray-200">Friends</button>
-            <button className="px-3 py-1.5 rounded-lg bg-gray-200">Add friend</button>
+        {/* Main 3-column layout */}
+        <div className="flex flex-1">
+        {/* Narrow Left Sidebar */}
+        <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-4">
+          {/* Profile Picture */}
+          <div className="w-10 h-10 rounded-lg bg-gray-300 flex items-center justify-center overflow-hidden">
+            <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
           </div>
-          <h2 className="text-2xl font-bold">No community joined</h2>
-          <p className="text-gray-600 mt-2">You haven’t joined any communities yet. Explore and connect with others who share your interests — your next great conversation might be waiting!</p>
 
-          <h3 className="mt-6 mb-3 text-xl font-semibold">Suggestions</h3>
-          <div className="grid grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-48 bg-gray-100 rounded-xl border flex items-end p-4">
-                <button className="w-28 h-10 bg-indigo-600 text-white rounded-xl">Join</button>
+          {/* Plus Icon */}
+          <button className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <img src="/avatars/plus.png" alt="Add" className="w-5 h-5" />
+          </button>
+
+          {/* Spacer */}
+          <div className="flex-1"></div>
+
+          {/* Logout Icon */}
+          <button 
+            onClick={handleLogout}
+            className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Left Sidebar Navigation */}
+        <div className="hidden md:block w-64 bg-white border-r border-gray-200 p-4 h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0">
+          {/* Navigation Section */}
+          <div className="space-y-2 mb-6">
+            {/* Dashboard Button */}
+            <button
+              onClick={() => setSelectedView('dashboard')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                selectedView === 'dashboard'
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+              </svg>
+              <span className="font-medium">Dashboard</span>
+            </button>
+
+            {/* Other Navigation Items */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setSelectedView('discover')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  selectedView === 'discover'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <span>Discover</span>
+              </button>
+              
+
+              
+              <div className="flex items-center justify-between px-4 py-3 text-gray-700">
+                <span className="font-medium">Direct message</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-            ))}
+            </div>
           </div>
-        </main>
+        </div>
 
-        <aside className="col-span-3 bg-white border rounded-2xl p-4">
-          <h3 className="font-semibold">ONLINE FRIENDS</h3>
-          <p className="text-gray-600 mt-2">No friends yet. Start connecting with people who share your interests.</p>
-        </aside>
-      </div>
+        {/* Conditional Rendering: Discover or Main + Right Sidebar */}
+        {selectedView === 'discover' ? (
+          <Discover />
+        ) : (
+          <>
+            <DashboardMainSection />
+            <DashboardRightSidebar />
+          </>
+        )}
+        </div>
     </div>
   );
 };

@@ -160,7 +160,15 @@ const SignupPage = () => {
     setInvalidOtp(false);
     validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
       .then(() => loginUser({ email: formData.email, password: formData.password }))
-      .then(() => navigate('/profile/setup'))
+      .then((data) => {
+        try {
+          const existing = localStorage.getItem('userData');
+          const parsed = existing ? JSON.parse(existing) : {};
+          const merged = { ...parsed, ...(data?.user || {}), email: formData.email };
+          localStorage.setItem('userData', JSON.stringify(merged));
+        } catch {}
+        navigate('/profile/setup');
+      })
       .catch((err) => {
         console.error('OTP verification or login failed:', err.message);
         setError(err.message);
@@ -233,7 +241,7 @@ const SignupPage = () => {
       <AuthSlides />
 
          <div
-           className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-white lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg"
+           className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg"
            style={{ paddingTop: error ? '6rem' : undefined }}
          >
           <div className="w-full max-w-[32rem] mb-8 lg:mb-5">

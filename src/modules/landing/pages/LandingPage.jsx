@@ -29,7 +29,7 @@ const LandingPage = () => {
         <Link to="/login" className="bg-gradient-to-r from-red-500 to-blue-600 text-white px-4 sm:px-6 py-2 rounded-sm font-medium transition-all text-sm sm:text-base">
           Login
         </Link>
-      </header>git add .
+      </header>
 
       {/* HERO SECTION */}
       <section
