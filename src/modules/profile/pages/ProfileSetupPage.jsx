@@ -6,9 +6,7 @@ const BASE_URL = 'https://codewithketan.me/api/v1/';
 const USERNAME_API = `${BASE_URL}dashboard/set-username`;
 const UPLOAD_API = `${BASE_URL}dashboard/upload-profile-image`;
 
-const interestsSeed = [
-  'Technology','Science','Art','Music','Sports','Gaming','Travel','Food','Books','Movies','Finance','Fitness'
-];
+// interests removed per new simplified profile setup
 
 // Preset avatar images placed in public/avatars
 const presetAvatarUrls = [
@@ -42,7 +40,7 @@ const ProfileSetupPage = () => {
   const [uploadPreview, setUploadPreview] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
-  const [selectedInterests, setSelectedInterests] = useState([]);
+  // interests removed per design
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -60,12 +58,7 @@ const ProfileSetupPage = () => {
     }
   }, []);
 
-  const toggleInterest = (label) => {
-    setSelectedInterests((prev) => {
-      if (prev.includes(label)) return prev.filter((l) => l !== label);
-      return [...prev, label];
-    });
-  };
+  // interests removed per design
 
   const onPickFile = () => fileInputRef.current?.click();
 
@@ -162,10 +155,7 @@ const ProfileSetupPage = () => {
       setError('Username is required');
       return;
     }
-    if (selectedInterests.length < 3) {
-      setError('Please select at least 3 interests');
-      return;
-    }
+    // no interests requirement in simplified flow
     setError('');
     setSaving(true);
     try {
@@ -215,26 +205,6 @@ const ProfileSetupPage = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Username</label>
                 <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Display name</label>
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Enter display name" className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white" />
-              </div>
-              <div className="pt-2">
-                <div className="flex items-end justify-between">
-                  <p className="font-semibold">Your interests!</p>
-                  <p className="text-sm text-gray-500">(select atleast 3)</p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-3">
-                  {interestsSeed.map((label) => {
-                    const active = selectedInterests.includes(label);
-                    return (
-                      <button type="button" key={label} onClick={() => toggleInterest(label)} className={`h-20 rounded-xl border ${active ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 bg-white'} flex items-center justify-center text-sm font-medium`}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           </div>
