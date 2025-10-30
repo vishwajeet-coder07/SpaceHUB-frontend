@@ -157,7 +157,7 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
+                    <hr/>
       {/* FOOTER */}
       <footer className="bg-gray-100 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">

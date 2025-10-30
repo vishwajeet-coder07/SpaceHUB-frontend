@@ -91,6 +91,32 @@ export async function validateRegisterOtp(payload) {
   return handleJson(response);
 }
 
+export async function createCommunity({ name, description, createdByEmail, imageFile }) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('description', description);
+  formData.append('createdByEmail', createdByEmail);
+  if (imageFile) {
+    formData.append('imageFile', imageFile);
+  }
+  const response = await authenticatedFetch(`${BASE_URL}community/create`, {
+    method: 'POST',
+    body: formData
+  });
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 async function handleJson(response) {
   let data;
   try {

@@ -283,7 +283,7 @@ const SignupPage = () => {
                     className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.6rem] max-w-[32rem] ${
                       firstNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
-                    placeholder="Enter first name (letters only, no spaces, max 50)"
+                    placeholder="Enter first name"
                   />
                   <div className="flex justify-between items-center mt-1">
                     {firstNameError && (
@@ -321,7 +321,7 @@ const SignupPage = () => {
                     className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[32rem] ${
                       lastNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
-                      placeholder="Enter last name (letters only, no spaces, max 50)"
+                      placeholder="Enter last name"
                   />
                   <div className="flex justify-between items-center mt-1">
                     {lastNameError && (
