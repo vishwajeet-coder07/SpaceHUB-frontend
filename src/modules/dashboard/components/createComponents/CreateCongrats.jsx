@@ -4,7 +4,7 @@ const CreateCongrats = ({ onDone, entityTitle = 'Group', subtitle }) => {
   return (
     <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden shadow-2xl mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full">
-        <div className="bg-zinc-900 text-white p-4 sm:p-10 flex flex-col justify-center items-center text-center h-full rounded-2xl">
+        <div className="bg-[#282828] text-white p-4 sm:p-10 flex flex-col justify-center items-center text-center h-full rounded-2xl">
           <div className="mb-6 sm:mb-8">
             <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-[84px] sm:h-[84px] mx-auto">
               <path d="M3 14l7-7 7 7-7 7-7-7z" fill="white" opacity="0"/>

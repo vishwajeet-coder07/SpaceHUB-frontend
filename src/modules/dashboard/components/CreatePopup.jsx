@@ -55,6 +55,7 @@ const CreatePopup = ({ open, onClose }) => {
           createdByEmail: trimmedEmail,
           imageFile: groupData.imageFile,
         });
+        window.dispatchEvent(new Event('refresh:communities'));
       } else {
         await createLocalGroup({
           name: trimmedName,
@@ -62,6 +63,7 @@ const CreatePopup = ({ open, onClose }) => {
           createdByEmail: trimmedEmail,
           imageFile: groupData.imageFile,
         });
+        window.dispatchEvent(new Event('refresh:local-groups'));
       }
       setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
       setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Group') + '!');
@@ -76,7 +78,7 @@ const CreatePopup = ({ open, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#282828]/40" onClick={onClose} />
 
       {/* Modal Content */}
       {mode === 'menu' && (
@@ -122,7 +124,7 @@ const CreatePopup = ({ open, onClose }) => {
         <CreateJoin onBack={goToMenu} onSend={() => { setDoneSubtitle('Request have been successfully send!'); setMode('done'); }} />
       )}
       {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#282828]/40">
           <div className="bg-white rounded-full px-6 py-3 shadow-lg text-lg font-semibold">Creating...</div>
         </div>
       )}

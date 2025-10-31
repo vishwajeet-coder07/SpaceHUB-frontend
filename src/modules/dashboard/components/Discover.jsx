@@ -1,18 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [communities, setCommunities] = useState([]);
 
-  // Placeholder data for community cards - will be replaced with API data
-  const communityCards = Array.from({ length: 6 }, (_, i) => ({
-    id: i + 1,
-    name: `Community ${i + 1}`,
-  }));
+  const fetchCommunities = async (page = 0, size = 20) => {
+    setLoading(true);
+    setError('');
+    try {
+      const url = `${BASE_URL}community/discover?page=${page}&size=${size}`;
+      const res = await authenticatedFetch(url, { method: 'GET' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((data && (data.message || data.error)) || `HTTP ${res.status}`);
+      const list = data?.data?.communities || data?.communities || data?.data || [];
+      setCommunities(list);
+    } catch (e) {
+      setError(e.message || 'Failed to fetch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCommunities(0, 20);
+  }, []);
+
+  const filtered = communities.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.description || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="flex-1 bg-gray-100 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-y-auto">
-      {/* Search Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0">
+      {/* Header row with pill and search */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
+        <span className="px-3 py-3 rounded-full bg-[#282828] text-white text-md font-semibold">Community</span>
+        <div className="flex-1" />
+        <div className="w-full sm:w-[360px]">
         <input
           type="text"
           placeholder="Search"
@@ -20,23 +51,48 @@ const Discover = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         />
+        </div>
       </div>
 
-      {/* Community Cards Grid */}
+      {/* Body */}
       <div className="flex-1 p-4 sm:p-6">
+        {loading && <div className="text-gray-700">Loading communities...</div>}
+        {error && <div className="text-red-600">{error}</div>}
+        {!loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
-          {communityCards.map((community) => (
-            <div
-              key={community.id}
-              className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            >
-              {/* Top half - White */}
-              <div className="h-32 bg-white"></div>
-              {/* Bottom half - Black */}
-              <div className="h-32 bg-black"></div>
+            {filtered.map((community) => {
+              const title = community.name || 'Untitled';
+              const desc = community.description || '';
+              const img = community.bannerUrl || community.imageUrl || community.imageURL || '';
+              const members = community.totalMembers || community.members || 0;
+              const online = community.onlineMembers || community.online || 0;
+              return (
+                <div
+                  key={community.id || community.communityId || title}
+                  className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent"
+                >
+                  {/* Top image area */}
+                  <div className="h-40 sm:h-44 bg-gray-200">
+                    {img ? (
+                      <img src={img} alt={title} className="w-full h-full object-cover" />
+                    ) : null}
+                  </div>
+                  {/* Bottom dark card */}
+                  <div className="bg-[#282828] text-white px-4 py-4">
+                    <div className="relative left-[75%] text-sm text-gray-300">
+                      <div>members: 0</div>
+                      <div className="text-green-400">• 0 Online</div>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">{title}</h3>
+                      <p className="text-sm text-gray-300 mt-1 line-clamp-3">{desc}</p>
+                    </div>
+                  </div>
             </div>
-          ))}
+              );
+            })}
         </div>
+        )}
       </div>
     </div>
   );

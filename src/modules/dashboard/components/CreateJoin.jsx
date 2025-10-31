@@ -15,7 +15,7 @@ const CreateJoin = ({ onBack, onSend }) => {
   return (
     <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden shadow-2xl mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full flex items-center justify-center">
-        <div className="relative bg-zinc-900 text-white h-[70%] w-full rounded-2xl flex flex-col p-3 sm:p-8">
+        <div className="relative bg-[#282828] text-white h-[70%] w-full rounded-2xl flex flex-col p-3 sm:p-8">
           {/* Back button absolutely top left */}
           <button onClick={onBack} className="absolute top-4 left-4 text-white/90 hover:text-white text-base sm:text-lg">Back</button>
           {/* Centered main content */}

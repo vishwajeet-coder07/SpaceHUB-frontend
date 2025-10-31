@@ -37,6 +37,7 @@ const ProfileSetupPage = () => {
   const fileInputRef = useRef(null);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [uploadPreview, setUploadPreview] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
@@ -155,7 +156,6 @@ const ProfileSetupPage = () => {
       setError('Username is required');
       return;
     }
-    // no interests requirement in simplified flow
     setError('');
     setSaving(true);
     try {
@@ -170,8 +170,8 @@ const ProfileSetupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6">
-      <div className="w-full max-w-6xl bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundImage: "url('/profileBg.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+      <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
           <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
           <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-lg bg-indigo-500 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
@@ -205,6 +205,16 @@ const ProfileSetupPage = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Username</label>
                 <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Date of birth</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  
+                  className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white"
+                />
               </div>
             </div>
           </div>

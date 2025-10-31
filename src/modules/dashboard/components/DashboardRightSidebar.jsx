@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import CommunityRightPanel from './community/CommunityRightPanel';
 
 const DashboardRightSidebar = () => {
-  const [friendUsername, setFriendUsername] = useState('');
+  const [community, setCommunity] = useState(null);
 
-  const handleSendFriendRequest = () => {
-    if (friendUsername.trim()) {
-      // TODO: Plug API when available
-      // Keeping console for now to preserve existing behavior
-      // eslint-disable-next-line no-console
-      console.log('Sending friend request to:', friendUsername);
-      setFriendUsername('');
-    }
-  };
+  useEffect(() => {
+    const onView = (e) => setCommunity(e.detail || {});
+    const onExit = () => setCommunity(null);
+    window.addEventListener('community:view', onView);
+    window.addEventListener('community:exit', onExit);
+    return () => {
+      window.removeEventListener('community:view', onView);
+      window.removeEventListener('community:exit', onExit);
+    };
+  }, []);
+
+  if (community) return <CommunityRightPanel community={community} />;
 
   return (
     <div className="hidden lg:block w-100 bg-white border-l border-gray-200 p-6 h-[calc(100vh-56px)] overflow-y-hidden flex-shrink-0">
@@ -28,12 +32,9 @@ const DashboardRightSidebar = () => {
             <input
               type="text"
               placeholder="Enter username"
-              value={friendUsername}
-              onChange={(e) => setFriendUsername(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
             <button
-              onClick={handleSendFriendRequest}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Send request

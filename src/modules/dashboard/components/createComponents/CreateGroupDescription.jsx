@@ -25,7 +25,7 @@ const CreateGroupDescription = ({ onBack, onSkip, onConfirm, entityLabel = 'grou
   return (
     <div className="relative w-[94%] max-w-[750px] rounded-2xl overflow-hidden shadow-2xl h-[680px]">
       <div className="bg-white py-4 px-2 h-full">
-        <div className="relative bg-zinc-900 text-white p-6 h-full rounded-2xl flex flex-col">
+        <div className="relative bg-[#282828] text-white p-6 h-full rounded-2xl flex flex-col">
           {/* Main center content */}
           <div className="flex-1 flex flex-col justify-center items-center">
             <h2 className="text-4xl sm:text-5xl font-semibold leading-tight text-center">

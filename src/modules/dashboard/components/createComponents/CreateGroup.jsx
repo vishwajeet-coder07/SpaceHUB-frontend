@@ -52,7 +52,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
   return (
     <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden shadow-2xl mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full">
-        <div className="bg-zinc-900 rounded-2xl h-full text-white p-3 sm:p-6 flex flex-col">
+        <div className="bg-[#282828] rounded-2xl h-full text-white p-3 sm:p-6 flex flex-col">
           <div className="flex-1 flex flex-col justify-center items-center">
             <h2 className="text-2xl sm:text-4xl font-semibold text-center">{title}</h2>
             <p className="mt-2 sm:mt-4 text-gray-300 max-w-2xl text-center text-base sm:text-lg">{subtitle}</p>
@@ -63,7 +63,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                 <img src={preview} alt="preview" className="w-full h-full object-cover rounded-full" />
               ) : (
                 <>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-[34px] sm:h-[34px]">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-[42px] sm:h-[42px]">
                     <path d="M4 7h4l2-2h4l2 2h4v12H4V7z" stroke="white" strokeWidth="1.5"/>
                     <circle cx="12" cy="13" r="3" fill="white"/>
                   </svg>
@@ -71,7 +71,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                 </>
               )}
             </button>
-                <span className="absolute -right-2 -top-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl">+</span>
+                <span className="absolute -right-0 -top-0 mt-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl">+</span>
             <input ref={fileInputRef} onChange={onFileChange} type="file" accept="image/*" className="hidden" />
                 {showImageError && (
                   <p className="absolute left-1/2 -bottom-7 -translate-x-1/2 text-sm text-red-400 whitespace-nowrap">Image is required.</p>

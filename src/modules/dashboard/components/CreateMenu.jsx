@@ -5,7 +5,7 @@ const CreateMenu = ({ onBack, onFriends, onClubs, onJoin }) => {
     <div className="relative w-full max-w-full sm:max-w-[750px] rounded-2xl overflow-hidden shadow-2xl min-h-[550px] sm:h-[680px] mx-auto">
       {/* Top panel */}
       <div className="bg-white px-2 py-2 sm:p-4 rounded-t-2xl">
-        <div className="bg-zinc-900 text-white px-2 py-3 sm:p-5 mt-4 rounded-2xl">
+        <div className="bg-[#282828] text-white px-2 py-3 sm:p-5 mt-4 rounded-2xl">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-2xl font-semibold">Create</h2>
             <button onClick={onBack} className="text-white/90 hover:text-white text-base sm:text-lg">Back</button>
