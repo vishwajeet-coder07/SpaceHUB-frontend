@@ -107,7 +107,6 @@ export async function createCommunity({ name, description, createdByEmail, image
     method: 'POST',
     body: formData
   });
-  // Try parse JSON (using handleJson or inline)
   let data;
   try {
     data = await response.json();
@@ -120,6 +119,39 @@ export async function createCommunity({ name, description, createdByEmail, image
   }
   return data;
 }
+
+// Create Local Group
+export async function createLocalGroup({ name, description, createdByEmail, imageFile }) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('description', description);
+  formData.append('creatorEmail', createdByEmail);
+  if (imageFile) {
+    formData.append('imageFile', imageFile);
+  }
+  const response = await authenticatedFetch(`${BASE_URL}local-group/create`, {
+    method: 'POST',
+    body: formData
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export const createRoom = (args) => createLocalGroup({
+  name: args.name,
+  description: args.description,
+  createdByEmail: args.createdByEmail || args.creatorEmail || args.creatByEmail,
+  imageFile: args.imageFile,
+});
 
 export async function getAllCommunities() {
   const response = await authenticatedFetch(`${BASE_URL}community/all`, {
@@ -137,6 +169,25 @@ export async function getAllCommunities() {
   }
   return data;
 }
+
+export async function getAllLocalGroups() {
+  const response = await authenticatedFetch(`${BASE_URL}local-group/all`, {
+    method: 'GET'
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export const getAllRooms = () => getAllLocalGroups();
 
 async function handleJson(response) {
   let data;
@@ -161,7 +212,6 @@ export const getAuthHeaders = (isFormData = false) => {
 };
 
 export const authenticatedFetch = async (url, options = {}) => {
-  // Check if body is FormData to determine headers
   const isFormData = options.body instanceof FormData;
   const headers = getAuthHeaders(isFormData);
   

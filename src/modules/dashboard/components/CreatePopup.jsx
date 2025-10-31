@@ -4,7 +4,7 @@ import CreateGroup from './createComponents/CreateGroup.jsx';
 import CreateGroupDescription from './createComponents/CreateGroupDescription.jsx';
 import CreateCongrats from './createComponents/CreateCongrats.jsx';
 import CreateJoin from './CreateJoin.jsx';
-import { createCommunity } from '../../../shared/services/API';
+import { createCommunity, createLocalGroup } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const CreatePopup = ({ open, onClose }) => {
@@ -35,7 +35,6 @@ const CreatePopup = ({ open, onClose }) => {
   };
 
   const handleDescriptionConfirm = async ({ description }) => {
-    // Client-side validation to avoid 400s
     const trimmedName = (groupData.name || '').trim();
     const trimmedDesc = (description || '').trim();
     const trimmedEmail = (userEmail || '').trim();
@@ -45,23 +44,25 @@ const CreatePopup = ({ open, onClose }) => {
     }
 
     setLoading(true);
-
-    // Debug logging (safe fields only)
     // eslint-disable-next-line no-console
-    console.log('Creating community with:', {
-      name: trimmedName,
-      description: trimmedDesc,
-      createdByEmail: trimmedEmail,
-      hasImage: !!groupData.imageFile,
-    });
+    console.log('Creating entity with:', { kind, name: trimmedName, description: trimmedDesc, email: trimmedEmail, hasImage: !!groupData.imageFile });
 
     try {
-      await createCommunity({
-        name: trimmedName,
-        description: trimmedDesc,
-        createdByEmail: trimmedEmail,
-        imageFile: groupData.imageFile,
-      });
+      if (kind === 'community') {
+        await createCommunity({
+          name: trimmedName,
+          description: trimmedDesc,
+          createdByEmail: trimmedEmail,
+          imageFile: groupData.imageFile,
+        });
+      } else {
+        await createLocalGroup({
+          name: trimmedName,
+          description: trimmedDesc,
+          createdByEmail: trimmedEmail,
+          imageFile: groupData.imageFile,
+        });
+      }
       setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
       setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Group') + '!');
       setMode('done');
