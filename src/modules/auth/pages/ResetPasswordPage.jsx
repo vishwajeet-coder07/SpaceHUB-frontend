@@ -43,7 +43,9 @@ const ResetPasswordPage = () => {
       const tempToken = sessionStorage.getItem('resetAccessToken') || '';
       resetPassword({ email, newPassword: password, tempToken })
         .then((data) => {
-          login(data.user, data.accessToken);
+          const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+          const userObj = data?.user || data?.data?.user || { email };
+          login(userObj, token);
           navigate('/dashboard');
         })
         .catch((err) => {

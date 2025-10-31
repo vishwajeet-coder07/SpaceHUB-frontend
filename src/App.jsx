@@ -61,7 +61,9 @@ function App() {
               <Route 
                 path="/profile/setup" 
                 element={
+                  <ProfileSetupRoute>
                     <ProfileSetupPage />
+                    </ProfileSetupRoute>
                 }
               />
               <Route path="*" element={<LandingPage />} />

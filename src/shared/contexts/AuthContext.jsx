@@ -12,8 +12,8 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      const userData = localStorage.getItem('userData');
+      const token = sessionStorage.getItem('accessToken');
+      const userData = sessionStorage.getItem('userData');
 
       if (token && userData) {
         const parsedUserData = JSON.parse(userData);
@@ -23,8 +23,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error checking auth status:', error);
       // Clear invalid data
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userData');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('userData');
     } finally {
       setLoading(false);
     }
@@ -32,8 +32,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData, token) => {
     try {
-      localStorage.setItem('accessToken', token);
-      localStorage.setItem('userData', JSON.stringify(userData));
+      if (token) sessionStorage.setItem('accessToken', token);
+      sessionStorage.setItem('userData', JSON.stringify(userData));
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error) {
@@ -43,8 +43,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('userData');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('userData');
       sessionStorage.removeItem('resetEmail');
       sessionStorage.removeItem('resetAccessToken');
       setUser(null);
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (updatedUserData) => {
     try {
-      localStorage.setItem('userData', JSON.stringify(updatedUserData));
+      sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
       setUser(updatedUserData);
     } catch (error) {
       console.error('Error updating user data:', error);
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const getToken = () => {
-    return localStorage.getItem('accessToken');
+    return sessionStorage.getItem('accessToken');
   };
 
   const value = {

@@ -5,9 +5,11 @@ import CreateGroupDescription from './createComponents/CreateGroupDescription.js
 import CreateCongrats from './createComponents/CreateCongrats.jsx';
 import CreateJoin from './CreateJoin.jsx';
 import { createCommunity } from '../../../shared/services/API';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const CreatePopup = ({ open, onClose }) => {
   if (!open) return null;
+  const { user } = useAuth?.() || {};
   const [mode, setMode] = useState('menu'); // 'menu' | 'create' | 'desc' | 'join' | 'done'
   const [kind, setKind] = useState('group'); // 'group' | 'community'
   const [doneSubtitle, setDoneSubtitle] = useState('');
@@ -18,7 +20,8 @@ const CreatePopup = ({ open, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  const userEmail = (JSON.parse(localStorage.getItem('userData'))?.email) || '';
+  const storedEmail = (JSON.parse(sessionStorage.getItem('userData'))?.email) || '';
+  const userEmail = (user && user.email) || storedEmail || '';
 
   const goToMenu = () => {
     setMode('menu');
@@ -32,15 +35,34 @@ const CreatePopup = ({ open, onClose }) => {
   };
 
   const handleDescriptionConfirm = async ({ description }) => {
-    setGroupData((prev) => ({ ...prev, description }));
+    // Client-side validation to avoid 400s
+    const trimmedName = (groupData.name || '').trim();
+    const trimmedDesc = (description || '').trim();
+    const trimmedEmail = (userEmail || '').trim();
+    if (!trimmedName || !trimmedDesc || !trimmedEmail) {
+      alert('Please fill Name, Description, and make sure your account email is present.');
+      return;
+    }
+
     setLoading(true);
+
+    // Debug logging (safe fields only)
+    // eslint-disable-next-line no-console
+    console.log('Creating community with:', {
+      name: trimmedName,
+      description: trimmedDesc,
+      createdByEmail: trimmedEmail,
+      hasImage: !!groupData.imageFile,
+    });
+
     try {
       await createCommunity({
-        name: groupData.name,
-        description,
-        createdByEmail: userEmail,
+        name: trimmedName,
+        description: trimmedDesc,
+        createdByEmail: trimmedEmail,
         imageFile: groupData.imageFile,
       });
+      setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
       setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Group') + '!');
       setMode('done');
     } catch (err) {

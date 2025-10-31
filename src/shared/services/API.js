@@ -1,4 +1,4 @@
-const BASE_URL = 'https://codewithketan.me/api/v1/';
+export const BASE_URL = 'https://codewithketan.me/api/v1/';
 export async function registerUser(payload) {
   const response = await fetch(`${BASE_URL}registration`, {
     method: 'POST',
@@ -15,15 +15,18 @@ export async function loginUser(payload) {
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
   const data = await handleJson(response);
-  
+  console.log('data', data);
 
-  if (data && data.accessToken) {
-    localStorage.setItem('accessToken', data.accessToken);
-    if (data.user) {
-      localStorage.setItem('userData', JSON.stringify(data.user));
+  const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+  console.log('token', token);
+  if (token) {
+    sessionStorage.setItem('accessToken', token);
+    if (data.user || data.data?.user) {
+      const userObj = data.user || data.data?.user;
+      sessionStorage.setItem('userData', JSON.stringify(userObj));
     }
   }
-  
+
   return data;
 }
 
@@ -52,15 +55,16 @@ export async function resetPassword(payload) {
     body: JSON.stringify(payload)
   });
   const data = await handleJson(response);
-  
 
-  if (data && data.accessToken) {
-    localStorage.setItem('accessToken', data.accessToken);
-    if (data.user) {
-      localStorage.setItem('userData', JSON.stringify(data.user));
+  const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+  if (token) {
+    sessionStorage.setItem('accessToken', token);
+    if (data.user || data.data?.user) {
+      const userObj = data.user || data.data?.user;
+      sessionStorage.setItem('userData', JSON.stringify(userObj));
     }
   }
-  
+
   return data;
 } 
 
@@ -103,7 +107,24 @@ export async function createCommunity({ name, description, createdByEmail, image
     method: 'POST',
     body: formData
   });
+  // Try parse JSON (using handleJson or inline)
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
 
+export async function getAllCommunities() {
+  const response = await authenticatedFetch(`${BASE_URL}community/all`, {
+    method: 'GET'
+  });
   let data;
   try {
     data = await response.json();
@@ -132,7 +153,7 @@ async function handleJson(response) {
 }
 
 export const getAuthHeaders = (isFormData = false) => {
-  const token = localStorage.getItem('accessToken');
+  const token = sessionStorage.getItem('accessToken');
   return {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token && { 'Authorization': `Bearer ${token}` })
@@ -153,8 +174,8 @@ export const authenticatedFetch = async (url, options = {}) => {
   });
   
   if (response.status === 401) {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userData');
+    sessionStorage.removeItem('accessToken');
+    sessionStorage.removeItem('userData');
     window.location.href = '/login';
   }
   

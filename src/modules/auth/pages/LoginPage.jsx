@@ -25,8 +25,9 @@ const LoginPage = () => {
     loginUser({ email, password })
       .then((data) => {
         console.log('Login successful');
-        const userWithEmail = { ...(data?.user || {}), email };
-        login(userWithEmail, data.accessToken);
+        const userWithEmail = { ...(data?.user || data?.data?.user || {}), email };
+        const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+        login(userWithEmail, token);
         navigate('/dashboard');
       })
       .catch((err) => {

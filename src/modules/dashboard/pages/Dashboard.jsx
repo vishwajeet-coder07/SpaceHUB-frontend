@@ -90,8 +90,8 @@ const Dashboard = () => {
               onClick={() => setSelectedView('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 selectedView === 'dashboard'
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-700 hover:bg-gray-200'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-700 hover:bg-zinc-200'
               }`}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
