@@ -168,11 +168,10 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
     setError('');
 
     try {
-      const url = `${BASE_URL}community/rooms/create`;
+      const url = `${BASE_URL}community/${communityId}/rooms/create`;
       const body = {
         roomName: groupName.trim(),
-        requesterEmail: user.email,
-        communityId: communityId
+        requesterEmail: user.email
       };
 
       const response = await authenticatedFetch(url, {
