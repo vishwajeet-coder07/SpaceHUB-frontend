@@ -8,16 +8,28 @@ const CreateGroupDescription = ({ onBack, onSkip, onConfirm, entityLabel = 'grou
     if (initialDescription !== undefined) setDescription(initialDescription || '');
   }, [initialDescription]);
 
+  const getCharacterCount = (text) => {
+    return text.length;
+  };
+
   const showError = touched && !description.trim();
+  const characterCount = getCharacterCount(description);
+  const showCharacterLimitError = characterCount > 80;
 
   const handleConfirm = () => {
     setTouched(true);
-    if (!description.trim()) return;
+    if (!description.trim() || showCharacterLimitError) return;
     onConfirm?.({ description });
   };
 
   const handleChange = (e) => {
     const value = e.target.value;
+    
+    // Limit to 80 characters
+    if (value.length > 80) {
+      return;
+    }
+    
     setDescription(value);
     onChange?.(value);
   };
@@ -34,23 +46,32 @@ const CreateGroupDescription = ({ onBack, onSkip, onConfirm, entityLabel = 'grou
               for your {entityLabel}?
             </h2>
             <div className="w-full mt-10">
-              <input
+              <textarea
                 value={description}
                 onChange={handleChange}
                 onBlur={() => setTouched(true)}
                 placeholder="Add description"
-                className="w-full bg-white text-gray-900 rounded-xl px-4 py-4 text-lg outline-none"
+                rows={1}
+                className="w-full bg-white text-gray-900 rounded-xl px-4 py-4 text-lg outline-none resize-none"
               />
-              {showError && (
-                <p className="mt-2 text-sm text-red-400">Description is required.</p>
-              )}
+              <div className="flex items-center justify-between mt-2">
+                {showError && (
+                  <p className="text-sm text-red-400">Description is required.</p>
+                )}
+                {showCharacterLimitError && (
+                  <p className="text-sm text-red-400 ml-auto">Maximum 80 characters allowed.</p>
+                )}
+                {!showError && !showCharacterLimitError && (
+                  <p className="text-sm text-gray-400 ml-auto">{characterCount}/80 characters</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Bottom row */}
           <div className="flex items-center justify-between mt-8">
             <button onClick={onBack} className="text-white/90 hover:text-white text-lg">Back</button>
-            <button onClick={handleConfirm} className={`px-5 py-2 rounded-xl font-semibold ${description.trim() ? 'bg-indigo-100 text-gray-900' : 'bg-indigo-100/60 text-gray-900/70'}`}>Confirm</button>
+            <button onClick={handleConfirm} className={`px-5 py-2 rounded-xl font-semibold ${description.trim() && !showCharacterLimitError ? 'bg-indigo-100 text-gray-900' : 'bg-indigo-100/60 text-gray-900/70'}`}>Confirm</button>
           </div>
         </div>
       </div>

@@ -1,6 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
 
+const CommunityCard = ({ community }) => {
+  const title = community.name || 'Untitled';
+  const desc = community.description || '';
+  const img = community.bannerUrl || community.imageUrl || community.imageURL || '';
+  const members = community.totalMembers || community.members || 0;
+  const online = community.onlineMembers || community.online || 0;
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div
+      key={community.id || community.communityId || title}
+      className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent"
+    >
+      {/* Top image area */}
+      <div className="h-40 sm:h-44 bg-gray-200">
+        {img && !imageError ? (
+          <img 
+            src={img} 
+            alt={title} 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={() => setImageError(true)}
+          />
+        ) : null}
+      </div>
+      {/* Bottom dark card */}
+      <div className="bg-[#282828] text-white px-4 py-4 min-h-[170px]">
+        <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
+          <div className='w-12 h-12 bg-gray-300 rounded-sm'> </div>
+          <div>
+            <div>members: 0</div>
+            <div className="text-green-400">• 0 Online</div>
+          </div>
+        </div>
+        <div>
+          <h3 className="text-2xl font-bold mb-2">{title}</h3>
+          <p className="text-sm text-gray-300 leading-relaxed line-clamp-8">{desc}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,13 +87,13 @@ const Discover = () => {
         <span className="px-3 py-3 rounded-full bg-[#282828] text-white text-md font-semibold">Community</span>
         <div className="flex-1" />
         <div className="w-full sm:w-[360px]">
-        <input
-          type="text"
-          placeholder="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        />
+          <input
+            type="text"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
         </div>
       </div>
 
@@ -59,39 +102,11 @@ const Discover = () => {
         {loading && <div className="text-gray-700">Loading communities...</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
-            {filtered.map((community) => {
-              const title = community.name || 'Untitled';
-              const desc = community.description || '';
-              const img = community.bannerUrl || community.imageUrl || community.imageURL || '';
-              const members = community.totalMembers || community.members || 0;
-              const online = community.onlineMembers || community.online || 0;
-              return (
-                <div
-                  key={community.id || community.communityId || title}
-                  className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent"
-                >
-                  {/* Top image area */}
-                  <div className="h-40 sm:h-44 bg-gray-200">
-                    {img ? (
-                      <img src={img} alt={title} className="w-full h-full object-cover" />
-                    ) : null}
-                  </div>
-                  {/* Bottom dark card */}
-                  <div className="bg-[#282828] text-white px-4 py-4">
-                    <div className="relative left-[75%] text-sm text-gray-300">
-                      <div>members: 0</div>
-                      <div className="text-green-400">• 0 Online</div>
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold">{title}</h3>
-                      <p className="text-sm text-gray-300 mt-1 line-clamp-3">{desc}</p>
-                    </div>
-                  </div>
-            </div>
-              );
-            })}
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
+            {filtered.map((community) => (
+              <CommunityCard key={community.id || community.communityId || community.name} community={community} />
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -66,7 +66,7 @@ const CreatePopup = ({ open, onClose }) => {
         window.dispatchEvent(new Event('refresh:local-groups'));
       }
       setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
-      setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Group') + '!');
+      setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Local-Group') + '!');
       setMode('done');
     } catch (err) {
       alert(err.message || 'Failed to create.');
@@ -93,10 +93,10 @@ const CreatePopup = ({ open, onClose }) => {
         <CreateGroup
           onBack={goToMenu}
           onConfirm={handleGroupConfirm}
-          title={kind === 'community' ? 'Create a community' : 'Create a group'}
-          subtitle={kind === 'community' ? 'Create a community.\nBring people together in one shared space.' : 'Start your own group and bring people together. Share ideas, interests, and good vibes in one place.'}
-          nameLabel={kind === 'community' ? 'Community name' : 'Group name'}
-          placeholder={kind === 'community' ? 'Enter community name' : 'Enter group name'}
+          title={kind === 'community' ? 'Create a community' : 'Create a Local-Group'}
+          subtitle={kind === 'community' ? 'Create a community.\nBring people together in one shared space.' : 'Start your own Local-Group and bring people together. Share ideas, interests, and good vibes in one place.'}
+          nameLabel={kind === 'community' ? 'Community name' : 'Local-Group name'}
+          placeholder={kind === 'community' ? 'Enter community name' : 'Enter Local-Group name'}
           confirmText={'Confirm'}
           initialName={groupData.name}
           initialImageFile={groupData.imageFile}
@@ -108,7 +108,7 @@ const CreatePopup = ({ open, onClose }) => {
           onBack={() => setMode('create')}
           onSkip={() => setMode('done')}
           onConfirm={handleDescriptionConfirm}
-          entityLabel={kind === 'community' ? 'Community' : 'group'}
+          entityLabel={kind === 'community' ? 'Community' : 'Local-Group'}
           initialDescription={groupData.description}
           onChange={(value) => setGroupData((prev) => ({ ...prev, description: value }))}
         />
@@ -116,7 +116,7 @@ const CreatePopup = ({ open, onClose }) => {
       {mode === 'done' && (
         <CreateCongrats
           onDone={onClose}
-          entityTitle={kind === 'community' ? 'Community' : 'Group'}
+          entityTitle={kind === 'community' ? 'Community' : 'Local-Group'}
           subtitle={doneSubtitle}
         />
       )}

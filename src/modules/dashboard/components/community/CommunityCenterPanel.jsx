@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 
 const CommunityCenterPanel = ({ community, onBack }) => {
-  const channelName = '#Graphicdesigner';
+  const channelName = '#general';
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const fileInputRef = useRef(null);

@@ -31,8 +31,18 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
     onChange?.({ name: groupName, imageFile: f });
   };
 
+  const getCharacterCount = (text) => {
+    return text.length;
+  };
+
   const handleNameChange = (e) => {
     const value = e.target.value;
+    
+    // Limit to 14 characters
+    if (value.length > 14) {
+      return;
+    }
+    
     setGroupName(value);
     onChange?.({ name: value, imageFile });
   };
@@ -46,7 +56,9 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
     onConfirm?.({ groupName, imageFile });
   };
 
+  const characterCount = getCharacterCount(groupName);
   const showNameError = touchedName && !groupName.trim();
+  const showCharacterLimitError = characterCount > 14;
   const showImageError = touchedImage && !imageFile;
 
   return (
@@ -95,9 +107,17 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                   className="flex-1 outline-none text-base sm:text-lg bg-transparent min-w-0"
               />
               </div>
-              {showNameError && (
-                <p className="mt-2 text-sm text-red-400">{nameLabel} is required.</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {showNameError && (
+                  <p className="text-sm text-red-400">{nameLabel} is required.</p>
+                )}
+                {showCharacterLimitError && (
+                  <p className="text-sm text-red-400 ml-auto">Maximum 14 characters allowed.</p>
+                )}
+                {!showNameError && !showCharacterLimitError && (
+                  <p className="text-sm text-gray-400 ml-auto">{characterCount}/14 characters</p>
+                )}
+              </div>
           </div>
         </div>
           <div className="flex items-center justify-between mt-6 sm:mt-8">
