@@ -202,7 +202,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div ref={modalRef} className="bg-[#282828] rounded-xl p-8 shadow-2xl max-w-md w-full mx-4">
         <h2 className="text-2xl font-bold text-white text-center mb-2">{communityName}</h2>
         <p className="text-white/80 text-center text-sm mb-6">Create a Group for seamless workflow!</p>
@@ -329,7 +329,8 @@ const CommunityLeftPanel = ({ community, onBack }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await authenticatedFetch(`${BASE_URL}community/rooms/all`, {
+      // Use communityId as path parameter: community/{communityId}/rooms/all
+      const response = await authenticatedFetch(`${BASE_URL}community/${communityId}/rooms/all`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -342,19 +343,11 @@ const CommunityLeftPanel = ({ community, onBack }) => {
         throw new Error(data.message || 'Failed to fetch groups');
       }
 
-      // Filter groups by communityId if needed, or transform response
-      // Adjust based on actual API response structure
-      const roomsList = data?.data?.rooms || data?.rooms || data?.data || [];
-      
-      // Filter rooms for this community if needed
-      const communityRooms = roomsList.filter(room => 
-        room.communityId === communityId || 
-        room.community_id === communityId ||
-        room.community?.id === communityId
-      );
+      // API response structure: { status: 200, message: "...", data: [{ name, id, roomCode }] }
+      const roomsList = data?.data || [];
 
       // Transform to our structure
-      const transformedGroups = communityRooms.map((room) => ({
+      const transformedGroups = roomsList.map((room) => ({
         id: room.id,
         name: room.name || room.roomName,
         chatRooms: room.chatRooms || ['general'],
