@@ -1,4 +1,4 @@
-npm install import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
 import JoinCommunityModal from './JoinCommunityModal';
 
