@@ -1,24 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import CommunityLeftPanel from './community/CommunityLeftPanel';
+import React from 'react';
 
 const DashboardLeftSidebar = ({ selectedView, setSelectedView }) => {
-  const [community, setCommunity] = useState(null);
-
-  useEffect(() => {
-    const onView = (e) => setCommunity(e.detail || {});
-    const onExit = () => setCommunity(null);
-    window.addEventListener('community:view', onView);
-    window.addEventListener('community:exit', onExit);
-    return () => {
-      window.removeEventListener('community:view', onView);
-      window.removeEventListener('community:exit', onExit);
-    };
-  }, []);
-
-  if (community) {
-    return <CommunityLeftPanel community={community} onBack={() => window.dispatchEvent(new Event('community:exit'))} />;
-  }
-
   return (
     <div className="hidden md:block w-64 bg-white border-r border-gray-200 p-4 h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0">
       <div className="space-y-2 mb-6">

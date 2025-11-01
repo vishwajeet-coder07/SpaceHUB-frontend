@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+npm install import React, { useEffect, useState } from 'react';
 import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
+import JoinCommunityModal from './JoinCommunityModal';
 
-const CommunityCard = ({ community }) => {
+const CommunityCard = ({ community, onClick }) => {
   const title = community.name || 'Untitled';
   const desc = community.description || '';
   const img = community.bannerUrl || community.imageUrl || community.imageURL || '';
@@ -12,7 +13,8 @@ const CommunityCard = ({ community }) => {
   return (
     <div
       key={community.id || community.communityId || title}
-      className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent"
+      onClick={() => onClick?.(community)}
+      className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent cursor-pointer"
     >
       {/* Top image area */}
       <div className="h-40 sm:h-44 bg-gray-200">
@@ -49,6 +51,8 @@ const Discover = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [communities, setCommunities] = useState([]);
+  const [selectedCommunity, setSelectedCommunity] = useState(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   const fetchCommunities = async (page = 0, size = 20) => {
     setLoading(true);
@@ -80,6 +84,16 @@ const Discover = () => {
     );
   });
 
+  const handleCommunityClick = (community) => {
+    setSelectedCommunity(community);
+    setShowJoinModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowJoinModal(false);
+    setSelectedCommunity(null);
+  };
+
   return (
     <div className="flex-1 bg-gray-100 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-y-auto">
       {/* Header row with pill and search */}
@@ -104,11 +118,22 @@ const Discover = () => {
         {!loading && !error && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
             {filtered.map((community) => (
-              <CommunityCard key={community.id || community.communityId || community.name} community={community} />
+              <CommunityCard 
+                key={community.id || community.communityId || community.name} 
+                community={community}
+                onClick={handleCommunityClick}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Join Community Modal */}
+      <JoinCommunityModal
+        isOpen={showJoinModal}
+        onClose={handleCloseModal}
+        community={selectedCommunity}
+      />
     </div>
   );
 };

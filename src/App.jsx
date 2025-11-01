@@ -5,7 +5,7 @@ import { AuthProvider, ProtectedRoute, PublicRoute, ResetPasswordRoute, ProfileS
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
 import { ProfileSetupPage } from './modules/profile'
 import { LandingPage } from './modules/landing'
-import { Dashboard } from './modules/dashboard'
+import { Dashboard, CommunityPage, LocalGroupPage } from './modules/dashboard'
 
 function App() {
   return (
@@ -55,6 +55,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/community/:id" 
+                element={
+                  <ProtectedRoute>
+                    <CommunityPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/local-group/:id" 
+                element={
+                  <ProtectedRoute>
+                    <LocalGroupPage />
                   </ProtectedRoute>
                 } 
               />

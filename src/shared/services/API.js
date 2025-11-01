@@ -170,8 +170,8 @@ export async function getAllCommunities() {
   return data;
 }
 
-export async function getAllLocalGroups() {
-  const response = await authenticatedFetch(`${BASE_URL}local-group/all`, {
+export async function getMyCommunities(requesterEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}community/my-communities?requesterEmail=${encodeURIComponent(requesterEmail)}`, {
     method: 'GET'
   });
   let data;
@@ -187,7 +187,51 @@ export async function getAllLocalGroups() {
   return data;
 }
 
-export const getAllRooms = () => getAllLocalGroups();
+export async function getAllLocalGroups(requesterEmail) {
+  const url = requesterEmail 
+    ? `${BASE_URL}local-group/all?requesterEmail=${encodeURIComponent(requesterEmail)}`
+    : `${BASE_URL}local-group/all`;
+  const response = await authenticatedFetch(url, {
+    method: 'GET'
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function joinCommunity(communityName, userEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}community/requestJoin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+      communityName: communityName,
+      userEmail: userEmail
+    })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export const getAllRooms = (requesterEmail) => getAllLocalGroups(requesterEmail);
 
 async function handleJson(response) {
   let data;

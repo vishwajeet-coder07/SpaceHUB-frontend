@@ -513,7 +513,6 @@ const CommunityLeftPanel = ({ community, onBack }) => {
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </button>
-            <button onClick={onBack} title="Back" className="text-gray-600 hover:text-gray-900">←</button>
           </div>
         </div>
         
@@ -581,12 +580,7 @@ const CommunityLeftPanel = ({ community, onBack }) => {
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="px-3 py-2 border-t border-gray-300">
-        <button onClick={onBack} className="w-full text-left text-sm text-gray-700 hover:text-gray-900">
-          Back to Dashboard
-        </button>
-      </div>
+
 
       {/* Create Group Modal */}
       <CreateGroupModal

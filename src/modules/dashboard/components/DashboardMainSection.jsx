@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { getAllCommunities, getAllLocalGroups, BASE_URL } from '../../../shared/services/API';
-import CommunityCenterPanel from './community/CommunityCenterPanel';
+import { useNavigate } from 'react-router-dom';
+import { getMyCommunities, getAllLocalGroups, BASE_URL } from '../../../shared/services/API';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const DashboardMainSection = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Community');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [communities, setCommunities] = useState([]);
   const [localGroups, setLocalGroups] = useState([]);
-  const [selectedCommunity, setSelectedCommunity] = useState(null);
 
   const safeUrl = (rawUrl) => {
     if (!rawUrl) return '';
@@ -26,8 +28,19 @@ const DashboardMainSection = () => {
   const fetchCommunities = useCallback(async () => {
     setLoading(true);
     setError('');
+    
+    // Get user email from context or sessionStorage
+    const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+    const userEmail = user?.email || storedEmail;
+    
+    if (!userEmail) {
+      setError('User email not found');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const res = await getAllCommunities();
+      const res = await getMyCommunities(userEmail);
       const list = res?.data?.communities || res?.communities || res?.data || [];
       setCommunities(list);
     } catch (e) {
@@ -35,13 +48,24 @@ const DashboardMainSection = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const fetchLocalGroups = useCallback(async () => {
     setLoading(true);
     setError('');
+    
+    // Get user email from context or sessionStorage
+    const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+    const userEmail = user?.email || storedEmail;
+    
+    if (!userEmail) {
+      setError('User email not found');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const res = await getAllLocalGroups();
+      const res = await getAllLocalGroups(userEmail);
       const list = res?.data?.groups || res?.groups || res?.data || res?.rooms || [];
       setLocalGroups(list);
     } catch (e) {
@@ -49,7 +73,7 @@ const DashboardMainSection = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const hasLoadedRef = useRef({ community: false, localGroups: false });
 
@@ -77,22 +101,6 @@ const DashboardMainSection = () => {
   
   }, []);
 
-  // Refresh data when returning from viewing (to get fresh pre-signed URLs)
-  useEffect(() => {
-    const handleCommunityExit = () => {
-      // Refresh data to get fresh pre-signed URLs (they expire after 1 hour)
-      if (activeTab === 'Community') {
-        fetchCommunities();
-      } else if (activeTab === 'Local-Groups') {
-        fetchLocalGroups();
-      }
-    };
-    
-    window.addEventListener('community:exit', handleCommunityExit);
-    return () => {
-      window.removeEventListener('community:exit', handleCommunityExit);
-    };
-  }, [activeTab, fetchCommunities, fetchLocalGroups]);
 
   const ListCard = ({ item, onSelect }) => {
     const rawUrl = item.imageUrl || item.bannerUrl || item.imageURL || '';
@@ -150,19 +158,18 @@ const DashboardMainSection = () => {
   };
 
   const handleSelectCommunity = (item) => {
-    setSelectedCommunity(item);
-    window.dispatchEvent(new CustomEvent('community:view', { detail: item }));
-  };
-
-  const onBackFromCommunity = () => {
-    setSelectedCommunity(null);
-    // Refresh data when returning to get fresh pre-signed URLs (they expire after 1 hour)
-    if (activeTab === 'Community') {
-      fetchCommunities();
-    } else if (activeTab === 'Local-Groups') {
-      fetchLocalGroups();
+    const itemId = item.id || item.communityId || item.community_id || item.groupId || item.roomId;
+    if (!itemId) {
+      console.error('No ID found for item:', item);
+      return;
     }
-    window.dispatchEvent(new Event('community:exit'));
+    // Ensure ID is converted to string for URL
+    const idString = String(itemId);
+    if (activeTab === 'Community') {
+      navigate(`/dashboard/community/${idString}`);
+    } else {
+      navigate(`/dashboard/local-group/${idString}`);
+    }
   };
 
   const renderList = (items, emptyTitle, emptySub) => {
@@ -188,12 +195,6 @@ const DashboardMainSection = () => {
       </div>
     );
   };
-
-  if (selectedCommunity) {
-    return (
-      <CommunityCenterPanel community={selectedCommunity} onBack={onBackFromCommunity} />
-    );
-  }
 
   return (
     <div className="flex-1 bg-gray-100 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden">

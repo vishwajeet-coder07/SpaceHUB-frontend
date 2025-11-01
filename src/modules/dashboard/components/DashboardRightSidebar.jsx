@@ -1,22 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import CommunityRightPanel from './community/CommunityRightPanel';
+import React from 'react';
 
 const DashboardRightSidebar = () => {
-  const [community, setCommunity] = useState(null);
-
-  useEffect(() => {
-    const onView = (e) => setCommunity(e.detail || {});
-    const onExit = () => setCommunity(null);
-    window.addEventListener('community:view', onView);
-    window.addEventListener('community:exit', onExit);
-    return () => {
-      window.removeEventListener('community:view', onView);
-      window.removeEventListener('community:exit', onExit);
-    };
-  }, []);
-
-  if (community) return <CommunityRightPanel community={community} />;
-
   return (
     <div className="hidden lg:block w-100 bg-white border-l border-gray-200 p-6 h-[calc(100vh-56px)] overflow-y-hidden flex-shrink-0">
       <div className="mb-6">
