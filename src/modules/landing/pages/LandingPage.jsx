@@ -68,7 +68,7 @@ const LandingPage = () => {
 
           <Link
             to="/signup"
-            className="inline-block bg-gradient-to-r from-red-500 to-blue-600 text-white px-3 sm:px-5 py-1 rounded-md font-semibold text-base sm:text-lg transition-all"
+            className="inline-block bg-gradient-to-r from-red-500 to-blue-600 text-white px-3 sm:px-5 py-5 rounded-md font-semibold text-base sm:text-lg transition-all"
           >
             Get started
           </Link>
@@ -83,7 +83,7 @@ const LandingPage = () => {
         <img
           src={line1}
           alt="decorative line"
-          className="absolute  left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
         />
       </section>
 
@@ -109,7 +109,7 @@ const LandingPage = () => {
         <img
           src={line2}
           alt="decorative line"
-          className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
         />
       </section>
 
@@ -135,7 +135,7 @@ const LandingPage = () => {
         <img
           src={line3}
           alt="decorative line"
-          className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
         />
       </section>
 

@@ -6,9 +6,6 @@ const BASE_URL = 'https://codewithketan.me/api/v1/';
 const USERNAME_API = `${BASE_URL}dashboard/set-username`;
 const UPLOAD_API = `${BASE_URL}dashboard/upload-profile-image`;
 
-// interests removed per new simplified profile setup
-
-// Preset avatar images placed in public/avatars
 const presetAvatarUrls = [
   '/avatars/avatar-1.png',
   '/avatars/avatar-2.png',

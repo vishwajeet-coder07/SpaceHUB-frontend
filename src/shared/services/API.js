@@ -381,7 +381,7 @@ export async function getMyPendingRequests(requesterEmail) {
 }
 
 export async function acceptJoinRequest({ communityName, creatorEmail, userEmail }) {
-  const response = await authenticatedFetch(`${BASE_URL}community/request/accept`, {
+  const response = await authenticatedFetch(`${BASE_URL}community/acceptRequest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -402,7 +402,7 @@ export async function acceptJoinRequest({ communityName, creatorEmail, userEmail
 }
 
 export async function rejectJoinRequest({ communityName, creatorEmail, userEmail }) {
-  const response = await authenticatedFetch(`${BASE_URL}community/request/reject`, {
+  const response = await authenticatedFetch(`${BASE_URL}community/rejectRequest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
