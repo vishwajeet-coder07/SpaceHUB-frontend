@@ -125,6 +125,7 @@ const CommunitySettingsPage = () => {
         setGroups(transformedGroups);
         setOriginalGroups([...transformedGroups]);
       } catch (err) {
+        console.error('Error fetching groups:', err);
       } finally {
         setLoadingGroups(false);
       }
@@ -214,6 +215,7 @@ const CommunitySettingsPage = () => {
 
       setHasChanges(false);
     } catch (err) {
+      console.error('Error saving community profile:', err);
       alert(err.message || 'Failed to update community profile');
     } finally {
       setSaving(false);
@@ -266,6 +268,7 @@ const CommunitySettingsPage = () => {
         }
 
         if (!group.id) {
+          console.warn('Group ID not found, skipping:', group);
           return;
         }
 
@@ -322,6 +325,7 @@ const CommunitySettingsPage = () => {
       setHasGroupChanges(false);
       setEditingGroupId(null);
     } catch (err) {
+      console.error('Error saving groups:', err);
       alert(err.message || 'Failed to save group changes');
     }
   };
@@ -355,6 +359,7 @@ const CommunitySettingsPage = () => {
   const handleDeleteGroupClick = (index) => {
     const group = groups[index];
     if (!group || !group.id) {
+      console.warn('Group or group ID not found');
       return;
     }
     setGroupToDelete({ index, group });
@@ -422,6 +427,7 @@ const CommunitySettingsPage = () => {
       setShowDeleteGroupModal(false);
       setGroupToDelete(null);
     } catch (err) {
+      console.error('Error deleting group:', err);
       alert(err.message || 'Failed to delete group');
     } finally {
       setDeletingGroup(false);
@@ -449,6 +455,7 @@ const CommunitySettingsPage = () => {
       });
       navigate('/dashboard');
     } catch (err) {
+      console.error('Error deleting community:', err);
       alert(err.message || 'Failed to delete community');
     } finally {
       setDeleting(false);
@@ -477,6 +484,7 @@ const CommunitySettingsPage = () => {
       });
       navigate('/dashboard');
     } catch (err) {
+      console.error('Error leaving community:', err);
       alert(err.message || 'Failed to leave community');
     } finally {
       setLeaving(false);

@@ -40,6 +40,8 @@ const CommunityPage = () => {
         if (found) {
           setCommunity(found);
         } else {
+          console.log('Looking for ID:', id);
+          console.log('Available communities:', list.map(c => ({ id: c.id, communityId: c.communityId, community_id: c.community_id })));
           setError('Community not found');
         }
       } catch (e) {

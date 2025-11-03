@@ -27,6 +27,7 @@ const ForgotPasswordPage = () => {
           setStep('otp');
         })
         .catch((err) => {
+          console.error('Failed to send OTP:', err.message);
           setError(err.message);
         })
         .finally(() => setLoading(false));
@@ -49,6 +50,7 @@ const ForgotPasswordPage = () => {
           return navigate('/reset');
         })
         .catch((err) => {
+          console.error('Invalid OTP:', err.message);
           setError(err.message);
           if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
             setInvalidOtp(true);
@@ -65,6 +67,7 @@ const ForgotPasswordPage = () => {
     setError('');
     resendForgotOtp(forgotToken)
        .catch((err) => {
+        console.error('Failed to resend OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));

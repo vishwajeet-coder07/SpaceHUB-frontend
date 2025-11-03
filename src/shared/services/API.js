@@ -15,8 +15,10 @@ export async function loginUser(payload) {
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
   const data = await handleJson(response);
+  console.log('data', data);
 
   const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+  console.log('token', token);
   if (token) {
     sessionStorage.setItem('accessToken', token);
     if (data.user || data.data?.user) {

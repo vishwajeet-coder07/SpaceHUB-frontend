@@ -67,6 +67,7 @@ const CreatePopup = ({ open, onClose }) => {
     }
 
     setLoading(true);
+    console.log('Creating entity with:', { kind, name: trimmedName, description: trimmedDesc, email: trimmedEmail, hasImage: !!groupData.imageFile });
 
     try {
       let response;

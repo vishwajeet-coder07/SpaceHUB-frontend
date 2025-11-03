@@ -153,6 +153,7 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
         setError('Failed to generate invite link');
       }
     } catch (err) {
+      console.error('Error generating invite link:', err);
       setError(err.message || 'Failed to generate invite link');
     } finally {
       setLoading(false);
@@ -193,6 +194,7 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      console.error('Failed to copy:', err);
       const textArea = document.createElement('textarea');
       textArea.value = inviteLink;
       document.body.appendChild(textArea);
@@ -436,6 +438,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
       onCreateSuccess?.(data.data || data);
       onClose();
     } catch (err) {
+      console.error('Error creating group:', err);
       setError(err.message || 'Failed to create group');
     } finally {
       setLoading(false);
@@ -576,6 +579,7 @@ const CommunityLeftPanel = ({ community, onBack }) => {
 
   const fetchGroups = useCallback(async () => {
     if (!communityId) {
+      console.warn('Community ID not available');
       return;
     }
 
@@ -610,6 +614,7 @@ const CommunityLeftPanel = ({ community, onBack }) => {
         transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: false }), {})
       );
     } catch (err) {
+      console.error('Error fetching groups:', err);
       setError(err.message || 'Failed to load groups');
     } finally {
       setLoading(false);
@@ -673,6 +678,7 @@ const CommunityLeftPanel = ({ community, onBack }) => {
         detail: { community, groupName, kind: roomType === 'chat' ? 'chat-room' : 'voice-room', name: clean }
       }));
     } catch (error) {
+      console.error('Error dispatching add-channel event:', error);
     }
   };
 

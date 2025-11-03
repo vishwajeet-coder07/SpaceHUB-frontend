@@ -51,6 +51,8 @@ const LocalGroupPage = () => {
         if (found) {
           setLocalGroup(found);
         } else {
+          console.log('Looking for ID:', id);
+          console.log('Available local groups:', list.map(g => ({ id: g.id, groupId: g.groupId, roomId: g.roomId })));
           setError('Local-Group not found');
         }
       } catch (e) {

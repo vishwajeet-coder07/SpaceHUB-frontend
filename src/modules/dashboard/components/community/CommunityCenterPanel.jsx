@@ -14,7 +14,7 @@ const CommunityCenterPanel = ({ community }) => {
     try {
       window.dispatchEvent(new CustomEvent('community:share-files', { detail: { files, community } }));
     } catch (error) {
-      // Event dispatch failed silently
+      console.error('Error dispatching share-files event:', error);
     }
     e.target.value = '';
   };

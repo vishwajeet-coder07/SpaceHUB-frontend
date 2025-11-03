@@ -10,6 +10,7 @@ import {
   selectInboxError,
   selectProcessingRequest,
   setRequests,
+  setPending,
   setActiveTab,
   setLoading,
   setError,
@@ -69,6 +70,7 @@ const InboxModal = ({ isOpen, onClose }) => {
 
         dispatch(setRequests(transformedRequests));
       } catch (err) {
+        console.error('Error fetching requests:', err);
         dispatch(setError(err.message || 'Failed to load requests'));
       }
     };
@@ -115,6 +117,7 @@ const InboxModal = ({ isOpen, onClose }) => {
       });
       dispatch(removeRequest(requestId));
     } catch (err) {
+      console.error('Error accepting request:', err);
       dispatch(setError(err.message || 'Failed to accept request'));
     } finally {
       dispatch(setProcessingRequest(null));
@@ -145,6 +148,7 @@ const InboxModal = ({ isOpen, onClose }) => {
 
       dispatch(removeRequest(requestId));
     } catch (err) {
+      console.error('Error rejecting request:', err);
       dispatch(setError(err.message || 'Failed to reject request'));
     } finally {
       dispatch(setProcessingRequest(null));

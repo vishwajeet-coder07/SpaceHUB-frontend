@@ -64,6 +64,7 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
         onClose();
       }, 1500);
     } catch (err) {
+      console.error('Error joining community:', err);
       setError(err.message || 'Failed to send join request');
     } finally {
       setLoading(false);

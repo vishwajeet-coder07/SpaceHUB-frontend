@@ -24,12 +24,14 @@ const LoginPage = () => {
     setLoading(true);
     loginUser({ email, password })
       .then((data) => {
+        console.log('Login successful');
         const userWithEmail = { ...(data?.user || data?.data?.user || {}), email };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
         login(userWithEmail, token);
         navigate('/dashboard');
       })
       .catch((err) => {
+        console.error('Login failed:', err.message);
         if (err.message.includes('Invalid credentials')) {
           setInvalidCredentials(true);
         } else {
@@ -183,7 +185,10 @@ const LoginPage = () => {
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => {
+                      console.log('Eye button clicked, current showPassword:', showPassword);
+                      setShowPassword(!showPassword);
+                    }}
                     className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                   >
                     {showPassword ?  (

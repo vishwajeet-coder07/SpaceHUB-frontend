@@ -30,6 +30,7 @@ const authSlice = createSlice({
           state.isAuthenticated = false;
         }
       } catch (error) {
+        console.error('Error checking auth status:', error);
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('userData');
         state.user = null;
@@ -50,7 +51,7 @@ const authSlice = createSlice({
         state.user = userData;
         state.isAuthenticated = true;
       } catch (error) {
-        // Error saving auth data silently ignored
+        console.error('Error saving auth data:', error);
       }
     },
     logout: (state) => {
@@ -63,7 +64,7 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
       } catch (error) {
-        // Error clearing auth data silently ignored
+        console.error('Error clearing auth data:', error);
       }
     },
     updateUser: (state, action) => {
@@ -72,7 +73,7 @@ const authSlice = createSlice({
         sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
         state.user = updatedUserData;
       } catch (error) {
-        // Error updating user data silently ignored
+        console.error('Error updating user data:', error);
       }
     },
   },

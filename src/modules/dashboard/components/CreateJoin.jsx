@@ -75,6 +75,7 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
         throw new Error(response?.message || 'Failed to join community');
       }
     } catch (err) {
+      console.error('Error joining community:', err);
       setError(err.message || 'Failed to join community. Please check the invite link.');
     } finally {
       setLoading(false);

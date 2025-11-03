@@ -49,6 +49,7 @@ const ResetPasswordPage = () => {
           navigate('/dashboard');
         })
         .catch((err) => {
+          console.error('Reset failed:', err.message);
           setError(err.message);
         })
         .finally(() => setLoading(false));

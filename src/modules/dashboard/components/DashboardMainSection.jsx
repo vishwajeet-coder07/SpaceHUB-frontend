@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMyCommunities, getAllLocalGroups, BASE_URL } from '../../../shared/services/API';
@@ -31,6 +31,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     if (!rawUrl) return '';
 
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      console.log('rawUrl', rawUrl);
       return rawUrl;
     }
     const absolute = `${BASE_URL}${rawUrl}`;
@@ -81,11 +82,17 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     }
   }, [user, dispatch]);
 
+  const hasLoadedRef = useRef({ community: false, localGroups: false });
+
   useEffect(() => {
     if (activeTab === 'Community') {
+     
       fetchCommunities();
+      hasLoadedRef.current.community = true;
     } else {
+     
       fetchLocalGroups();
+      hasLoadedRef.current.localGroups = true;
     }
   }, [activeTab, fetchCommunities, fetchLocalGroups]);
 
@@ -159,8 +166,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   const handleSelectCommunity = (item) => {
     const itemId = item.id || item.communityId || item.community_id || item.groupId || item.roomId;
     if (!itemId) {
+      console.error('No ID found for item:', item);
       return;
     }
+    // Ensure ID is converted to string for URL
     const idString = String(itemId);
     if (activeTab === 'Community') {
       navigate(`/dashboard/community/${idString}`);
@@ -313,3 +322,5 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 };
 
 export default DashboardMainSection;
+
+

@@ -141,6 +141,7 @@ const SignupPage = () => {
         setStep(3);
       })
       .catch((err) => {
+        console.error('Failed to initiate registration/OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));
@@ -166,11 +167,12 @@ const SignupPage = () => {
           const merged = { ...parsed, ...(data?.user || {}), email: formData.email };
           localStorage.setItem('userData', JSON.stringify(merged));
         } catch (error) {
-          // Error storing user data silently ignored
+          console.error('Error storing user data:', error);
         }
         navigate('/profile/setup');
       })
       .catch((err) => {
+        console.error('OTP verification or login failed:', err.message);
         setError(err.message);
         if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
           setInvalidOtp(true);
@@ -186,6 +188,7 @@ const SignupPage = () => {
     setError('');
     resendRegisterOtp(formData.email, registrationToken)
       .catch((err) => {
+        console.error('Failed to resend OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));
