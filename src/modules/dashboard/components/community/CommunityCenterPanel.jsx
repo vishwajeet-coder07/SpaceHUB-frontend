@@ -25,7 +25,7 @@ const CommunityCenterPanel = ({ community }) => {
   };
 
   return (
-    <div className="flex-1 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500">
+    <div className="flex-1 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500">
       {/* Header */}
       <div className="h-12 border-b border-gray-500 flex items-center justify-between px-4">
         <div className="font-semibold text-gray-800 truncate">{channelName}</div>

@@ -328,18 +328,19 @@ const CreateChannelModal = ({ isOpen, onClose, onSuccess }) => {
 
   if (!isOpen) return null;
 
+  {/* Create Channel Modal */}
   return (
-    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-center z-50 pt-20">
-      <div ref={modalRef} className="bg-white rounded-lg max-w-lg w-full mx-4 border border-gray-300">
-        <div className="flex items-center gap-4 p-4">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-center z-20 pt-20">
+      <div ref={modalRef} className="bg-black rounded-md max-w-lg w-full mx-">
+        <div className="flex items-center gap-4 p-4 ">
           <input
             type="text"
             value={channelName}
             onChange={(e) => setChannelName(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="#Channelname"
-            className="flex-1 border border-gray-300 rounded px-4 py-2 text-gray-900 outline-none focus:border-purple-500"
-            autoFocus
+              className="flex-1 bg-white border border-gray-300 rounded px-4 py-2 text-gray-900 outline-purple-400 ring-2 ring-purple-600"
+              autoFocus
           />
           <button
             onClick={handleSubmit}
@@ -447,6 +448,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 
   if (!isOpen) return null;
 
+{/* Create Group Modal */}
   return (
     <div className="fixed inset-0 bg-[#282828]/50 flex items-center justify-center z-50">
       <div ref={modalRef} className="bg-[#282828] rounded-xl p-8 max-w-md w-full mx-4 relative">
@@ -725,10 +727,18 @@ const CommunityLeftPanel = ({ community, onBack }) => {
     };
   }, [showDropdown]);
 
+  {/* Community Left Panel */}
   return (
-    <div className="w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl border-l border-gray-500">
+    <div className="w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl ">
       {/* Header */}
-      <div ref={dropdownRef} className="px-4 py-3 border-b border-gray-500 relative">
+      <div
+        ref={dropdownRef}
+        className={`px-4 py-3 relative ${
+          showDropdown
+            ? 'bg-[#282828] rounded-md'
+            : 'border-b border-gray-500'
+        }`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 truncate flex-1">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-400 flex-shrink-0">
@@ -746,13 +756,13 @@ const CommunityLeftPanel = ({ community, onBack }) => {
                 </div>
               )}
             </div>
-            <span className="font-semibold text-lg text-gray-900 truncate">{title}</span>
+            <span className={`font-semibold text-lg truncate ${showDropdown ? 'text-white' : 'text-gray-900'}`}>{title}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               title="Menu"
-              className="text-gray-600 hover:text-gray-900 transition-transform"
+              className={`${showDropdown ? 'text-white' : 'text-gray-600 hover:text-gray-900'} transition-transform`}
             >
               <svg
                 width="16"
@@ -768,30 +778,32 @@ const CommunityLeftPanel = ({ community, onBack }) => {
             </button>
           </div>
         </div>
-        
+
+
         {/* Dropdown Menu */}
         {showDropdown && (
-          <div className="mt-2 bg-[#282828] rounded-lg overflow-hidden">
+          <div className="mt-0 pt-2 bg-[#282828] rounded-b-md overflow-hidden">
             <button
               onClick={() => handleDropdownAction('invite')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded--md"
             >
               Invite people
             </button>
             <button
               onClick={() => handleDropdownAction('create-group')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
             >
               Create group
             </button>
             <button
               onClick={() => handleDropdownAction('settings')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
             >
               Settings
             </button>
           </div>
         )}
+        
       </div>
 
 
@@ -833,8 +845,8 @@ const CommunityLeftPanel = ({ community, onBack }) => {
           />
         ))}
             {/* Footer */}
-      <div className="absolute bottom-0 w-55 rounded-xl bg-zinc-900 px-3 py-2 border-t border-gray-300">
-        <button onClick={onBack} className="w-full text-center text-sm text-white">
+      <div className="absolute bottom-0 left-0 right-0 bg-gray-200 px-4 pb-3 pt-2 border-t border-gray-300 rounded-b-xl">
+        <button onClick={onBack} className="w-full text-center text-sm bg-zinc-900 text-white rounded-xl py-3 font-medium">
           Back to Dashboard
         </button>
       </div>

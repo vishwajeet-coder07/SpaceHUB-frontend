@@ -12,7 +12,7 @@ const CommunityRightPanel = ({ community }) => {
       ];
 
   return (
-    <div className="hidden lg:block w-90 bg-gray-200 h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
+    <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
       <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

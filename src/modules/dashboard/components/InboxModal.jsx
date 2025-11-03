@@ -158,7 +158,7 @@ const InboxModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-end z-50 pt-14 pr-4">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-end z-50 pt-10 pr-6">
       <div 
         ref={modalRef}
         className="bg-white rounded-xl shadow-2xl w-[420px] max-h-[calc(100vh-80px)] flex flex-col overflow-hidden"
