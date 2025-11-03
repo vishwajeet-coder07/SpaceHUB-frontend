@@ -27,7 +27,6 @@ const ForgotPasswordPage = () => {
           setStep('otp');
         })
         .catch((err) => {
-          console.error('Failed to send OTP:', err.message);
           setError(err.message);
         })
         .finally(() => setLoading(false));
@@ -50,7 +49,6 @@ const ForgotPasswordPage = () => {
           return navigate('/reset');
         })
         .catch((err) => {
-          console.error('Invalid OTP:', err.message);
           setError(err.message);
           if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
             setInvalidOtp(true);
@@ -67,7 +65,6 @@ const ForgotPasswordPage = () => {
     setError('');
     resendForgotOtp(forgotToken)
        .catch((err) => {
-        console.error('Failed to resend OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));
@@ -151,7 +148,7 @@ const ForgotPasswordPage = () => {
                     required
                     value={email}
                     onChange={handleEmailChange}
-                    className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter your email"
                     />
                   </div>
@@ -189,7 +186,7 @@ const ForgotPasswordPage = () => {
                         setOtpError(false);
                       }
                     }}
-                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 pr-12 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 pr-12 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter otp"
                   />
                   {invalidOtp && (
@@ -216,7 +213,7 @@ const ForgotPasswordPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
+              className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
             >
               {loading ? (step === 'email' ? 'Sending...' : 'Verifying...') : (step === 'email' ? 'Send OTP' : 'Verify')}
             </button>

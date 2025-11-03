@@ -1,81 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AuthContext } from './AuthContextContext';
+import { 
+  checkAuthStatus, 
+  login, 
+  logout, 
+  updateUser,
+  selectUser, 
+  selectIsAuthenticated, 
+  selectAuthLoading 
+} from '../store/slices/authSlice';
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const loading = useSelector(selectAuthLoading);
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    dispatch(checkAuthStatus());
+  }, [dispatch]);
 
-  const checkAuthStatus = () => {
-    try {
-      const token = sessionStorage.getItem('accessToken');
-      const userData = sessionStorage.getItem('userData');
-
-      if (token && userData) {
-        const parsedUserData = JSON.parse(userData);
-        setUser(parsedUserData);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      // Clear invalid data
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('userData');
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = (userData, token) => {
+    dispatch(login({ userData, token }));
   };
 
-  const login = (userData, token) => {
-    try {
-      if (token) sessionStorage.setItem('accessToken', token);
-      sessionStorage.setItem('userData', JSON.stringify(userData));
-      setUser(userData);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Error saving auth data:', error);
-    }
+  const handleLogout = () => {
+    dispatch(logout());
   };
 
-  const logout = () => {
-    try {
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('userData');
-      sessionStorage.removeItem('resetEmail');
-      sessionStorage.removeItem('resetAccessToken');
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Error clearing auth data:', error);
-    }
-  };
-
-  const updateUser = (updatedUserData) => {
-    try {
-      sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
-      setUser(updatedUserData);
-    } catch (error) {
-      console.error('Error updating user data:', error);
-    }
+  const handleUpdateUser = (updatedUserData) => {
+    dispatch(updateUser(updatedUserData));
   };
 
   const getToken = () => {
     return sessionStorage.getItem('accessToken');
   };
 
+  const checkAuth = () => {
+    dispatch(checkAuthStatus());
+  };
+
   const value = {
     user,
     isAuthenticated,
     loading,
-    login,
-    logout,
-    updateUser,
+    login: handleLogin,
+    logout: handleLogout,
+    updateUser: handleUpdateUser,
     getToken,
-    checkAuthStatus
+    checkAuthStatus: checkAuth
   };
 
   return (

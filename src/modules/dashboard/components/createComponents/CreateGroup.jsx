@@ -62,7 +62,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
   const showImageError = touchedImage && !imageFile;
 
   return (
-    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden shadow-2xl mx-auto my-0">
+    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full">
         <div className="bg-[#282828] rounded-2xl h-full text-white p-3 sm:p-6 flex flex-col">
           <div className="flex-1 flex flex-col justify-center items-center">

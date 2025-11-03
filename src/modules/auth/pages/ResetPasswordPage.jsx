@@ -49,7 +49,6 @@ const ResetPasswordPage = () => {
           navigate('/dashboard');
         })
         .catch((err) => {
-          console.error('Reset failed:', err.message);
           setError(err.message);
         })
         .finally(() => setLoading(false));
@@ -120,7 +119,7 @@ const ResetPasswordPage = () => {
                     value={password}
                     onChange={onPasswordChange}
                     data-show={showPassword}
-                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowPassword((p)=>!p)} tabIndex={-1}>
@@ -159,7 +158,7 @@ const ResetPasswordPage = () => {
                     value={confirmPassword}
                     onChange={onConfirmChange}
                     data-show={showConfirmPassword}
-                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Re-enter your password"
                   />
                   <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none" onClick={() => setShowConfirmPassword((p)=>!p)} tabIndex={-1}>
@@ -181,7 +180,7 @@ const ResetPasswordPage = () => {
                 )}
               </div>
 
-              <button type="submit" disabled={loading} className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60">
+              <button type="submit" disabled={loading} className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60">
                 {loading ? 'Creating...' : 'Create'}
               </button>
 

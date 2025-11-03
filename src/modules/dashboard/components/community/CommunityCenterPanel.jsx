@@ -1,21 +1,21 @@
 import React, { useRef, useState } from 'react';
 
-const CommunityCenterPanel = ({ community, onBack }) => {
+const CommunityCenterPanel = ({ community }) => {
   const channelName = '#general';
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const fileInputRef = useRef(null);
 
-  const emojis = ['😊', '😂', '🎉', '🔥', '👍', '❤️'];
+    const emojis = ['😊', '😂', '🎉', '🔥', '👍', '❤️'];
 
-  const onPickFiles = () => fileInputRef.current?.click();
+    const onPickFiles = () => fileInputRef.current?.click();
   const onFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
-    // Emit an event so chat logic can handle uploads later
     try {
       window.dispatchEvent(new CustomEvent('community:share-files', { detail: { files, community } }));
-    } catch {}
-    // Reset so same file can be chosen twice
+    } catch (error) {
+      // Event dispatch failed silently
+    }
     e.target.value = '';
   };
 
@@ -25,12 +25,11 @@ const CommunityCenterPanel = ({ community, onBack }) => {
   };
 
   return (
-    <div className="flex-1 bg-white h-[calc(100vh-56px)] flex flex-col">
+    <div className="flex-1 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500">
       {/* Header */}
-      <div className="h-12 border-b border-gray-200 flex items-center justify-between px-4">
+      <div className="h-12 border-b border-gray-500 flex items-center justify-between px-4">
         <div className="font-semibold text-gray-800 truncate">{channelName}</div>
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm">Back</button>
           <span className="text-gray-500">👥</span>
         </div>
       </div>
@@ -41,11 +40,11 @@ const CommunityCenterPanel = ({ community, onBack }) => {
           <h2 className="text-2xl font-bold">Welcome to</h2>
           <p className="mt-1 text-lg font-semibold">{channelName}</p>
           <div className="mt-6 space-y-3 text-gray-900">
-            <button className="w-full bg-white rounded-lg px-4 py-3 flex items-center justify-between">
+            <button className="w-full bg-white rounded-md px-4 py-3 flex items-center justify-between">
               <span>Invite your friends</span>
               <span>›</span>
             </button>
-            <button className="w-full bg-white rounded-lg px-4 py-3 flex items-center justify-between">
+            <button className="w-full bg-white rounded-md px-4 py-3 flex items-center justify-between">
               <span>Send hey to start the convo!</span>
               <span>›</span>
             </button>
@@ -72,7 +71,7 @@ const CommunityCenterPanel = ({ community, onBack }) => {
             className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none"
           />
 
-          <button className="ml-auto bg-gray-100 text-gray-900 rounded-lg px-3 py-1">➤</button>
+          <button className="ml-auto bg-gray-100 text-gray-900 rounded-md px-3 py-1">➤</button>
 
           {/* Emoji popup */}
           {showEmoji && (

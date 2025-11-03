@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import CreateMenu from './CreateMenu.jsx';
 import CreateGroup from './createComponents/CreateGroup.jsx';
 import CreateGroupDescription from './createComponents/CreateGroupDescription.jsx';
@@ -6,12 +8,15 @@ import CreateCongrats from './createComponents/CreateCongrats.jsx';
 import CreateJoin from './CreateJoin.jsx';
 import { createCommunity, createLocalGroup } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import { addCommunity, addLocalGroup } from '../../../shared/store/slices/dashboardSlice';
 
 const CreatePopup = ({ open, onClose }) => {
   if (!open) return null;
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useAuth?.() || {};
-  const [mode, setMode] = useState('menu'); // 'menu' | 'create' | 'desc' | 'join' | 'done'
-  const [kind, setKind] = useState('group'); // 'group' | 'community'
+  const [mode, setMode] = useState('menu'); 
+  const [kind, setKind] = useState('group'); 
   const [doneSubtitle, setDoneSubtitle] = useState('');
   const [groupData, setGroupData] = useState({
     name: '',
@@ -22,6 +27,24 @@ const CreatePopup = ({ open, onClose }) => {
 
   const storedEmail = (JSON.parse(sessionStorage.getItem('userData'))?.email) || '';
   const userEmail = (user && user.email) || storedEmail || '';
+
+  const handleJoinSuccess = (communityData) => {
+    const communityId = communityData?.id || communityData?.communityId;
+    
+    if (communityId) {
+      onClose();
+      // Add the new community to Redux store if it's provided
+      if (communityData) {
+        dispatch(addCommunity(communityData));
+      }
+      // Trigger refresh for backwards compatibility
+      window.dispatchEvent(new Event('refresh:communities'));
+      navigate(`/dashboard/community/${communityId}`);
+    } else {
+      setDoneSubtitle('Successfully joined the community!');
+      setMode('done');
+    }
+  };
 
   const goToMenu = () => {
     setMode('menu');
@@ -44,30 +67,59 @@ const CreatePopup = ({ open, onClose }) => {
     }
 
     setLoading(true);
-    // eslint-disable-next-line no-console
-    console.log('Creating entity with:', { kind, name: trimmedName, description: trimmedDesc, email: trimmedEmail, hasImage: !!groupData.imageFile });
 
     try {
+      let response;
       if (kind === 'community') {
-        await createCommunity({
+        response = await createCommunity({
           name: trimmedName,
           description: trimmedDesc,
           createdByEmail: trimmedEmail,
           imageFile: groupData.imageFile,
         });
+        // Add to Redux store and trigger refresh for backwards compatibility
+        const communityData = response?.data || response;
+        if (communityData) {
+          dispatch(addCommunity(communityData));
+        }
         window.dispatchEvent(new Event('refresh:communities'));
       } else {
-        await createLocalGroup({
+        response = await createLocalGroup({
           name: trimmedName,
           description: trimmedDesc,
           createdByEmail: trimmedEmail,
           imageFile: groupData.imageFile,
         });
+        // Add to Redux store and trigger refresh for backwards compatibility
+        const localGroupData = response?.data || response;
+        if (localGroupData) {
+          dispatch(addLocalGroup(localGroupData));
+        }
         window.dispatchEvent(new Event('refresh:local-groups'));
       }
-      setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
-      setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Local-Group') + '!');
-      setMode('done');
+
+      const entityId = response?.data?.id || 
+                       response?.data?.communityId || 
+                       response?.data?.groupId || 
+                       response?.data?.localGroupId ||
+                       response?.id ||
+                       response?.communityId ||
+                       response?.groupId ||
+                       response?.localGroupId;
+
+      if (entityId) {
+        onClose();
+        
+        if (kind === 'community') {
+          navigate(`/dashboard/community/${entityId}`);
+        } else {
+          navigate(`/dashboard/local-group/${entityId}`);
+        }
+      } else {
+        setGroupData((prev) => ({ ...prev, description: trimmedDesc }));
+        setDoneSubtitle('You have successfully created your ' + (kind === 'community' ? 'Community' : 'Local-Group') + '!');
+        setMode('done');
+      }
     } catch (err) {
       alert(err.message || 'Failed to create.');
     } finally {
@@ -121,7 +173,7 @@ const CreatePopup = ({ open, onClose }) => {
         />
       )}
       {mode === 'join' && (
-        <CreateJoin onBack={goToMenu} onSend={() => { setDoneSubtitle('Request have been successfully send!'); setMode('done'); }} />
+        <CreateJoin onBack={goToMenu} onSuccess={handleJoinSuccess} />
       )}
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#282828]/40">

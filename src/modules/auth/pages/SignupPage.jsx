@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { registerUser, validateRegisterOtp, loginUser, resendRegisterOtp } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthSlides from '../components/AuthSlides';
@@ -141,7 +141,6 @@ const SignupPage = () => {
         setStep(3);
       })
       .catch((err) => {
-        console.error('Failed to initiate registration/OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));
@@ -166,11 +165,12 @@ const SignupPage = () => {
           const parsed = existing ? JSON.parse(existing) : {};
           const merged = { ...parsed, ...(data?.user || {}), email: formData.email };
           localStorage.setItem('userData', JSON.stringify(merged));
-        } catch {}
+        } catch (error) {
+          // Error storing user data silently ignored
+        }
         navigate('/profile/setup');
       })
       .catch((err) => {
-        console.error('OTP verification or login failed:', err.message);
         setError(err.message);
         if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
           setInvalidOtp(true);
@@ -186,7 +186,6 @@ const SignupPage = () => {
     setError('');
     resendRegisterOtp(formData.email, registrationToken)
       .catch((err) => {
-        console.error('Failed to resend OTP:', err.message);
         setError(err.message);
       })
       .finally(() => setLoading(false));
@@ -280,7 +279,7 @@ const SignupPage = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.6rem] max-w-[32rem] ${
+                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-md ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.6rem] max-w-[32rem] ${
                       firstNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
                     placeholder="Enter first name"
@@ -318,7 +317,7 @@ const SignupPage = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-lgx ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[32rem] ${
+                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border rounded-md ring-primary focus:border-blue-500 transition-colors placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[32rem] ${
                       lastNameError ? 'border-red-500 bg-red-50' : 'border-gray-400'
                     }`}
                       placeholder="Enter last name"
@@ -348,7 +347,7 @@ const SignupPage = () => {
                   <button
                     type="submit"
                     disabled={loading || firstNameError || lastNameError || !formData.firstName.trim() || !formData.lastName.trim()}
-                    className="w-full h-[2.4rem] lg:h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-lgx text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-base lg:text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
+                    className="w-full h-[2.4rem] lg:h-[2.8rem] flex justify-center px-4 pt-1 border border-transparent rounded-md text-white btn-primary bg-[#176CBF] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 text-base lg:text-[1.36rem] gap-[0.645rem] disabled:opacity-60"
                   >
                     {loading ? 'Loading...' : 'Continue'}
                   </button>
@@ -382,7 +381,7 @@ const SignupPage = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-10 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`w-full pl-10 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your email"
                     />
                   </div>
@@ -418,7 +417,7 @@ const SignupPage = () => {
                       value={formData.password}
                       onChange={handleChange}
                       data-show={showPassword}
-                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -466,7 +465,7 @@ const SignupPage = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       data-show={showConfirmPassword}
-                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Confirm your password"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -500,7 +499,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
                 >
                   {loading ? 'Sending OTP...' : 'Get Started'}
                 </button>
@@ -534,7 +533,7 @@ const SignupPage = () => {
                           setOtpError(false);
                         }
                       }}
-                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter otp"
                   />
                   <div className="text-right mt-2">
@@ -550,7 +549,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
                 >
                   {loading ? 'Verifying...' : 'Verify'}
                 </button>

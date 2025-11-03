@@ -15,10 +15,8 @@ export async function loginUser(payload) {
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
   const data = await handleJson(response);
-  console.log('data', data);
 
   const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
-  console.log('token', token);
   if (token) {
     sessionStorage.setItem('accessToken', token);
     if (data.user || data.data?.user) {
@@ -207,6 +205,90 @@ export async function getAllLocalGroups(requesterEmail) {
   return data;
 }
 
+export async function deleteCommunity({ name, userEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name, userEmail })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function leaveCommunity({ communityName, userEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/leave`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ communityName, userEmail })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function createCommunityInvite({ communityId, inviterEmail, email }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/invites/${communityId}/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ inviterEmail, email })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function acceptCommunityInvite({ communityId, inviteCode, acceptorEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/invites/accept`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ communityId, inviteCode, acceptorEmail })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 export async function joinCommunity(communityName, userEmail) {
   const response = await authenticatedFetch(`${BASE_URL}community/requestJoin`, {
     method: 'POST',
@@ -232,6 +314,65 @@ export async function joinCommunity(communityName, userEmail) {
 }
 
 export const getAllRooms = (requesterEmail) => getAllLocalGroups(requesterEmail);
+
+export async function getMyPendingRequests(requesterEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}community/my-pending-requests?requesterEmail=${encodeURIComponent(requesterEmail)}`, {
+    method: 'GET'
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function acceptJoinRequest({ communityName, creatorEmail, userEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/request/accept`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ communityName, creatorEmail, userEmail })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function rejectJoinRequest({ communityName, creatorEmail, userEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/request/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ communityName, creatorEmail, userEmail })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
 
 async function handleJson(response) {
   let data;

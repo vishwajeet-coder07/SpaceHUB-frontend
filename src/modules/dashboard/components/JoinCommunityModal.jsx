@@ -60,12 +60,10 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
       // Refresh communities list
       window.dispatchEvent(new Event('refresh:communities'));
       
-      // After a short delay, close the modal
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err) {
-      console.error('Error joining community:', err);
       setError(err.message || 'Failed to send join request');
     } finally {
       setLoading(false);
@@ -79,8 +77,17 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
   const communityImage = community.imageUrl || community.bannerUrl || community.imageURL || '';
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div ref={modalRef} className="bg-[#282828] rounded-xl p-8 shadow-2xl max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-center justify-center z-50">
+      <div ref={modalRef} className="bg-[#282828] rounded-xl p-8 max-w-md w-full mx-4 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors p-1"
+          title="Close"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
         {/* Community Image */}
         {communityImage && (
           <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-gray-700">
@@ -113,14 +120,14 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
             <button
               onClick={handleJoin}
               disabled={loading}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Joining...' : 'Join Community'}
             </button>
             <button
               onClick={onClose}
               disabled={loading}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>

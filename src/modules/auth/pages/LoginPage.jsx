@@ -24,14 +24,12 @@ const LoginPage = () => {
     setLoading(true);
     loginUser({ email, password })
       .then((data) => {
-        console.log('Login successful');
         const userWithEmail = { ...(data?.user || data?.data?.user || {}), email };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
         login(userWithEmail, token);
         navigate('/dashboard');
       })
       .catch((err) => {
-        console.error('Login failed:', err.message);
         if (err.message.includes('Invalid credentials')) {
           setInvalidCredentials(true);
         } else {
@@ -145,7 +143,7 @@ const LoginPage = () => {
                    required
                    value={email}
                    onChange={handleEmailChange}
-                   className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary  transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                   className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary  transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                    placeholder="Enter your email"
                  />
               </div>
@@ -179,16 +177,13 @@ const LoginPage = () => {
                   value={password}
                   onChange={handlePasswordChange}
                   data-show={showPassword}
-                  className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-lgx ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500`}
+                  className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] border-gray-300 focus:border-blue-500`}
                   placeholder="Enter your password"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
                     type="button"
-                    onClick={() => {
-                      console.log('Eye button clicked, current showPassword:', showPassword);
-                      setShowPassword(!showPassword);
-                    }}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                   >
                     {showPassword ?  (
@@ -222,7 +217,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-lgx text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
+              className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>

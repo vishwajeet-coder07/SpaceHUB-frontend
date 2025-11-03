@@ -36,7 +36,6 @@ const ProfileSetupPage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [uploadPreview, setUploadPreview] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
@@ -51,7 +50,6 @@ const ProfileSetupPage = () => {
     if (userDataRaw) {
       try {
         const data = JSON.parse(userDataRaw);
-        setDisplayName(data?.name || '');
         setEmail(data?.email || '');
       } catch {
         // JSON parse error ko ignore ke liye
@@ -174,7 +172,7 @@ const ProfileSetupPage = () => {
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
           <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
-          <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-lg bg-indigo-500 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+          <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
         </div>
         {error && (
           <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
@@ -196,7 +194,7 @@ const ProfileSetupPage = () => {
                   </button>
                 ))}
               </div>
-              <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-lg">Upload your profile</button>
+              <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">Upload your profile</button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
             </div>
           </div>
@@ -204,7 +202,7 @@ const ProfileSetupPage = () => {
             <div className="space-y-4 max-w-xl">
               <div>
                 <label className="block text-sm font-medium mb-1">Username</label>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white" />
+                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Date of birth</label>
@@ -213,7 +211,7 @@ const ProfileSetupPage = () => {
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
                   
-                  className="w-full h-10 rounded-lg border border-gray-300 px-3 bg-white"
+                  className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white"
                 />
               </div>
             </div>

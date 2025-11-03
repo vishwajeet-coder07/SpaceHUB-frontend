@@ -5,10 +5,20 @@ import JoinCommunityModal from './JoinCommunityModal';
 const CommunityCard = ({ community, onClick }) => {
   const title = community.name || 'Untitled';
   const desc = community.description || '';
-  const img = community.bannerUrl || community.imageUrl || community.imageURL || '';
+  const bannerImg = community.bannerUrl || '';
+  const profileImg = community.imageUrl || community.imageURL || '';
   const members = community.totalMembers || community.members || 0;
   const online = community.onlineMembers || community.online || 0;
-  const [imageError, setImageError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+
+  const safeUrl = (rawUrl) => {
+    if (!rawUrl) return '';
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+    return `${BASE_URL}${rawUrl}`;
+  };
 
   return (
     <div
@@ -16,26 +26,48 @@ const CommunityCard = ({ community, onClick }) => {
       onClick={() => onClick?.(community)}
       className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-transparent cursor-pointer"
     >
-      {/* Top image area */}
+      {/* Top banner area */}
       <div className="h-40 sm:h-44 bg-gray-200">
-        {img && !imageError ? (
+        {bannerImg && !bannerError ? (
           <img 
-            src={img} 
+            src={safeUrl(bannerImg)} 
             alt={title} 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
-            onError={() => setImageError(true)}
+            onError={() => setBannerError(true)}
           />
         ) : null}
       </div>
       {/* Bottom dark card */}
-      <div className="bg-[#282828] text-white px-4 py-4 min-h-[170px]">
-        <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
-          <div className='w-12 h-12 bg-gray-300 rounded-sm'> </div>
-          <div>
-            <div>members: 0</div>
-            <div className="text-green-400">• 0 Online</div>
+      <div className="bg-[#282828] text-white px-4 py-4 min-h-[170px] relative">
+        {/* Profile image above community name */}
+        
+        <div className="flex items-center justify-between">
+          <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-400 border-2 border-[#282828] flex-shrink-0">
+            {profileImg && !profileError ? (
+              <img
+                src={safeUrl(profileImg)}
+                alt={title}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setProfileError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-zinc-400 flex items-center justify-center">
+                <div className="text-xl font-bold text-gray-800">
+                  {title.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            )}
           </div>
+        
+        <div className="flex items-center justify-between text-sm text-gray-300 mb-2 pt-2">
+          <div></div>
+          <div>
+            <div>members: {members}</div>
+            <div className="text-green-400">• {online} Online</div>
+          </div>
+        </div>
         </div>
         <div>
           <h3 className="text-2xl font-bold mb-2">{title}</h3>
@@ -106,7 +138,7 @@ const Discover = () => {
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -116,7 +148,7 @@ const Discover = () => {
         {loading && <div className="text-gray-700">Loading communities...</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl ">
             {filtered.map((community) => (
               <CommunityCard 
                 key={community.id || community.communityId || community.name} 

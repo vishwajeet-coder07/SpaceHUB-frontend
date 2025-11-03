@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const CreateGroupDescription = ({ onBack, onSkip, onConfirm, entityLabel = 'group', initialDescription = '', onChange }) => {
+const CreateGroupDescription = ({ onBack, onConfirm, entityLabel = 'group', initialDescription = '', onChange }) => {
   const [description, setDescription] = useState(initialDescription || '');
   const [touched, setTouched] = useState(false);
 
@@ -35,7 +35,7 @@ const CreateGroupDescription = ({ onBack, onSkip, onConfirm, entityLabel = 'grou
   };
 
   return (
-    <div className="relative w-[94%] max-w-[750px] rounded-2xl overflow-hidden shadow-2xl h-[680px]">
+    <div className="relative w-[94%] max-w-[750px] rounded-2xl overflow-hidden h-[680px]">
       <div className="bg-white py-4 px-2 h-full">
         <div className="relative bg-[#282828] text-white p-6 h-full rounded-2xl flex flex-col">
           {/* Main center content */}

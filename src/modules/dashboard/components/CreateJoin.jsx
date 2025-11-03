@@ -1,19 +1,88 @@
 import React, { useState } from 'react';
+import { acceptCommunityInvite } from '../../../shared/services/API';
 
-const CreateJoin = ({ onBack, onSend }) => {
+const CreateJoin = ({ onBack, onSend, onSuccess }) => {
   const [inviteLink, setInviteLink] = useState('');
   const [touched, setTouched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const showError = touched && !inviteLink.trim();
 
-  const onSendClick = () => {
+  const parseInviteLink = (link) => {
+    try {
+      const trimmedLink = link.trim();
+      
+      const invitePattern = /\/invite\/([a-f0-9-]{36})\/([a-zA-Z0-9]+)/i;
+      const match = trimmedLink.match(invitePattern);
+      
+      if (match) {
+        const communityId = match[1];
+        const inviteCode = trimmedLink; 
+        return { communityId, inviteCode };
+      }
+      
+
+      const uuidPattern = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i;
+      const uuidMatch = trimmedLink.match(uuidPattern);
+      
+      if (uuidMatch) {
+        const communityId = uuidMatch[1];
+        const inviteCode = trimmedLink;
+        return { communityId, inviteCode };
+      }
+      
+      throw new Error('Invalid invite link format');
+    } catch (err) {
+      throw new Error(`Could not parse invite link: ${err.message || 'Please check the link format.'}`);
+    }
+  };
+
+  const onSendClick = async () => {
     setTouched(true);
-    if (!inviteLink.trim()) return;
-    onSend?.(inviteLink);
+    if (!inviteLink.trim()) {
+      setError('Invite link is required.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+
+      const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+      const userEmail = userData?.email;
+
+      if (!userEmail) {
+        throw new Error('User email not found. Please log in again.');
+      }
+
+      const { communityId, inviteCode } = parseInviteLink(inviteLink);
+
+      const response = await acceptCommunityInvite({
+        communityId,
+        inviteCode,
+        acceptorEmail: userEmail
+      });
+
+      if (response?.status === 200 && response?.data) {
+        if (onSuccess) {  
+          onSuccess(response.data);
+        } else if (onSend) {
+          onSend(response.data);
+        }
+      } else {
+        throw new Error(response?.message || 'Failed to join community');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to join community. Please check the invite link.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden shadow-2xl mx-auto my-0">
+    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full flex items-center justify-center">
         <div className="relative bg-[#282828] text-white h-[70%] w-full rounded-2xl flex flex-col p-3 sm:p-8">
           {/* Back button absolutely top left */}
@@ -35,13 +104,21 @@ const CreateJoin = ({ onBack, onSend }) => {
               />
               <button
                 onClick={onSendClick}
-                className={`px-3 py-2 sm:px-8 sm:py-3 rounded-xl font-semibold text-base sm:text-lg ${inviteLink.trim() ? 'bg-indigo-600 text-white' : 'bg-indigo-600/60 text-white/80 cursor-not-allowed'}`}
+                disabled={loading || !inviteLink.trim()}
+                className={`px-3 py-2 sm:px-8 sm:py-3 rounded-xl font-semibold text-base sm:text-lg transition-colors ${
+                  inviteLink.trim() && !loading
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'bg-indigo-600/60 text-white/80 cursor-not-allowed'
+                }`}
               >
-                Send request
-              </button>
+                {loading ? 'Joining...' : 'Join'}
+            </button>
             </div>
-            {showError && (
+            {showError && !error && (
               <p className="mt-2 text-sm text-red-400 w-full max-w-2xl">Invite link is required.</p>
+            )}
+            {error && (
+              <p className="mt-2 text-sm text-red-400 w-full max-w-2xl">{error}</p>
             )}
           </div>
         </div>
