@@ -63,7 +63,7 @@ const Dashboard = () => {
 
         {/* Main 3-column layout */}
         <div className="flex flex-1 gap-2 p-2">
-        <div className="flex">
+        <div className="flex border border-gray-500 rounded-xl">
           {/* Narrow Left Sidebar */}
           <div className="w-16 bg-white border-l-b-ts border-gray-400 flex flex-col items-center py-4 space-y-4 rounded-l-xl">
             {/* Profile Picture */}
@@ -89,6 +89,7 @@ const Dashboard = () => {
             {/* Settings Icon */}
             <button 
               title='Settings'
+              onClick={() => navigate('/dashboard/settings')}
               className="w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
             >
               <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />

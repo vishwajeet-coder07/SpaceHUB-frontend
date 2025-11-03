@@ -128,9 +128,9 @@ const LocalGroupPage = () => {
       {/* Main 3-column layout */}
       <div className="flex flex-1 gap-2 p-2">
         {/* Narrow Left Sidebar + Left Panel Group (no gap between them) */}
-        <div className="flex">
+        <div className="flex border border-gray-500 rounded-xl">
           {/* Narrow Left Sidebar */}
-          <div className="w-16 bg-white border-r border-gray-500 flex flex-col items-center py-4 space-y-4 rounded-l-xl">
+          <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl">
             {/* Profile Picture */}
             <div 
               title='profile'
@@ -164,14 +164,14 @@ const LocalGroupPage = () => {
           </div>
 
           {/* Local-Group Left Panel */}
-          <CommunityLeftPanel community={localGroup} onBack={handleBack} />
+          <CommunityLeftPanel community={localGroup} onBack={handleBack} isLocalGroup={true} />
         </div>
 
         {/* Local-Group Center Panel */}
         <CommunityCenterPanel community={localGroup} />
 
         {/* Local-Group Right Panel */}
-        <CommunityRightPanel community={localGroup} />
+        <CommunityRightPanel community={localGroup} isLocalGroup={true} />
       </div>
       <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
     </div>

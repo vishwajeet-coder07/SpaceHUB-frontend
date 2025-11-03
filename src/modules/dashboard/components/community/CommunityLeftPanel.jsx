@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 // Announcement Section 
@@ -548,7 +548,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
   );
 };
 
-const CommunityLeftPanel = ({ community, onBack }) => {
+const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const navigate = useNavigate();
   const title = community?.name || 'Community';
   const communityId = community?.id || community?.communityId || community?.community_id;
@@ -588,40 +588,52 @@ const CommunityLeftPanel = ({ community, onBack }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await authenticatedFetch(`${BASE_URL}community/${communityId}/rooms/all`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      if (isLocalGroup) {
+        const data = await getLocalGroupById(communityId);
+        const lg = data?.data || data || {};
 
-      const data = await response.json();
+        try {
+          sessionStorage.setItem(`localGroupDetails:${communityId}`, JSON.stringify(lg));
+        } catch {}
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch groups');
+        const transformedGroups = [
+          {
+            id: lg.id || lg.groupId || communityId,
+            name: lg.name || lg.groupName || title || 'Local Group',
+            chatRooms: ['general'],
+            voiceRooms: ['general'],
+            roomCode: lg.roomCode || lg.code || undefined,
+          },
+        ];
+
+        setGroups(transformedGroups);
+        setOpenGroups(
+          transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: true }), {})
+        );
+      } else {
+        const data = await getCommunityRooms(communityId);
+        const roomsList = data?.data || [];
+
+        const transformedGroups = roomsList.map((room) => ({
+          id: room.id,
+          name: room.name || room.roomName,
+          chatRooms: room.chatRooms || ['general'],
+          voiceRooms: room.voiceRooms || ['general'],
+          roomCode: room.roomCode
+        }));
+
+        setGroups(transformedGroups);
+        setOpenGroups(
+          transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: false }), {})
+        );
       }
-
-      const roomsList = data?.data || [];
-
-      const transformedGroups = roomsList.map((room) => ({
-        id: room.id,
-        name: room.name || room.roomName,
-        chatRooms: room.chatRooms || ['general'],
-        voiceRooms: room.voiceRooms || ['general'],
-        roomCode: room.roomCode
-      }));
-
-      setGroups(transformedGroups);
-      setOpenGroups(
-        transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: false }), {})
-      );
     } catch (err) {
       console.error('Error fetching groups:', err);
       setError(err.message || 'Failed to load groups');
     } finally {
       setLoading(false);
     }
-  }, [communityId]);
+  }, [communityId, isLocalGroup, title]);
 
   useEffect(() => {
     if (communityId) {
@@ -636,8 +648,11 @@ const CommunityLeftPanel = ({ community, onBack }) => {
       }
     };
     window.addEventListener('community:refresh-groups', onRefresh);
+    const onOpenInvite = () => setShowInviteModal(true);
+    window.addEventListener('community:open-invite', onOpenInvite);
     return () => {
       window.removeEventListener('community:refresh-groups', onRefresh);
+      window.removeEventListener('community:open-invite', onOpenInvite);
     };
   }, [communityId, fetchGroups]);
 
@@ -785,7 +800,7 @@ const CommunityLeftPanel = ({ community, onBack }) => {
           <div className="mt-0 pt-2 bg-[#282828] rounded-b-md overflow-hidden">
             <button
               onClick={() => handleDropdownAction('invite')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded--md"
+              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
             >
               Invite people
             </button>
@@ -816,14 +831,16 @@ const CommunityLeftPanel = ({ community, onBack }) => {
           <div className="text-red-600 text-sm mb-4">{error}</div>
         )}
         
-        {/* Announcement Section - No plus icon */}
-        <AnnouncementSection
-          items={announcements}
-          open={openAnn}
-          onToggle={() => setOpenAnn((v) => !v)}
-          selectedChannel={selectedChannel}
-          onSelectChannel={setSelectedChannel}
-        />
+        {/* Announcement Section hidden for Local Groups */}
+        {!isLocalGroup && (
+          <AnnouncementSection
+            items={announcements}
+            open={openAnn}
+            onToggle={() => setOpenAnn((v) => !v)}
+            selectedChannel={selectedChannel}
+            onSelectChannel={setSelectedChannel}
+          />
+        )}
 
         {/* Groups with Chat room and Voice room */}
         {!loading && groups.length === 0 && !error && (

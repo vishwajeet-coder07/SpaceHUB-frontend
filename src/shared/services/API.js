@@ -207,6 +207,52 @@ export async function getAllLocalGroups(requesterEmail) {
   return data;
 }
 
+// Community: members list
+export async function getCommunityMembers(communityId) {
+  const response = await authenticatedFetch(`${BASE_URL}community/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ communityId })
+  });
+  let data;
+  try { data = await response.json(); } catch { data = null; }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+// Community: rooms
+export async function getCommunityRooms(communityId) {
+  const response = await authenticatedFetch(`${BASE_URL}community/${communityId}/rooms/all`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  let data;
+  try { data = await response.json(); } catch { data = null; }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+// Local Group: details by id
+export async function getLocalGroupById(groupId) {
+  const response = await authenticatedFetch(`${BASE_URL}local-group/${groupId}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  let data;
+  try { data = await response.json(); } catch { data = null; }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 export async function deleteCommunity({ name, userEmail }) {
   const response = await authenticatedFetch(`${BASE_URL}community/delete`, {
     method: 'POST',

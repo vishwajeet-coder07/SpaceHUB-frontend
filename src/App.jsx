@@ -5,7 +5,7 @@ import { AuthProvider, ProtectedRoute, PublicRoute, ResetPasswordRoute, ProfileS
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
 import { ProfileSetupPage } from './modules/profile'
 import { LandingPage } from './modules/landing'
-import { Dashboard, CommunityPage, CommunitySettingsPage, LocalGroupPage } from './modules/dashboard'
+import { Dashboard, CommunityPage, CommunitySettingsPage, LocalGroupPage, SettingPage } from './modules/dashboard'
 
 function App() {
   return (
@@ -55,6 +55,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/settings" 
+                element={
+                  <ProtectedRoute>
+                    <SettingPage />
                   </ProtectedRoute>
                 } 
               />
