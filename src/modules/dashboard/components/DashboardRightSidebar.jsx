@@ -2,7 +2,7 @@ import React from 'react';
 
 const DashboardRightSidebar = ({ onClose }) => {
   return (
-    <div className="hidden lg:block w-90 bg-gray-200 h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 relative rounded-xl p-4 border border-gray-500">
+    <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 relative rounded-xl p-4 border border-gray-500">
       {/* Close Button */}
       <button
         onClick={onClose}
