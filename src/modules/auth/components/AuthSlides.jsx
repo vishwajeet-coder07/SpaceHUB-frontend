@@ -44,8 +44,8 @@ const AuthSlides = ({
       </div>
 
     
-      <div className="lg:hidden w-full min-h-48 bg-accent flex flex-col justify-center items-center px-0 py-2">
-        <div className="text-left mb-2 w-full px-4">
+      <div className="lg:hidden w-full min-h-90 bg-accent flex flex-col justify-center items-center px-0 py-2">
+        <div className="text-center px-2 w-full">
           <h1 className="text-lg font-bold text-blue-800 leading-tight text-heading">
             {title.split('\n').map((line, index) => (
               <React.Fragment key={index}>
@@ -57,7 +57,7 @@ const AuthSlides = ({
         </div>
         
         <div className="w-full">
-          <div className="relative w-full h-48 flex items-center justify-center">
+          <div className="relative w-full h-75 flex items-center justify-center">
             {images.map((image, index) => (
               <div
                 key={index}

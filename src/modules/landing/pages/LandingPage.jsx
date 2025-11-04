@@ -33,14 +33,14 @@ const LandingPage = () => {
 
       {/* HERO SECTION */}
       <section
-        className="w-full min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
+        className="w-full h-[35rem] sm:min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
         style={{
           backgroundImage: `url(${bgPattern})`,
           backgroundRepeat: 'repeat',
           backgroundSize: 'auto',
         }}
       >
-        <div className="text-center relative z-10 max-w-5xl mx-auto mt-10">
+        <div className="text-center relative z-10 max-w-5xl mx-auto mt-12">
           <div className="inline-block relative">
             <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-blue-600 rounded-md p-0.5">
               <div className="bg-red-100 rounded-md h-full w-full"></div>
@@ -68,7 +68,7 @@ const LandingPage = () => {
 
           <Link
             to="/signup"
-            className="inline-block bg-gradient-to-r from-red-500 to-blue-600 text-white px-3 sm:px-5 py-5 rounded-md font-semibold text-base sm:text-lg transition-all"
+            className="inline-block bg-gradient-to-r from-red-500 to-blue-600 text-white px-3 sm:px-5 py-2 mt-3 rounded-md font-semibold text-base sm:text-lg transition-all"
           >
             Get started
           </Link>
@@ -76,7 +76,7 @@ const LandingPage = () => {
       </section>
 
       {/* DISCOVER SECTION */}
-      <section id="About" className="max-w-screen relative mb-[13rem] sm:mb-[13rem]">
+      <section id="About" className="max-w-screen relative mb-[3rem] sm:mb-[13rem]">
         <img src={discoverSvg} alt="Discover SPACEHUB" className="w-full mx-auto h-auto" />
 
         {/* LINE 1 DECORATION */}

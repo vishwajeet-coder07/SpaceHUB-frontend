@@ -112,7 +112,7 @@ const ForgotPasswordPage = () => {
       <AuthSlides />
 
   <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md mb-17 sm:mb-0">
           <div className="text-center mb-6 lg:mb-8">
              <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
                <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
