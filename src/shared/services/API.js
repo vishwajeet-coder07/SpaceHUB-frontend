@@ -448,7 +448,7 @@ export const getAuthHeaders = (isFormData = false) => {
   const token = sessionStorage.getItem('accessToken');
   return {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token && { 'Authorization': `Bearer ${token}` })
+    // ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 
