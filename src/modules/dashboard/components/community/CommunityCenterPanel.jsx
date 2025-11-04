@@ -2,22 +2,26 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 import { getCommunityMembers } from '../../../../shared/services/API';
 
-const CommunityCenterPanel = ({ community, roomCode, selectedChannel }) => {
+const CommunityCenterPanel = ({ community }) => {
   const channelName = '#general';
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const fileInputRef = useRef(null);
   const messageInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
-  const wsRef = useRef(null);
   const { user } = useAuth();
 
   const communityId = useMemo(() => community?.id || community?.communityId || community?.community_id, [community]);
   const storageKey = useMemo(() => (communityId ? `welcomeShown:community:${communityId}:channel:general` : ''), [communityId]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    const now = new Date();
+    const earlier = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 21, 10);
+    return [
+      
+    ];
+  });
   const [attachments, setAttachments] = useState([]); // [{file, url}]
-  const [currentRoomCode, setCurrentRoomCode] = useState(roomCode || null);
 
     const emojis = ['😊', '😂', '🎉', '🔥', '👍', '❤️'];
 
@@ -59,36 +63,18 @@ const CommunityCenterPanel = ({ community, roomCode, selectedChannel }) => {
   const handleSend = () => {
     const trimmed = message.trim();
     if (!trimmed && attachments.length === 0) return;
-    
     const selfAvatar = JSON.parse(sessionStorage.getItem('userData') || '{}')?.avatarUrl || '/avatars/avatar-1.png';
     const selfName = JSON.parse(sessionStorage.getItem('userData') || '{}')?.username || user?.email || 'You';
-    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
-    
     const newMsg = {
       id: `m-${Date.now()}`,
       author: selfName,
-      email: userEmail,
+      email: user?.email || 'me',
       text: trimmed,
       createdAt: new Date().toISOString(),
       avatar: selfAvatar,
       isSelf: true,
       images: attachments.map((a) => a.url),
     };
-    
-    // Send via WebSocket if connected
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.send(JSON.stringify({
-          type: 'message',
-          text: trimmed,
-          images: attachments.map((a) => a.url),
-          timestamp: newMsg.createdAt,
-        }));
-      } catch (e) {
-        console.error('Failed to send via WebSocket:', e);
-      }
-    }
-    
     setMessages((prev) => [...prev, newMsg]);
     setMessage('');
     // clear attachments and revoke URLs
@@ -111,83 +97,6 @@ const CommunityCenterPanel = ({ community, roomCode, selectedChannel }) => {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages]);
-
-  // Listen for channel selection events
-  useEffect(() => {
-    const handleChannelSelect = (event) => {
-      const { roomCode: newRoomCode } = event.detail || {};
-      if (newRoomCode) {
-        setCurrentRoomCode(newRoomCode);
-      }
-    };
-    window.addEventListener('community:channel-selected', handleChannelSelect);
-    return () => {
-      window.removeEventListener('community:channel-selected', handleChannelSelect);
-    };
-  }, []);
-
-  // WebSocket connection
-  useEffect(() => {
-    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
-    const activeRoomCode = currentRoomCode || roomCode;
-    if (!userEmail || !activeRoomCode) return;
-
-    const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(activeRoomCode)}&email=${encodeURIComponent(userEmail)}`;
-    
-    // Close existing connection if any
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    
-    try {
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('WebSocket connected to room:', activeRoomCode);
-        setMessages([]); // Clear messages when switching rooms
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'message') {
-            const receivedMsg = {
-              id: `m-${Date.now()}-${Math.random()}`,
-              author: data.author || data.username || 'Unknown',
-              email: data.email || '',
-              text: data.text || '',
-              createdAt: data.timestamp || new Date().toISOString(),
-              avatar: data.avatar || '/avatars/avatar-1.png',
-              isSelf: data.email === userEmail,
-              images: Array.isArray(data.images) ? data.images : [],
-            };
-            setMessages((prev) => [...prev, receivedMsg]);
-          }
-        } catch (e) {
-          console.error('Failed to parse WebSocket message:', e);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-      };
-
-      return () => {
-        if (wsRef.current) {
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-      };
-    } catch (e) {
-      console.error('Failed to create WebSocket:', e);
-    }
-  }, [currentRoomCode, roomCode, user?.email]);
 
   useEffect(() => {
     const checkAdminAndMaybeShow = async () => {
@@ -299,25 +208,24 @@ const CommunityCenterPanel = ({ community, roomCode, selectedChannel }) => {
 
       {/* Composer */}
       <div className="px-4 py-3">
-        <div className={`relative bg-[#282828] text-white rounded-xl px-4 ${attachments.length > 0 ? 'py-3' : 'h-12'} flex flex-col gap-2`}>
-          {/* Attachments preview inside input div */}
-          {attachments.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {attachments.map((a, idx) => (
-                <div key={idx} className="relative rounded-md overflow-hidden bg-black/20 border border-gray-600">
-                  <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
-                  <button
-                    onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center mt-2 gap-3">
+        {/* Attachments preview */}
+        {attachments.length > 0 && (
+          <div className="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {attachments.map((a, idx) => (
+              <div key={idx} className="relative rounded-md overflow-hidden bg-black/5 border border-gray-300">
+                <img src={a.url} alt="preview" className="w-full h-32 object-cover" />
+                <button
+                  onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className={`relative bg-[#282828] text-white rounded-xl px-4 ${attachments.length > 0 ? 'h-20' : 'h-12'} flex items-center gap-3`}>
           {/* Emoji button */}
           <button onClick={() => setShowEmoji((v) => !v)} className="text-xl" title="Emoji">😊</button>
 <span>📊</span>
@@ -353,7 +261,6 @@ const CommunityCenterPanel = ({ community, roomCode, selectedChannel }) => {
               ))}
             </div>
           )}
-          </div>
         </div>
       </div>
 

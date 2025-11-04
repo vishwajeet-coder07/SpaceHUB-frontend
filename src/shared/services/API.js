@@ -2,6 +2,7 @@ export const BASE_URL = 'https://codewithketan.me/api/v1/';
 export async function registerUser(payload) {
   const response = await fetch(`${BASE_URL}registration`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
@@ -11,6 +12,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const response = await fetch(`${BASE_URL}login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, type: 'LOGIN' })
   });
@@ -33,6 +35,7 @@ export async function loginUser(payload) {
 export async function requestForgotPassword(email) {
   const response = await fetch(`${BASE_URL}forgotpassword`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
   });
@@ -42,6 +45,7 @@ export async function requestForgotPassword(email) {
 export async function validateOtp(payload) {
   const response = await fetch(`${BASE_URL}validateforgototp`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
@@ -51,6 +55,7 @@ export async function validateOtp(payload) {
 export async function resetPassword(payload) {
   const response = await fetch(`${BASE_URL}resetpassword`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
@@ -71,6 +76,7 @@ export async function resetPassword(payload) {
 export async function resendRegisterOtp(email, registrationToken) {
   const response = await fetch(`${BASE_URL}resendotp`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email, sessionToken: registrationToken }),
   });
@@ -80,6 +86,7 @@ export async function resendRegisterOtp(email, registrationToken) {
 export async function resendForgotOtp(forgotToken) {
   const response = await fetch(`${BASE_URL}resendforgototp`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({tempToken: forgotToken })
   });
@@ -89,6 +96,7 @@ export async function resendForgotOtp(forgotToken) {
 export async function validateRegisterOtp(payload) {
   const response = await fetch(`${BASE_URL}validateregisterotp`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
@@ -450,6 +458,7 @@ export const authenticatedFetch = async (url, options = {}) => {
   
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       ...headers,
       ...options.headers

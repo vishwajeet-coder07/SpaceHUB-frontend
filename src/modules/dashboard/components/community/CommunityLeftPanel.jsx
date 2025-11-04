@@ -63,7 +63,7 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 };
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName }) => {
   const defaultChannels = channels && channels.length > 0 ? channels : ['general'];
   const roomType = isVoice ? 'voice' : 'chat';
   
@@ -98,7 +98,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
             return (
               <button
                 key={channel}
-                onClick={() => onSelectChannel?.(channelId, roomCode)}
+                onClick={() => onSelectChannel?.(channelId)}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
                   isSelected
                     ? 'bg-gray-700 text-white font-semibold'
@@ -496,7 +496,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   
@@ -530,7 +530,6 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
             selectedChannel={selectedChannel}
             onSelectChannel={onSelectChannel}
             groupName={groupName}
-            roomCode={roomCode}
           />
           <RoomSection
             title="Voice room"
@@ -542,7 +541,6 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
             selectedChannel={selectedChannel}
             onSelectChannel={onSelectChannel}
             groupName={groupName}
-            roomCode={roomCode}
           />
         </div>
       )}
@@ -565,15 +563,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('announcement:general');
-  
-  const handleChannelSelect = (channelId, roomCode) => {
-    setSelectedChannel(channelId);
-    // Use roomCode directly from the rooms response (passed from RoomSection)
-    // Emit event with roomCode for CenterPanel
-    window.dispatchEvent(new CustomEvent('community:channel-selected', {
-      detail: { channelId, roomCode: roomCode || null }
-    }));
-  };
 
   const [openAnn, setOpenAnn] = useState(true);
   const [openGroups, setOpenGroups] = useState({});
@@ -849,7 +838,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             open={openAnn}
             onToggle={() => setOpenAnn((v) => !v)}
             selectedChannel={selectedChannel}
-            onSelectChannel={handleChannelSelect}
+            onSelectChannel={setSelectedChannel}
           />
         )}
 
@@ -869,8 +858,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             onAddChatRoom={handleAddChatRoom}
             onAddVoiceRoom={handleAddVoiceRoom}
             selectedChannel={selectedChannel}
-            onSelectChannel={handleChannelSelect}
-            roomCode={group.roomCode}
+            onSelectChannel={setSelectedChannel}
           />
         ))}
             {/* Footer */}

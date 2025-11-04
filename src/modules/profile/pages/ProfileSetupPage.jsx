@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch } from '../../../shared/services/API';
+import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
 
-const BASE_URL = 'https://codewithketan.me/api/v1/';
 const USERNAME_API = `${BASE_URL}dashboard/set-username`;
 const UPLOAD_API = `${BASE_URL}dashboard/upload-profile-image`;
 
