@@ -207,7 +207,7 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
                 wsRef.current.send(JSON.stringify(payload));
               }
             } catch {}
-            setMessages((prev) => [...prev, msg]);
+
           }}
         />
       )}
