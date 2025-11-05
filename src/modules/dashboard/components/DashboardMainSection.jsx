@@ -124,7 +124,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
     return (
       <button onClick={() => onSelect(item)} className="text-left w-full">
-        <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow w-full">
+        <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] w-full">
           {/* Left Section - Icon */}
           <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-l-xl overflow-hidden bg-zinc-400 flex-shrink-0">
             {imgSrc && !imageError ? (
@@ -179,7 +179,32 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   };
 
   const renderList = (items, emptyTitle, emptySub) => {
-    if (loading) return <div className="text-gray-700">Loading...</div>;
+    if (loading) {
+      return (
+        <div className="w-full flex flex-col gap-3 overflow-y-auto">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="w-full">
+              <div className="flex items-stretch rounded-xl overflow-hidden w-full">
+                {/* Left shimmer */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-zinc-300 animate-pulse rounded-l-xl" />
+                {/* Right shimmer */}
+                <div className="flex-1 min-w-0 bg-[#282828] rounded-r-xl p-3 sm:p-4 relative">
+                  <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right">
+                    <div className="h-3 w-20 bg-gray-500/40 rounded mb-1 animate-pulse" />
+                    <div className="h-3 w-16 bg-green-500/40 rounded animate-pulse" />
+                  </div>
+                  <div className="pr-16 sm:pr-20 md:pr-24 lg:pr-32">
+                    <div className="h-5 sm:h-6 w-40 bg-gray-500/60 rounded mb-2 animate-pulse" />
+                    <div className="h-3 w-5/6 bg-gray-500/40 rounded mb-1 animate-pulse" />
+                    <div className="h-3 w-3/5 bg-gray-500/30 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
     if (error) return <div className="text-red-600">{error}</div>;
     if (!items.length) {
       return (

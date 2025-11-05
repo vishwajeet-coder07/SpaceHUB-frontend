@@ -14,7 +14,7 @@ const CommunityPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -124,9 +124,18 @@ const CommunityPage = () => {
             <div 
               title='profile'
               className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden">
-              <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
+              {(() => {
+                const sessionUser = JSON.parse(sessionStorage.getItem('userData') || '{}');
+                const avatarUrl = user?.avatarUrl || sessionUser?.avatarUrl;
+                const displayName = user?.username || sessionUser?.username || 'U';
+                return avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold text-gray-700">
+                    {String(displayName).charAt(0).toUpperCase()}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Plus Icon */}

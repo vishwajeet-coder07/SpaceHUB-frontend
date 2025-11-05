@@ -53,8 +53,6 @@ const ProfileSetupPage = () => {
     }
   }, []);
 
-  // interests removed per design
-
   const onPickFile = () => fileInputRef.current?.click();
 
   const onFileChange = (e) => {
@@ -163,12 +161,35 @@ const ProfileSetupPage = () => {
     }
   };
 
+  const handleSkip = async () => {
+    setError('');
+    setSaving(true);
+    try {
+      const randomUrl = presetAvatarUrls[Math.floor(Math.random() * presetAvatarUrls.length)];
+      setSelectedAvatarUrl(randomUrl);
+      setUploadFile(null);
+      setUploadPreview(randomUrl);
+      await uploadAvatar();
+      const finalUsername = username && username.trim() ? username.trim() : `user${Math.floor(1000 + Math.random()*9000)}`;
+      setUsername(finalUsername);
+      await setUserName();
+      navigate('/dashboard');
+    } catch (e) {
+      setError(e.message || 'Failed to complete setup');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundImage: "url('/profileBg.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
           <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
-          <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
+            <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+          </div>
         </div>
         {error && (
           <div className="px-6 pt-4 text-sm text-red-600">{error}</div>

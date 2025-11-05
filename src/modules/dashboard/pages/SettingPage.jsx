@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import { setUsername as apiSetUsername, uploadProfileImage } from '../../../shared/services/API';
 
 const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIcon, onRightIconClick, readOnly = false }) => {
   return (
@@ -26,11 +28,90 @@ const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIco
 
 const SettingPage = () => {
   const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
 
-  const [username, setUsername] = useState('Suryansh234#');
-  const [email, setEmail] = useState('Suryansh23gautam@gmail.com');
-  const [password, setPassword] = useState('password');
+  const initialUser = useMemo(() => {
+    const sessionUser = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    return {
+      email: user?.email || sessionUser?.email || '',
+      username: user?.username || sessionUser?.username || '',
+      avatarUrl: user?.avatarUrl || sessionUser?.avatarUrl || '/avatars/avatar-1.png',
+    };
+  }, [user]);
+  const [username, setUsername] = useState(initialUser.username);
+  const [email, setEmail] = useState(initialUser.email);
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const usernameTooLong = (username || '').length > 15;
+  const isUsernameChanged = (username || '') !== (initialUser.username || '');
+  const isImageChanged = !!selectedImage;
+
+  const handleImageChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    if (usernameTooLong) {
+      alert('Username must be 15 characters or fewer');
+      return;
+    }
+
+    const ops = [];
+    try {
+      setSaving(true);
+      // Update username if changed and non-empty
+      if (isUsernameChanged && (username || '').trim()) {
+        ops.push(
+          apiSetUsername({ email: initialUser.email, username: username.trim() })
+        );
+      }
+      // Upload image if selected
+      if (isImageChanged) {
+        ops.push(
+          uploadProfileImage({ imageFile: selectedImage })
+        );
+      }
+
+      if (ops.length === 0) {
+        return;
+      }
+
+      const results = await Promise.all(ops);
+
+      // Merge updates into local user and persist
+      const nextUser = { ...JSON.parse(sessionStorage.getItem('userData') || '{}') };
+      if (isUsernameChanged && (username || '').trim()) {
+        nextUser.username = username.trim();
+      }
+      if (isImageChanged) {
+        const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
+        const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
+        if (newUrl) nextUser.avatarUrl = newUrl;
+      }
+      sessionStorage.setItem('userData', JSON.stringify(nextUser));
+      updateUser?.(nextUser);
+      try {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Changes saved', type: 'success' } }));
+      } catch {}
+    } catch (e) {
+      console.error('Failed to save settings:', e);
+      try {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: e.message || 'Failed to save settings', type: 'error' } }));
+      } catch {}
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col ">
@@ -73,8 +154,8 @@ const SettingPage = () => {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold">Main profile</h2>
               <div className="flex items-center gap-3">
-                <button className="px-4 py-2 rounded-md bg-white/10 text-white hover:bg-white/20">Don't save</button>
-                <button className="px-4 py-2 rounded-md bg-indigo-200 text-black hover:bg-indigo-300">Save changes</button>
+                <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-md bg-white/10 text-white hover:bg-white/20">Back</button>
+                <button onClick={handleSave} disabled={saving || usernameTooLong} className="px-4 py-2 rounded-md bg-indigo-200 text-black hover:bg-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed">{saving ? 'Saving...' : 'Save changes'}</button>
               </div>
             </div>
 
@@ -82,37 +163,37 @@ const SettingPage = () => {
             <div className="mb-4 text-gray-300">Profile</div>
             <div className="mb-6">
               <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-600">
-                <img src="/avatars/avatar-1.png" alt="avatar" className="w-full h-full object-cover" />
+                <img src={previewUrl || initialUser.avatarUrl || '/avatars/avatar-1.png'} alt="avatar" className="w-full h-full object-cover" />
+              </div>
+              <div className="mt-3">
+                <label className="inline-block cursor-pointer bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  Upload new photo
+                </label>
               </div>
             </div>
 
             <InputRow
               label="Username"
               value={username}
-              setValue={setUsername}
+              setValue={(v) => {
+                if (v.length <= 15) setUsername(v);
+              }}
               placeholder="Username"
               rightIcon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>}
             />
+            {usernameTooLong && <div className="text-red-400 text-xs -mt-4 mb-4">Max 15 characters.</div>}
 
             <InputRow
               label="Email"
               value={email}
               setValue={setEmail}
               placeholder="Email"
+              readOnly
               rightIcon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>}
             />
 
-            <InputRow
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              setValue={setPassword}
-              placeholder="Password"
-              onRightIconClick={() => setShowPassword((v) => !v)}
-              rightIcon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>}
-            />
-
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md font-medium">Change password</button>
+            {/* Optional password section can be implemented later */}
           </div>
         </div>
       </div>

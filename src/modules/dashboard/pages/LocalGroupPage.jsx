@@ -25,7 +25,6 @@ const LocalGroupPage = () => {
       setLoading(true);
       setError('');
       
-      // Get user email from context or sessionStorage
       const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
       const userEmail = user?.email || storedEmail;
       
@@ -38,7 +37,7 @@ const LocalGroupPage = () => {
       try {
         const res = await getAllLocalGroups(userEmail);
         const list = res?.data?.groups || res?.groups || res?.data || res?.rooms || [];
-        // Convert id to string for comparison, and also check if API returns numbers
+
         const found = list.find(
           (g) => 
             String(g.id) === String(id) || 
@@ -78,8 +77,60 @@ const LocalGroupPage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-700">Loading...</div>
+      <div className="h-screen bg-gray-100 flex flex-col">
+        {/* Top Navbar skeleton */}
+        <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
+          <div className="w-7 h-7 bg-gray-300 rounded mr-2 animate-pulse" />
+          <div className="flex-1" />
+          <div className="w-24 h-6 bg-gray-300 rounded animate-pulse" />
+        </div>
+
+        {/* Main 3-column skeleton layout */}
+        <div className="flex flex-1 gap-2 p-2">
+          {/* Left container */}
+          <div className="flex border border-gray-500 rounded-xl overflow-hidden w-[calc(20rem)] max-w-full">
+            {/* Narrow left bar */}
+            <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4">
+              <div className="w-10 h-10 bg-gray-300 rounded-md animate-pulse" />
+              <div className="w-10 h-10 bg-gray-200 rounded-md animate-pulse" />
+              <div className="flex-1" />
+              <div className="w-10 h-10 bg-gray-200 rounded-md animate-pulse" />
+            </div>
+            {/* Panel */}
+            <div className="w-80 bg-gray-200 h-full p-4 space-y-4">
+              <div className="h-6 w-40 bg-gray-300 rounded animate-pulse" />
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-8 w-full bg-gray-200 rounded animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Center panel */}
+          <div className="flex-1 bg-white rounded-xl border border-gray-500 p-4 space-y-3">
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="space-y-2">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="h-4 w-full bg-gray-100 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+
+          {/* Right panel */}
+          <div className="hidden lg:block w-90 bg-white rounded-xl border border-gray-500 p-6 space-y-4">
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+                <div className="flex-1">
+                  <div className="h-4 w-40 bg-gray-200 rounded mb-2 animate-pulse" />
+                  <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -135,9 +186,18 @@ const LocalGroupPage = () => {
             <div 
               title='profile'
               className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden">
-              <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
+              {(() => {
+                const sessionUser = JSON.parse(sessionStorage.getItem('userData') || '{}');
+                const avatarUrl = user?.avatarUrl || sessionUser?.avatarUrl;
+                const displayName = user?.username || sessionUser?.username || 'U';
+                return avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold text-gray-700">
+                    {String(displayName).charAt(0).toUpperCase()}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Plus Icon */}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
-import { getAllCommunities, deleteCommunity, leaveCommunity, authenticatedFetch, BASE_URL } from '../../../shared/services/API';
+import { getAllCommunities, deleteCommunity, leaveCommunity, authenticatedFetch, BASE_URL, deleteCommunityRoom } from '../../../shared/services/API';
 
 const CommunitySettingsPage = () => {
   const { id } = useParams();
@@ -383,21 +383,9 @@ const CommunitySettingsPage = () => {
 
     setDeletingGroup(true);
     try {
-      const response = await authenticatedFetch(`${BASE_URL}community/${id}/rooms/${groupToDelete.group.id}/delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          requesterEmail: userEmail
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to delete group');
-      }
+      // Use the new API endpoint
+      const response = await deleteCommunityRoom(id, groupToDelete.group.id, userEmail);
+      console.log('Group deleted successfully:', response);
 
       const newGroups = groups.filter((_, i) => i !== groupToDelete.index);
       setGroups(newGroups);
@@ -425,10 +413,15 @@ const CommunitySettingsPage = () => {
       }
 
       setShowDeleteGroupModal(false);
+      try {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Group deleted', type: 'success' } }));
+      } catch {}
       setGroupToDelete(null);
     } catch (err) {
       console.error('Error deleting group:', err);
-      alert(err.message || 'Failed to delete group');
+      try {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to delete group', type: 'error' } }));
+      } catch {}
     } finally {
       setDeletingGroup(false);
     }
@@ -453,10 +446,11 @@ const CommunitySettingsPage = () => {
         name: community.name,
         userEmail: userEmail
       });
+      try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Community deleted', type: 'success' } })); } catch {}
       navigate('/dashboard');
     } catch (err) {
       console.error('Error deleting community:', err);
-      alert(err.message || 'Failed to delete community');
+      try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to delete community', type: 'error' } })); } catch {}
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);
@@ -482,10 +476,11 @@ const CommunitySettingsPage = () => {
         communityName: community.name,
         userEmail: userEmail
       });
+      try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Left community', type: 'success' } })); } catch {}
       navigate('/dashboard');
     } catch (err) {
       console.error('Error leaving community:', err);
-      alert(err.message || 'Failed to leave community');
+      try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to leave community', type: 'error' } })); } catch {}
     } finally {
       setLeaving(false);
       setShowLeaveModal(false);
@@ -702,10 +697,10 @@ const CommunitySettingsPage = () => {
                     <h2 className="text-3xl font-bold text-white">Community profile</h2>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={handleDonSave}
+                        onClick={handleBack}
                         className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
                       >
-                        Don't save
+                        Back
                       </button>
                       <button
                         onClick={handleSave}
@@ -848,10 +843,10 @@ const CommunitySettingsPage = () => {
                     <h2 className="text-3xl font-bold text-white">Groups</h2>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={handleDonSave}
+                        onClick={handleBack}
                         className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
                       >
-                        Don't save
+                        Back
                       </button>
                       <button
                         onClick={handleSaveGroups}

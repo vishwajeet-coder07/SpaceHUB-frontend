@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
@@ -10,6 +10,39 @@ import card3 from '../../../assets/landing/card3.svg';
 import line1 from '../../../assets/landing/line1.svg';
 import line2 from '../../../assets/landing/line2.svg';
 import line3 from '../../../assets/landing/line3.svg';
+
+const RevealOnScroll = ({ children, className = '' }) => {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const base = 'transition-all duration-700 ease-out will-change-transform';
+  const hidden = 'opacity-0 translate-y-8';
+  const shown = 'opacity-100 translate-y-0';
+
+  return (
+    <div ref={ref} className={`${base} ${visible ? shown : hidden} ${className}`}>
+      {children}
+    </div>
+  );
+};
 
 const LandingPage = () => {
   return (
@@ -40,7 +73,7 @@ const LandingPage = () => {
           backgroundSize: 'auto',
         }}
       >
-        <div className="text-center relative z-10 max-w-5xl mx-auto mt-10">
+        <RevealOnScroll className="text-center relative z-10 max-w-5xl mx-auto mt-10">
           <div className="inline-block relative">
             <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-blue-600 rounded-md p-0.5">
               <div className="bg-red-100 rounded-md h-full w-full"></div>
@@ -72,25 +105,28 @@ const LandingPage = () => {
           >
             Get started
           </Link>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* DISCOVER SECTION */}
       <section id="About" className="max-w-screen relative mb-[13rem] sm:mb-[13rem]">
-        <img src={discoverSvg} alt="Discover SPACEHUB" className="w-full mx-auto h-auto" />
+        <RevealOnScroll>
+          <img src={discoverSvg} alt="Discover SPACEHUB" className="w-full mx-auto h-auto" loading="lazy" />
+        </RevealOnScroll>
 
         {/* LINE 1 DECORATION */}
         <img
           src={line1}
           alt="decorative line"
           className="absolute  left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          loading="lazy"
         />
       </section>
 
       {/* JOIN YOUR WORKSPACE SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-0">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="order-2 lg:order-1">
+          <RevealOnScroll className="order-2 lg:order-1">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Join your workspace</h2>
             <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">Step Into Your Workspace</p>
             <div className="bg-zinc-400 p-4 sm:p-6 rounded-lg shadow-md">
@@ -98,11 +134,11 @@ const LandingPage = () => {
                 SPACEHUB begins with your own workspace — a dedicated digital environment where you and your team can collaborate seamlessly. Create your SPACEHUB, invite your members, and shape how your team communicates, shares files, and achieves goals together.
               </p>
             </div>
-          </div>
+          </RevealOnScroll>
 
-          <div className="text-center order-1 lg:order-2">
-            <img src={card1} alt="card1" className="w-full h-full object-cover rounded-md" />
-          </div>
+          <RevealOnScroll className="text-center order-1 lg:order-2">
+            <img src={card1} alt="card1" className="w-full h-full object-cover rounded-md" loading="lazy" />
+          </RevealOnScroll>
         </div>
 
         {/* LINE 2 DECORATION */}
@@ -110,17 +146,18 @@ const LandingPage = () => {
           src={line2}
           alt="decorative line"
           className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          loading="lazy"
         />
       </section>
 
       {/* JOIN THE BUZZ SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-0">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="text-center order-1 lg:order-1">
-            <img src={card2} alt="card2" className="w-full h-full object-cover rounded-md" />
-          </div>
+          <RevealOnScroll className="text-center order-1 lg:order-1">
+            <img src={card2} alt="card2" className="w-full h-full object-cover rounded-md" loading="lazy" />
+          </RevealOnScroll>
 
-          <div className="order-2 lg:order-2">
+          <RevealOnScroll className="order-2 lg:order-2">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Join the buzz!</h2>
             <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">Where Conversations Come Alive</p>
             <div className="bg-zinc-400 p-4 sm:p-6 rounded-lg shadow-md">
@@ -128,7 +165,7 @@ const LandingPage = () => {
                 Every great idea starts with a conversation. Inside SPACEHUB, chat rooms and direct messages let your team exchange thoughts instantly and organize discussions by projects or topics.
               </p>
             </div>
-          </div>
+          </RevealOnScroll>
         </div>
 
         {/* LINE 3 DECORATION */}
@@ -136,13 +173,14 @@ const LandingPage = () => {
           src={line3}
           alt="decorative line"
           className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          loading="lazy"
         />
       </section>
 
       {/* COLLABORATE & GROW SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-20 sm:pb-28">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="order-2 lg:order-1">
+          <RevealOnScroll className="order-2 lg:order-1">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Collaborate & Grow</h2>
             <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">Share. Build. Create Together.</p>
             <div className="bg-zinc-400 p-4 sm:p-6 rounded-lg shadow-md">
@@ -150,11 +188,11 @@ const LandingPage = () => {
                 SPACEHUB empowers your team to collaborate effortlessly. Share files, voice ideas in real-time, and manage tasks — all within one connected platform. As your team contributes, your SPACEHUB expands — representing progress, innovation, and teamwork in motion.
               </p>
             </div>
-          </div>
+          </RevealOnScroll>
 
-          <div className="text-center order-1 lg:order-2">
-            <img src={card3} alt="card3" className="w-full h-full object-cover rounded-md" />
-          </div>
+          <RevealOnScroll className="text-center order-1 lg:order-2">
+            <img src={card3} alt="card3" className="w-full h-full object-cover rounded-md" loading="lazy" />
+          </RevealOnScroll>
         </div>
       </section>
                     <hr/>
@@ -162,7 +200,7 @@ const LandingPage = () => {
       <footer className="bg-gray-100 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            <div>
+            <RevealOnScroll>
               <h3 className="sm:text-2xl text-5xl font-bold text-zinc-800 mb-3 sm:mb-4">Get the latest buzz!</h3>
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
@@ -177,9 +215,9 @@ const LandingPage = () => {
                   →
                 </button>
               </div>
-            </div>
+            </RevealOnScroll>
 
-            <div className="lg:absolute right-30">
+            <RevealOnScroll className="lg:absolute right-30">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Quick links</h3>
               <div className="space-y-2">
                 <a href="#Home" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Home</a>
@@ -187,15 +225,15 @@ const LandingPage = () => {
                 <Link to="/" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Features</Link>
                 <a href="#Contact" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Contact</a>
               </div>
-            </div>
+            </RevealOnScroll>
           </div>
 
-          <div className="mt-8 pt-6">
+          <RevealOnScroll className="mt-8 pt-6">
             <div className="flex items-center gap-2 sm:gap-3">
-              <img src={logo} alt="SpaceHUB logo" className="w-18 h-18 mb-2" />
+              <img src={logo} alt="SpaceHUB logo" className="w-18 h-18 mb-2" loading="lazy" />
               <span className="text-3xl font-bold text-gray-700">SPACEHUB</span>
             </div>
-          </div>
+          </RevealOnScroll>
         </div>
       </footer>
     </div>

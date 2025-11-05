@@ -42,7 +42,6 @@ const SignupPage = () => {
     const { name, value } = e.target;
     
     if (name === 'firstName' || name === 'lastName') {
-      // allow only letters (remove digits, punctuation and spaces)
       const cleanValue = value.replace(/[^A-Za-z]/g, '');
       const limitedValue = cleanValue.slice(0, 50);
       
@@ -536,10 +535,10 @@ const SignupPage = () => {
                           setOtpError(false);
                         }
                       }}
-                    className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    className={`w-full px-3 lg:px-4 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${invalidOtp ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                     placeholder="Enter otp"
                   />
-                  <div className="text-right mt-2">
+                  <div className="text-right pt-5">
                     <a href="#" onClick={handleResendOtp} className={`text-default underline hover:text-blue-700 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       {loading ? 'Sending...' : 'Resend otp'}
                     </a>
@@ -552,7 +551,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
                 >
                   {loading ? 'Verifying...' : 'Verify'}
                 </button>

@@ -1,9 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
-// Announcement Section 
 const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectChannel }) => {
   const getChannelId = (channelName) => `announcement:${channelName}`;
   
@@ -63,11 +62,16 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 };
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode }) => {
   const defaultChannels = channels && channels.length > 0 ? channels : ['general'];
   const roomType = isVoice ? 'voice' : 'chat';
   
   const getChannelId = (channelName) => `${groupName}:${roomType}:${channelName}`;
+  
+  const handleChannelClick = (channelName) => {
+    const channelId = getChannelId(channelName);
+    onSelectChannel?.(channelId, roomCode);
+  };
   
   return (
     <div className="mb-2 ml-4">
@@ -98,7 +102,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
             return (
               <button
                 key={channel}
-                onClick={() => onSelectChannel?.(channelId)}
+                onClick={() => handleChannelClick(channel)}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
                   isSelected
                     ? 'bg-gray-700 text-white font-semibold'
@@ -496,7 +500,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   
@@ -530,6 +534,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
             selectedChannel={selectedChannel}
             onSelectChannel={onSelectChannel}
             groupName={groupName}
+            roomCode={roomCode}
           />
           <RoomSection
             title="Voice room"
@@ -541,6 +546,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
             selectedChannel={selectedChannel}
             onSelectChannel={onSelectChannel}
             groupName={groupName}
+            roomCode={roomCode}
           />
         </div>
       )}
@@ -550,6 +556,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
 
 const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const title = community?.name || 'Community';
   const communityId = community?.id || community?.communityId || community?.community_id;
 
@@ -564,6 +571,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [error, setError] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('announcement:general');
 
+  const handleChannelSelect = (channelId, roomCode) => {
+    setSelectedChannel(channelId);
+    try {
+      window.dispatchEvent(new CustomEvent('community:channel-selected', {
+        detail: { channelId, roomCode }
+      }));
+    } catch (error) {
+      console.error('Error dispatching channel-selected event:', error);
+    }
+  };
+
   const [openAnn, setOpenAnn] = useState(true);
   const [openGroups, setOpenGroups] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
@@ -572,12 +590,36 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [channelModalContext, setChannelModalContext] = useState({ groupName: null, roomType: null });
   const [imageError, setImageError] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState('');
   const dropdownRef = useRef(null);
 
   
   useEffect(() => {
     setImageError(false);
   }, [community?.imageUrl]);
+
+  useEffect(() => {
+    const determineRole = async () => {
+      try {
+        const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+        if (!communityId || !userEmail) return;
+        if (isLocalGroup) {
+          try {
+            const cached = sessionStorage.getItem(`localGroupDetails:${communityId}`);
+            const lg = cached ? JSON.parse(cached) : null;
+            const creator = lg?.creatorEmail || lg?.createdByEmail || lg?.creator || '';
+            setCurrentUserRole(creator && creator.toLowerCase() === userEmail.toLowerCase() ? 'ADMIN' : 'MEMBER');
+          } catch {}
+        } else {
+          const data = await getCommunityMembers(communityId);
+          const members = data?.data?.members || data?.members || [];
+          const me = members.find((m) => (m.email || m.username) && (m.email || m.username).toLowerCase() === userEmail.toLowerCase());
+          setCurrentUserRole(((me?.role || '').toUpperCase()) || '');
+        }
+      } catch {}
+    };
+    determineRole();
+  }, [communityId, isLocalGroup, user?.email]);
 
   const fetchGroups = useCallback(async () => {
     if (!communityId) {
@@ -704,6 +746,39 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       ...prev,
       [groupName]: !prev[groupName],
     }));
+
+    if (!isLocalGroup) {
+      try {
+        const grp = groups.find((g) => g.name === groupName);
+        const roomCode = grp?.roomCode;
+        const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+        if (roomCode) {
+          // Ensure center panel starts WS even if already joined
+          try {
+            window.dispatchEvent(new CustomEvent('community:channel-selected', {
+              detail: { channelId: `${groupName}:chat:general`, roomCode }
+            }));
+          } catch {}
+
+          if (userEmail) {
+          joinRoom(roomCode, userEmail)
+            .then((res) => {
+              const msg = (res && (res.message || res.status || res.result) ? String(res.message || res.status || res.result).toLowerCase() : '');
+              const already = msg.includes('already') || msg.includes('exist') || msg.includes('joined');
+              if (already) return; // suppress toast if already in room
+              try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You have joined successfully', type: 'success' } })); } catch {}
+            })
+            .catch((err) => {
+              console.error('Join room failed:', err);
+              const emsg = err && err.message ? String(err.message).toLowerCase() : '';
+              const already = emsg.includes('already') || emsg.includes('exist') || emsg.includes('joined');
+              if (already) return; // suppress toast if already in room
+              try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to join room', type: 'error' } })); } catch {}
+            });
+          }
+        }
+      } catch {}
+    }
   };
 
   const handleDropdownAction = (action) => {
@@ -711,11 +786,30 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     if (action === 'invite') {
       setShowInviteModal(true);
     } else if (action === 'create-group') {
-      setShowCreateGroupModal(true);
+      if (!isLocalGroup) setShowCreateGroupModal(true);
     } else if (action === 'settings') {
       // Navigate to settings page
       if (communityId) {
-        navigate(`/dashboard/community/${communityId}/settings`);
+        if (isLocalGroup) {
+          navigate(`/dashboard/local-group/${communityId}/settings`);
+        } else {
+          navigate(`/dashboard/community/${communityId}/settings`);
+        }
+      }
+    } else if (action === 'leave') {
+      const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+      if (isLocalGroup) {
+        try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Left local-group', type: 'success' } })); } catch {}
+        onBack?.();
+      } else if (community?.name && userEmail) {
+        leaveCommunity({ communityName: community.name, userEmail })
+          .then(() => {
+            try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Left community', type: 'success' } })); } catch {}
+            onBack?.();
+          })
+          .catch((err) => {
+            try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to leave', type: 'error' } })); } catch {}
+          });
       }
     }
   };
@@ -724,6 +818,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     fetchGroups();
     
     window.dispatchEvent(new CustomEvent('community:refresh-groups', { detail: community }));
+    try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Group created', type: 'success' } })); } catch {}
   };
 
   useEffect(() => {
@@ -804,17 +899,27 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             >
               Invite people
             </button>
+            {!isLocalGroup && (
+              <button
+                onClick={() => handleDropdownAction('create-group')}
+                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
+              >
+                Create group
+              </button>
+            )}
+            {currentUserRole === 'ADMIN' && (
+              <button
+                onClick={() => handleDropdownAction('settings')}
+                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
+              >
+                Settings
+              </button>
+            )}
             <button
-              onClick={() => handleDropdownAction('create-group')}
+              onClick={() => handleDropdownAction('leave')}
               className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
             >
-              Create group
-            </button>
-            <button
-              onClick={() => handleDropdownAction('settings')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
-            >
-              Settings
+              {isLocalGroup ? 'Leave local-group' : 'Leave community'}
             </button>
           </div>
         )}
@@ -825,7 +930,29 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 relative pb-16">
         {loading && (
-          <div className="text-gray-600 text-sm mb-4">Loading groups...</div>
+          <div className="space-y-4">
+            {/* Announcement skeleton */}
+            {!isLocalGroup && (
+              <div className="mb-3">
+                <div className="h-4 w-28 bg-gray-300 rounded animate-pulse mb-2" />
+                <div className="space-y-2 pl-5">
+                  <div className="h-8 w-40 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            )}
+
+            {/* Groups skeleton */}
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="mb-3">
+                <div className="h-4 w-36 bg-gray-300 rounded animate-pulse mb-2" />
+                <div className="pl-4 space-y-2">
+                  <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         {error && (
           <div className="text-red-600 text-sm mb-4">{error}</div>
@@ -838,7 +965,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             open={openAnn}
             onToggle={() => setOpenAnn((v) => !v)}
             selectedChannel={selectedChannel}
-            onSelectChannel={setSelectedChannel}
+            onSelectChannel={(channelId) => handleChannelSelect(channelId, null)}
           />
         )}
 
@@ -858,7 +985,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             onAddChatRoom={handleAddChatRoom}
             onAddVoiceRoom={handleAddVoiceRoom}
             selectedChannel={selectedChannel}
-            onSelectChannel={setSelectedChannel}
+            onSelectChannel={handleChannelSelect}
+            roomCode={group.roomCode}
           />
         ))}
             {/* Footer */}

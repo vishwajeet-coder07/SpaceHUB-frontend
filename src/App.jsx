@@ -1,11 +1,13 @@
 import './App.css'
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider, ProtectedRoute, PublicRoute, ResetPasswordRoute, ProfileSetupRoute } from './shared'
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './modules/auth'
 import { ProfileSetupPage } from './modules/profile'
-import { LandingPage } from './modules/landing'
+const LandingPage = lazy(() => import('./modules/landing').then(m => ({ default: m.LandingPage })));
+import TopToast from './shared/components/TopToast'
 import { Dashboard, CommunityPage, CommunitySettingsPage, LocalGroupPage, SettingPage } from './modules/dashboard'
+import LocalGroupSettingsPage from './modules/dashboard/pages/LocalGroupSettingsPage'
 
 function App() {
   return (
@@ -13,9 +15,14 @@ function App() {
       <Router>
         <div>
           <div style={{ fontFamily: 'Inter, sans-serif' }}>
+            <TopToast />
             <Routes>
               
-              <Route path="/" element={<LandingPage />} />
+              <Route path="/" element={
+                <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-700">Loading...</div>}>
+                  <LandingPage />
+                </Suspense>
+              } />
     
               <Route 
                 path="/login" 
@@ -91,6 +98,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/dashboard/local-group/:id/settings" 
+                element={
+                  <ProtectedRoute>
+                    <LocalGroupSettingsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/profile/setup" 
                 element={
                   <ProfileSetupRoute>
@@ -98,7 +113,11 @@ function App() {
                     </ProfileSetupRoute>
                 }
               />
-              <Route path="*" element={<LandingPage />} />
+              <Route path="*" element={
+                <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-700">Loading...</div>}>
+                  <LandingPage />
+                </Suspense>
+              } />
             </Routes>
           </div>
         </div>

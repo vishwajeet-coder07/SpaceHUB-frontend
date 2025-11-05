@@ -430,6 +430,106 @@ export async function rejectJoinRequest({ communityName, creatorEmail, userEmail
   return data;
 }
 
+export async function searchUsers(query, page = 0, size = 10) {
+  const response = await authenticatedFetch(`${BASE_URL}search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+export async function sendFriendRequest(userEmail, friendEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/request`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail, friendEmail })
+  });
+  return handleJson(response);
+}
+
+// Search communities
+export async function searchCommunities({ query, requesterEmail, page = 0, size = 10 }) {
+  const params = new URLSearchParams();
+  params.set('q', query);
+  if (requesterEmail) params.set('requesterEmail', requesterEmail);
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await authenticatedFetch(`${BASE_URL}community/search?${params.toString()}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+export async function setUsername({ email, username }) {
+  const payload = { email, username };
+  const response = await authenticatedFetch(`${BASE_URL}dashboard/set-username`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return handleJson(response);
+}
+
+export async function uploadProfileImage({ imageFile }) {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  const response = await authenticatedFetch(`${BASE_URL}dashboard/upload-profile-image`, {
+    method: 'POST',
+    body: formData
+  });
+  return handleJson(response);
+}
+export async function removeCommunityMember(communityId, userEmail, requesterEmail) {
+  const url = `${BASE_URL}community/removeMember`;
+  const payload = { communityId, userEmail, requesterEmail };  
+  try {
+    const response = await authenticatedFetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+  }catch (error) {
+    console.error('removeCommunityMember API error:', error);
+    throw error;
+  }
+}
+
+export async function deleteCommunityRoom(communityId, roomId, requesterEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}community/${communityId}/rooms/${roomId}?requesterEmail=${encodeURIComponent(requesterEmail)}`, {
+    method: 'DELETE'
+  });
+  return handleJson(response);
+}
+
+// Local-Group: members list
+export async function getLocalGroupMembers(groupId) {
+  const response = await authenticatedFetch(`${BASE_URL}local-group/${groupId}/members`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+// Local-Group: settings
+export async function getLocalGroupSettings(groupId) {
+  const response = await authenticatedFetch(`${BASE_URL}local-group/${groupId}/settings`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+// Rooms: join by roomCode
+export async function joinRoom(roomCode, userId) {
+  const response = await authenticatedFetch(`${BASE_URL}rooms/join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomCode, userId })
+  });
+  return handleJson(response);
+}
+
 async function handleJson(response) {
   let data;
   try {
@@ -448,7 +548,7 @@ export const getAuthHeaders = (isFormData = false) => {
   const token = sessionStorage.getItem('accessToken');
   return {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    // ...(token && { 'Authorization': `Bearer ${token}` })
+    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 
@@ -464,7 +564,8 @@ export const authenticatedFetch = async (url, options = {}) => {
       ...options.headers
     }
   });
-  
+// console.log('response', response);
+
   if (response.status === 401) {
     sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('userData');

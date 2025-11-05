@@ -23,7 +23,7 @@ import DashboardLeftSidebar from '../components/DashboardLeftSidebar';
 import InboxModal from '../components/InboxModal';
 
 const Dashboard = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
@@ -68,11 +68,20 @@ const Dashboard = () => {
           <div className="w-16 bg-white border-l-b-ts border-gray-400 flex flex-col items-center py-4 space-y-4 rounded-l-xl">
             {/* Profile Picture */}
             <div 
-            title='profile'
-            className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden">
-              <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
+              title='profile'
+              className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden">
+              {(() => {
+                const sessionUser = JSON.parse(sessionStorage.getItem('userData') || '{}');
+                const avatarUrl = user?.avatarUrl || sessionUser?.avatarUrl;
+                const displayName = user?.username || sessionUser?.username || 'U';
+                return avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-semibold text-gray-700">
+                    {String(displayName).charAt(0).toUpperCase()}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Plus Icon */}
