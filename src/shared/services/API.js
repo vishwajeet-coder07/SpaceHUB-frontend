@@ -448,6 +448,70 @@ export async function sendFriendRequest(userEmail, friendEmail) {
   return handleJson(response);
 }
 
+// Get friends list
+export async function getFriendsList(userEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/list`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail })
+  });
+  return handleJson(response);
+}
+
+// Get incoming friend requests
+export async function getIncomingFriendRequests(userEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/pending/incoming`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail })
+  });
+  return handleJson(response);
+}
+
+// Respond to friend request (accept/reject)
+export async function respondToFriendRequest({ userEmail, requesterEmail, accept }) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/respond`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail, requesterEmail, accept })
+  });
+  return handleJson(response);
+}
+
+// Send message to a friend
+export async function sendFriendMessage({ userEmail, friendEmail, message, images }) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/message/send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail, friendEmail, message, images })
+  });
+  return handleJson(response);
+}
+
+// Get messages with a friend
+export async function getFriendMessages({ userEmail, friendEmail, page = 0, size = 50 }) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/messages?userEmail=${encodeURIComponent(userEmail)}&friendEmail=${encodeURIComponent(friendEmail)}&page=${page}&size=${size}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+// Get chat history between two users (for WebSocket direct chat)
+export async function getChatHistory(user1, user2) {
+  const response = await authenticatedFetch(`${BASE_URL}messages/chat?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
 // Search communities
 export async function searchCommunities({ query, requesterEmail, page = 0, size = 10 }) {
   const params = new URLSearchParams();

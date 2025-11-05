@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMyPendingRequests, acceptJoinRequest, rejectJoinRequest } from '../../../shared/services/API';
+import { getMyPendingRequests, acceptJoinRequest, rejectJoinRequest, getIncomingFriendRequests, respondToFriendRequest } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import {
   selectRequests,
@@ -30,9 +30,9 @@ const InboxModal = ({ isOpen, onClose }) => {
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
 
-  // Fetch requests from API (for Request tab - incoming requests that need action)
+  // Fetch friend requests from API (for Request tab - incoming friend requests that need action)
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchFriendRequests = async () => {
       if (!isOpen) return;
 
       dispatch(setLoading(true));
@@ -48,34 +48,56 @@ const InboxModal = ({ isOpen, onClose }) => {
       }
 
       try {
-        const response = await getMyPendingRequests(userEmail);
-        const data = response?.data || [];
-        const transformedRequests = [];
-        data.forEach((communityData) => {
-          const { communityId, communityName, requests: communityRequests } = communityData;
-          
-          communityRequests.forEach((req) => {
-            transformedRequests.push({
-              id: `${communityId}-${req.userId}`,
-              communityId,
-              type: 'community',
-              name: communityName,
-              requester: req.username || req.email?.split('@')[0] || 'Unknown',
-              requesterEmail: req.email,
-              userId: req.userId,
-              avatar: req.avatar || null
+        // Fetch incoming friend requests
+        const friendResponse = await getIncomingFriendRequests(userEmail);
+        const friendRequests = friendResponse?.data || friendResponse?.friends || friendResponse || [];
+        
+        const transformedFriendRequests = Array.isArray(friendRequests) ? friendRequests.map((req, idx) => ({
+          id: `friend-${req.requesterEmail || req.email || idx}`,
+          type: 'friend',
+          name: req.username || req.name || req.requesterEmail?.split('@')[0] || 'Unknown User',
+          requester: req.username || req.name || req.requesterEmail?.split('@')[0] || 'Unknown',
+          requesterEmail: req.requesterEmail || req.email,
+          userId: req.userId || req.id,
+          avatar: req.avatar || req.avatarUrl || req.profileImage || null
+        })) : [];
+
+        // Also fetch community join requests (keep existing functionality)
+        let communityRequests = [];
+        try {
+          const communityResponse = await getMyPendingRequests(userEmail);
+          const communityData = communityResponse?.data || [];
+          communityData.forEach((communityData) => {
+            const { communityId, communityName, requests: commRequests } = communityData;
+            
+            commRequests.forEach((req) => {
+              communityRequests.push({
+                id: `${communityId}-${req.userId}`,
+                communityId,
+                type: 'community',
+                name: communityName,
+                requester: req.username || req.email?.split('@')[0] || 'Unknown',
+                requesterEmail: req.email,
+                userId: req.userId,
+                avatar: req.avatar || null
+              });
             });
           });
-        });
+        } catch (err) {
+          console.error('Error fetching community requests:', err);
+        }
 
-        dispatch(setRequests(transformedRequests));
+        // Combine friend requests and community requests
+        dispatch(setRequests([...transformedFriendRequests, ...communityRequests]));
+        dispatch(setLoading(false));
       } catch (err) {
-        console.error('Error fetching requests:', err);
+        console.error('Error fetching friend requests:', err);
         dispatch(setError(err.message || 'Failed to load requests'));
+        dispatch(setLoading(false));
       }
     };
 
-    fetchRequests();
+    fetchFriendRequests();
   }, [isOpen, user, dispatch]);
 
   useEffect(() => {
@@ -101,24 +123,41 @@ const InboxModal = ({ isOpen, onClose }) => {
     dispatch(setProcessingRequest(requestId));
     
     const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
-    const creatorEmail = user?.email || storedEmail;
+    const userEmail = user?.email || storedEmail;
 
-    if (!creatorEmail) {
+    if (!userEmail) {
       dispatch(setError('User email not found'));
       dispatch(setProcessingRequest(null));
       return;
     }
 
     try {
-      await acceptJoinRequest({
-        communityName: request.name,
-        creatorEmail: creatorEmail,
-        userEmail: request.requesterEmail
-      });
+      if (request.type === 'friend') {
+        // Handle friend request accept
+        await respondToFriendRequest({
+          userEmail: userEmail,
+          requesterEmail: request.requesterEmail,
+          accept: true
+        });
+        // Show toast notification
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Friend request accepted!', type: 'success' }
+        }));
+      } else {
+        // Handle community join request accept (existing functionality)
+        await acceptJoinRequest({
+          communityName: request.name,
+          creatorEmail: userEmail,
+          userEmail: request.requesterEmail
+        });
+      }
       dispatch(removeRequest(requestId));
     } catch (err) {
       console.error('Error accepting request:', err);
       dispatch(setError(err.message || 'Failed to accept request'));
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to accept request', type: 'error' }
+      }));
     } finally {
       dispatch(setProcessingRequest(null));
     }
@@ -131,25 +170,42 @@ const InboxModal = ({ isOpen, onClose }) => {
     dispatch(setProcessingRequest(requestId));
     
     const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
-    const creatorEmail = user?.email || storedEmail;
+    const userEmail = user?.email || storedEmail;
 
-    if (!creatorEmail) {
+    if (!userEmail) {
       dispatch(setError('User email not found'));
       dispatch(setProcessingRequest(null));
       return;
     }
 
     try {
-      await rejectJoinRequest({
-        communityName: request.name,
-        creatorEmail: creatorEmail,
-        userEmail: request.requesterEmail
-      });
+      if (request.type === 'friend') {
+        // Handle friend request reject
+        await respondToFriendRequest({
+          userEmail: userEmail,
+          requesterEmail: request.requesterEmail,
+          accept: false
+        });
+        // Show toast notification
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Friend request rejected', type: 'info' }
+        }));
+      } else {
+        // Handle community join request reject (existing functionality)
+        await rejectJoinRequest({
+          communityName: request.name,
+          creatorEmail: userEmail,
+          userEmail: request.requesterEmail
+        });
+      }
 
       dispatch(removeRequest(requestId));
     } catch (err) {
       console.error('Error rejecting request:', err);
       dispatch(setError(err.message || 'Failed to reject request'));
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to reject request', type: 'error' }
+      }));
     } finally {
       dispatch(setProcessingRequest(null));
     }
@@ -216,8 +272,21 @@ const InboxModal = ({ isOpen, onClose }) => {
         {/* Content Area for requests and pending requests */}
         <div className="flex-1 overflow-y-auto min-h-[450px] bg-blue-100/90 px-4 py-4">
           {loading ? (
-            <div className="text-center text-gray-500 py-12 text-sm">
-              Loading...
+            // Shimmer loading effect
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="flex items-center gap-4 bg-white rounded-lg p-4 shadow-sm animate-pulse">
+                  <div className="w-12 h-12 rounded-full bg-gray-300" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 bg-gray-300 rounded" />
+                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-16 h-8 bg-gray-300 rounded" />
+                    <div className="w-16 h-8 bg-gray-300 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="text-center text-red-500 py-12 text-sm">
@@ -248,14 +317,22 @@ const InboxModal = ({ isOpen, onClose }) => {
                     {/* Request Info */}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-gray-800 leading-tight">
-                        {request.name}
-                        <span className="text-xs font-normal text-gray-500 ml-1">
-                          ({request.type})
-                        </span>
+                        {request.type === 'friend' ? (
+                          <span>{request.requester} wants to be your friend</span>
+                        ) : (
+                          <>
+                            {request.name}
+                            <span className="text-xs font-normal text-gray-500 ml-1">
+                              ({request.type})
+                            </span>
+                          </>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        {request.requester}
-                      </div>
+                      {request.type !== 'friend' && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {request.requester}
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}

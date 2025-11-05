@@ -64,8 +64,8 @@ const CommunityCard = ({ community, onClick }) => {
         <div className="flex items-center justify-between text-sm text-gray-300 mb-2 pt-2">
           <div></div>
           <div>
-            <div>members: {members}</div>
-            <div className="text-green-400">• {online} Online</div>
+            <div>members: {members || 0}</div>
+            <div className="text-green-400">• {online || 0} Online</div>
           </div>
         </div>
         </div>

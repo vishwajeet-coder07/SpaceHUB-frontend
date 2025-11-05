@@ -79,9 +79,7 @@ const DashboardRightSidebar = ({ onClose }) => {
   };
 
   const handleSendRequest = () => {
-    if (searchQuery.trim().length >= 2 && searchResults.length > 0) {
-      handleAddFriend(searchResults[0]);
-    } else if (searchQuery.trim().length >= 2) {
+    if (searchQuery.trim().length >= 2) {
       handleSearch(searchQuery);
     }
   };

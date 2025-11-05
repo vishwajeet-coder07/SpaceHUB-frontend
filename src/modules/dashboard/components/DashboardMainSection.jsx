@@ -3,6 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMyCommunities, getAllLocalGroups, BASE_URL } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+
+const formatFriendName = (friend) => {
+  if (friend.firstName && friend.lastName) {
+    return `${friend.firstName} ${friend.lastName}`;
+  }
+  if (friend.first && friend.last) {
+    return `${friend.first} ${friend.last}`;
+  }
+  if (friend.name) {
+    return friend.name;
+  }
+  if (friend.username) {
+    return friend.username;
+  }
+  return 'Unknown';
+};
 import {
   selectCommunities,
   selectLocalGroups,
@@ -26,6 +42,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   const error = useSelector(selectDashboardError);
   const communities = useSelector(selectCommunities);
   const localGroups = useSelector(selectLocalGroups);
+
 
   const safeUrl = (rawUrl) => {
     if (!rawUrl) return '';
@@ -148,8 +165,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           <div className="flex-1 min-w-0 bg-[#282828] text-white rounded-r-xl p-3 sm:p-4 relative">
             {/* Member Status - Top Right */}
             <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right text-xs sm:text-sm">
-              <div className="text-gray-300">members: {members}</div>
-              <div className="text-green-400">• {online} Online</div>
+              <div className="text-gray-300">members: {members || 0}</div>
+              <div className="text-green-400">• {online || 0} Online</div>
             </div>
             
             {/* Title and Description */}
@@ -227,75 +244,68 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     );
   };
 
-  // If a friend is selected, show chat interface
+
+  // Static placeholder for direct messaging (WebSocket implementation will be added later)
   if (selectedFriend) {
-    const friendName = selectedFriend.username || selectedFriend.name || 'Unknown';
-    const friendAvatar = selectedFriend.avatar;
+    const friendName = formatFriendName(selectedFriend);
+    const friendAvatar = selectedFriend.avatar || selectedFriend.avatarUrl || selectedFriend.profileImage || '/avatars/avatar-1.png';
 
     return (
-      <div className="flex-1 bg-white min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden rounded-xl">
+      <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
         {/* Chat Header */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between flex-shrink-0 rounded-t-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {friendAvatar ? (
-                <img src={friendAvatar} alt={friendName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm font-semibold text-gray-600">
-                  {friendName.charAt(0).toUpperCase()}
-                </span>
-              )}
+        <div className="bg-gray-100 border-b border-gray-300 px-4 py-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+            <img 
+              src={friendAvatar} 
+              alt={friendName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                if (e.target.nextSibling) {
+                  e.target.nextSibling.style.display = 'flex';
+                }
+              }}
+            />
+            <div className="w-full h-full bg-gray-400 flex items-center justify-center text-white font-semibold hidden">
+              {friendName.charAt(0).toUpperCase()}
             </div>
-            <h2 className="text-lg font-semibold text-gray-800">{friendName}</h2>
           </div>
-          {!showRightSidebar && (
+          <div>
+            <h3 className="font-semibold text-gray-800">{friendName}</h3>
+            <p className="text-xs text-gray-500">Direct Message</p>
+          </div>
+        </div>
+
+        {/* Chat Messages Area - Static Placeholder */}
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="mb-4">
+              <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">Direct Messaging</h3>
+            <p className="text-gray-500 max-w-md">
+              hello
+            </p>
+          </div>
+        </div>
+
+        {/* Input Area - Disabled */}
+        <div className="bg-gray-100 border-t border-gray-300 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-2 text-gray-400 cursor-not-allowed">
+              hee
+            </div>
             <button
-              onClick={onOpenAddFriends}
-              className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-md transition-colors"
-              title="Add Friends"
+              disabled
+              className="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
             >
-              <svg width="22" height="19" viewBox="0 0 22 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11.306 11.025C12.0447 11.1007 12.7291 11.4478 13.2268 11.999C13.7244 12.5502 13.9999 13.2663 14 14.009C14 15.551 13.06 16.827 11.796 17.669C10.526 18.517 8.826 19.009 7 19.009C5.174 19.009 3.474 18.517 2.204 17.669C0.938 16.829 0 15.551 0 14.009C0 13.2133 0.31607 12.4502 0.87868 11.8876C1.44129 11.325 2.20435 11.009 3 11.009H11L11.306 11.025ZM19.006 11.009C19.8016 11.009 20.5647 11.325 21.1273 11.8876C21.6899 12.4502 22.006 13.2133 22.006 14.009C22.006 15.399 21.142 16.431 20.04 17.065C18.944 17.695 17.51 18.009 16.006 18.009C15.4993 18.0076 15.0053 17.9703 14.524 17.897C15.39 16.873 16.002 15.565 16.002 14.009C15.9997 12.9262 15.646 11.8734 14.994 11.009H19.006ZM7.004 0.000957934C7.6036 -0.0114072 8.19963 0.0960447 8.75716 0.317015C9.31469 0.537986 9.8225 0.868028 10.2508 1.2878C10.6791 1.70757 11.0194 2.20862 11.2515 2.76157C11.4837 3.31453 11.6032 3.90828 11.6029 4.508C11.6026 5.10772 11.4827 5.70136 11.25 6.25411C11.0173 6.80687 10.6767 7.30761 10.248 7.727C9.81927 8.14639 9.31117 8.47598 8.75344 8.69646C8.19571 8.91693 7.59958 9.02386 7 9.01096C5.82164 8.98613 4.69991 8.50059 3.87532 7.65844C3.05073 6.81629 2.58893 5.68458 2.58893 4.50596C2.58893 3.32733 3.05073 2.19562 3.87532 1.35348C4.69991 0.511328 5.82164 0.0257876 7 0.000957934M16.5 2.00296C16.9596 2.00296 17.4148 2.09349 17.8394 2.26938C18.264 2.44527 18.6499 2.70308 18.9749 3.02808C19.2999 3.35309 19.5577 3.73893 19.7336 4.16357C19.9095 4.58821 20 5.04333 20 5.50296C20 5.96258 19.9095 6.41771 19.7336 6.84235C19.5577 7.26699 19.2999 7.65283 18.9749 7.97783C18.6499 8.30284 18.264 8.56064 17.8394 8.73654C17.4148 8.91243 16.9596 9.00296 16.5 9.00296C15.5717 9.00296 14.6815 8.63421 14.0251 7.97783C13.3687 7.32145 13 6.43122 13 5.50296C13 4.5747 13.3687 3.68446 14.0251 3.02808C14.6815 2.37171 15.5717 2.00296 16.5 2.00296Z" fill="#282828"/>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
-          )}
-        </div>
-
-        {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="text-center text-gray-500 text-sm">
-            No messages yet. Start a conversation!
           </div>
-        </div>
-
-        {/* Chat Input Bar */}
-        <div className="bg-gray-700 px-4 py-3 flex items-center gap-3 flex-shrink-0">
-          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-300 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-300 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-300 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </button>
-          <input
-            type="text"
-            placeholder="#general"
-            className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-sm"
-            readOnly
-          />
-          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
         </div>
       </div>
     );

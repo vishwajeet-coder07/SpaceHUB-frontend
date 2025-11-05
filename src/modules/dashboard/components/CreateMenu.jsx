@@ -40,7 +40,7 @@ const CreateMenu = ({ onBack, onFriends, onClubs, onJoin }) => {
         <div className="h-36 sm:h-56 bg-white" />
       </div>
       {/* Join a Local-Group or a community button */}
-      <div className="bg-white px-2 py-2 sm:p-5">
+      <div className="bg-white mb-2 px-2 sm:p-5">
   <div className="rounded-t-2xl border-3 border-black px-2 py-3 sm:p-6 flex flex-col items-center text-center w-full">
           <p className="text-base sm:text-lg font-medium mb-2 sm:mb-3">Have an invite link?</p>
           <button onClick={onJoin} className="w-full px-2 py-2 sm:px-5 sm:py-3 rounded-xl bg-indigo-600 text-white text-base sm:text-lg font-semibold hover:bg-indigo-700 transition">Join a Local-Group or a community</button>

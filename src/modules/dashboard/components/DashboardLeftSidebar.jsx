@@ -1,16 +1,97 @@
 import React, { useState, useEffect } from 'react';
+import { getFriendsList } from '../../../shared/services/API';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
+
+// Helper function to format name as "first last"
+const formatFriendName = (friend) => {
+  if (friend.firstName && friend.lastName) {
+    return `${friend.firstName} ${friend.lastName}`;
+  }
+  if (friend.first && friend.last) {
+    return `${friend.first} ${friend.last}`;
+  }
+  if (friend.name) {
+    return friend.name;
+  }
+  if (friend.username) {
+    return friend.username;
+  }
+  return 'Unknown';
+};
+
+// Friend Avatar Component with fallback
+const FriendAvatar = ({ avatar, username, isSelected }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  useEffect(() => {
+    setImageError(false);
+  }, [avatar]);
+
+  if (!avatar || imageError) {
+    return (
+      <span 
+        className={`text-xs font-semibold ${
+          isSelected ? 'text-white' : 'text-gray-600'
+        }`}
+      >
+        {username.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <img 
+      src={avatar} 
+      alt={username} 
+      className="w-full h-full object-cover"
+      onError={() => setImageError(true)}
+    />
+  );
+};
 
 const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, setSelectedFriend }) => {
+  const { user } = useAuth();
   const [isDirectMessageOpen, setIsDirectMessageOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [friends, setFriends] = useState([]);
   const [filteredFriends, setFilteredFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchedFriends = [];
-    setFriends(fetchedFriends);
-    setFilteredFriends(fetchedFriends);
-  }, []);
+    const fetchFriends = async () => {
+      setLoading(true);
+      setError('');
+      
+      const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+      const userEmail = user?.email || storedEmail;
+      
+      if (!userEmail) {
+        setError('User email not found');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await getFriendsList(userEmail);
+        // Handle different response structures
+        const friendsList = response?.data?.friends || 
+                          response?.data || 
+                          response?.friends || 
+                          Array.isArray(response) ? response : [];
+        setFriends(Array.isArray(friendsList) ? friendsList : []);
+        setFilteredFriends(Array.isArray(friendsList) ? friendsList : []);
+      } catch (e) {
+        setError(e.message || 'Failed to load friends');
+        setFriends([]);
+        setFilteredFriends([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFriends();
+  }, [user]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -18,10 +99,18 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
     } else {
       const query = searchQuery.toLowerCase();
       setFilteredFriends(
-        friends.filter((friend) =>
-          friend.username?.toLowerCase().includes(query) ||
-          friend.name?.toLowerCase().includes(query)
-        )
+        friends.filter((friend) => {
+          const friendName = formatFriendName(friend);
+          return (
+            friendName.toLowerCase().includes(query) ||
+            friend.username?.toLowerCase().includes(query) ||
+            friend.firstName?.toLowerCase().includes(query) ||
+            friend.lastName?.toLowerCase().includes(query) ||
+            friend.first?.toLowerCase().includes(query) ||
+            friend.last?.toLowerCase().includes(query) ||
+            friend.email?.toLowerCase().includes(query)
+          );
+        })
       );
     }
   }, [searchQuery, friends]);
@@ -111,35 +200,54 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
 
                 {/* Friends List */}
                 <div className="space-y-1">
-                  {filteredFriends.length === 0 ? (
+                  {loading ? (
+                    // Shimmer loading effect
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <div key={idx} className="px-4 py-2 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-300 animate-pulse" />
+                        <div className="flex-1 h-4 bg-gray-300 rounded animate-pulse" />
+                      </div>
+                    ))
+                  ) : error ? (
+                    <div className="px-4 py-2 text-sm text-red-500 text-center">
+                      {error}
+                    </div>
+                  ) : filteredFriends.length === 0 ? (
                     <div className="px-4 py-2 text-sm text-gray-500 text-center">
-                      No friends yet
+                      {searchQuery.trim() ? 'No friends found' : 'No friends yet'}
                     </div>
                   ) : (
-                    filteredFriends.map((friend) => (
-                      <button
-                        key={friend.id || friend.userId}
-                        onClick={() => handleFriendClick(friend)}
-                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                          selectedFriend?.id === friend.id || selectedFriend?.userId === friend.userId
-                            ? 'bg-gray-700 text-white'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
+                    filteredFriends.map((friend) => {
+                      const friendId = friend.id || friend.userId || friend.friendId;
+                      const friendDisplayName = formatFriendName(friend);
+                      const friendAvatar = friend.avatar || friend.avatarUrl || friend.profileImage;
+                      const isSelected = selectedFriend?.id === friendId || 
+                                       selectedFriend?.userId === friendId ||
+                                       selectedFriend?.friendId === friendId;
+                      
+                      return (
+                        <button
+                          key={friendId || friendDisplayName}
+                          onClick={() => handleFriendClick(friend)}
+                          className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                            isSelected
+                              ? 'bg-gray-700 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
                         <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {friend.avatar ? (
-                            <img src={friend.avatar} alt={friend.username || friend.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xs font-semibold text-gray-600">
-                              {(friend.username || friend.name || 'U').charAt(0).toUpperCase()}
-                            </span>
-                          )}
+                          <FriendAvatar 
+                            avatar={friendAvatar}
+                            username={friendDisplayName}
+                            isSelected={isSelected}
+                          />
                         </div>
-                        <span className="font-medium text-sm truncate">
-                          {friend.username || friend.name || 'Unknown'}
-                        </span>
-                      </button>
-                    ))
+                          <span className="font-medium text-sm truncate">
+                            {friendDisplayName}
+                          </span>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
