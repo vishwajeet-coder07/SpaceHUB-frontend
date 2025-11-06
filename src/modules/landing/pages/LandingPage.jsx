@@ -66,7 +66,7 @@ const LandingPage = () => {
 
       {/* HERO SECTION */}
       <section
-        className="w-full min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
+        className="w-full  min-h-[37rem] sm:min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
         style={{
           backgroundImage: `url(${bgPattern})`,
           backgroundRepeat: 'repeat',
@@ -109,7 +109,7 @@ const LandingPage = () => {
       </section>
 
       {/* DISCOVER SECTION */}
-      <section id="About" className="max-w-screen relative mb-[13rem] sm:mb-[13rem]">
+      <section id="About" className="max-w-screen relative mb-7 sm:mb-[13rem]">
         <RevealOnScroll>
           <img src={discoverSvg} alt="Discover SPACEHUB" className="w-full mx-auto h-auto" loading="lazy" />
         </RevealOnScroll>
@@ -118,7 +118,7 @@ const LandingPage = () => {
         <img
           src={line1}
           alt="decorative line"
-          className="absolute  left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>
@@ -145,7 +145,7 @@ const LandingPage = () => {
         <img
           src={line2}
           alt="decorative line"
-          className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>
@@ -172,7 +172,7 @@ const LandingPage = () => {
         <img
           src={line3}
           alt="decorative line"
-          className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>

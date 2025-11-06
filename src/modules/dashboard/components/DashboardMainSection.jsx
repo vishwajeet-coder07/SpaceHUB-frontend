@@ -245,7 +245,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   };
 
 
-  // Static placeholder for direct messaging (WebSocket implementation will be added later)
   if (selectedFriend) {
     const friendName = formatFriendName(selectedFriend);
     const friendAvatar = selectedFriend.avatar || selectedFriend.avatarUrl || selectedFriend.profileImage || '/avatars/avatar-1.png';
@@ -311,7 +310,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     );
   }
 
-  // Default view: Communities and Local-Groups
   return (
     <div className="flex-1 bg-gray-200 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden rounded-xl border border-gray-500">
       <div className="bg-gray-200 border-b border-gray-500 px-4 sm:px-6 py-4 flex-shrink-0 rounded-t-xl">
