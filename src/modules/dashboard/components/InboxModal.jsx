@@ -52,15 +52,33 @@ const InboxModal = ({ isOpen, onClose }) => {
         const friendResponse = await getIncomingFriendRequests(userEmail);
         const friendRequests = friendResponse?.data || friendResponse?.friends || friendResponse || [];
         
-        const transformedFriendRequests = Array.isArray(friendRequests) ? friendRequests.map((req, idx) => ({
-          id: `friend-${req.requesterEmail || req.email || idx}`,
-          type: 'friend',
-          name: req.username || req.name || req.requesterEmail?.split('@')[0] || 'Unknown User',
-          requester: req.username || req.name || req.requesterEmail?.split('@')[0] || 'Unknown',
-          requesterEmail: req.requesterEmail || req.email,
-          userId: req.userId || req.id,
-          avatar: req.avatar || req.avatarUrl || req.profileImage || null
-        })) : [];
+        const transformedFriendRequests = Array.isArray(friendRequests) ? friendRequests.map((req, idx) => {
+          // Format name using firstName and lastName if available
+          let displayName = 'Unknown User';
+          if (req.firstName && req.lastName) {
+            displayName = `${req.firstName} ${req.lastName}`;
+          } else if (req.firstName) {
+            displayName = req.firstName;
+          } else if (req.username) {
+            displayName = req.username;
+          } else if (req.name) {
+            displayName = req.name;
+          } else if (req.email || req.requesterEmail) {
+            displayName = (req.email || req.requesterEmail).split('@')[0];
+          }
+          
+          return {
+            id: `friend-${req.id || req.requesterEmail || req.email || idx}`,
+            type: 'friend',
+            name: displayName,
+            requester: displayName,
+            requesterEmail: req.email || req.requesterEmail,
+            userId: req.id || req.userId,
+            firstName: req.firstName,
+            lastName: req.lastName,
+            avatar: req.avatar || req.avatarUrl || req.profileImage || null
+          };
+        }) : [];
 
         // Also fetch community join requests (keep existing functionality)
         let communityRequests = [];

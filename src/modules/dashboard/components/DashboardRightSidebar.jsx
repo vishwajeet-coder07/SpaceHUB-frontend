@@ -62,7 +62,12 @@ const DashboardRightSidebar = ({ onClose }) => {
       // Mark as requested and show toast
       setRequested((prev) => ({ ...prev, [friendId]: true }));
       try {
-        window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Request sent to ${friendUser?.username || friendUser?.email}`, type: 'success' } }));
+        const friendName = friendUser?.firstName && friendUser?.lastName 
+          ? `${friendUser.firstName} ${friendUser.lastName}`
+          : friendUser?.firstName 
+          ? friendUser.firstName
+          : friendUser?.username || friendUser?.email || 'user';
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Request sent to ${friendName}`, type: 'success' } }));
       } catch {}
     } catch (e) {
       console.error('Failed to send friend request:', e);
@@ -138,7 +143,19 @@ const DashboardRightSidebar = ({ onClose }) => {
           <div className="space-y-3 mb-4">
             {searchResults.length > 0 ? (
               searchResults.map((user, idx) => {
-                const displayName = user.username || user.name || user.email || `user-${idx+1}`;
+                // Format name using firstName and lastName if available
+                let displayName = 'Unknown User';
+                if (user.firstName && user.lastName) {
+                  displayName = `${user.firstName} ${user.lastName}`;
+                } else if (user.firstName) {
+                  displayName = user.firstName;
+                } else if (user.username) {
+                  displayName = user.username;
+                } else if (user.name) {
+                  displayName = user.name;
+                } else if (user.email) {
+                  displayName = user.email.split('@')[0];
+                }
                 const email = user.email || '';
                 const avatarUrl = user.avatarUrl || user.avatar || '/avatars/avatar-1.png';
                 return (

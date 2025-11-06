@@ -20,7 +20,7 @@ const formatFriendName = (friend) => {
 };
 
 // Friend Avatar Component with fallback
-const FriendAvatar = ({ avatar, username, isSelected }) => {
+const FriendAvatar = ({ avatar, username, firstName, isSelected }) => {
   const [imageError, setImageError] = useState(false);
   
   useEffect(() => {
@@ -28,13 +28,14 @@ const FriendAvatar = ({ avatar, username, isSelected }) => {
   }, [avatar]);
 
   if (!avatar || imageError) {
+    const initial = firstName ? firstName.charAt(0).toUpperCase() : username.charAt(0).toUpperCase();
     return (
       <span 
         className={`text-xs font-semibold ${
           isSelected ? 'text-white' : 'text-gray-600'
         }`}
       >
-        {username.charAt(0).toUpperCase()}
+        {initial}
       </span>
     );
   }
@@ -72,15 +73,50 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
         return;
       }
       
+      let hasCachedData = false;
+      try {
+        const cachedFriends = sessionStorage.getItem('friendsList');
+        if (cachedFriends) {
+          const parsedFriends = JSON.parse(cachedFriends);
+          const cachedUserEmail = sessionStorage.getItem('friendsListUserEmail');
+          if (cachedUserEmail === userEmail && Array.isArray(parsedFriends) && parsedFriends.length > 0) {
+            setFriends(parsedFriends);
+            setFilteredFriends(parsedFriends);
+            hasCachedData = true;
+            setLoading(false);
+
+          }
+        }
+      } catch (e) {
+        console.error('Error loading cached friends:', e);
+      }
+      
       try {
         const response = await getFriendsList(userEmail);
-        // Handle different response structures
-        const friendsList = response?.data?.friends || 
-                          response?.data || 
-                          response?.friends || 
-                          Array.isArray(response) ? response : [];
-        setFriends(Array.isArray(friendsList) ? friendsList : []);
-        setFilteredFriends(Array.isArray(friendsList) ? friendsList : []);
+        const friendsList = response?.data || [];
+        const processedFriends = Array.isArray(friendsList) 
+          ? friendsList.map(friend => ({
+              id: friend.id,
+              firstName: friend.firstName || friend.first || '',
+              lastName: friend.lastName || friend.last || '',
+              email: friend.email || '',
+              ...friend
+            }))
+          : [];
+        
+        // console.log('Processed friends list:', processedFriends);
+        
+        // Save to sessionStorage
+        try {
+          sessionStorage.setItem('friendsList', JSON.stringify(processedFriends));
+          sessionStorage.setItem('friendsListUserEmail', userEmail);
+          sessionStorage.setItem('friendsListTimestamp', Date.now().toString());
+        } catch (storageError) {
+          console.error('Error saving friends to sessionStorage:', storageError);
+        }
+        
+        setFriends(processedFriends);
+        setFilteredFriends(processedFriends);
       } catch (e) {
         setError(e.message || 'Failed to load friends');
         setFriends([]);
@@ -239,6 +275,7 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
                           <FriendAvatar 
                             avatar={friendAvatar}
                             username={friendDisplayName}
+                            firstName={friend.firstName}
                             isSelected={isSelected}
                           />
                         </div>

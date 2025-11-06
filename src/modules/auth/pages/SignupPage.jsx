@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { registerUser, validateRegisterOtp, loginUser, resendRegisterOtp } from '../../../shared/services/API';
+import { registerUser, validateRegisterOtp, resendRegisterOtp } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthSlides from '../components/AuthSlides';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const { checkAuthStatus } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -137,6 +139,17 @@ const SignupPage = () => {
       .then((res) => {
         const token = (res && res.data) ? res.data : '';
         setRegistrationToken(token);
+        
+        // Save registration token to sessionStorage
+        if (token) {
+          sessionStorage.setItem('registrationToken', token);
+        }
+        
+        // Save user data (email, firstName, lastName) to sessionStorage
+        sessionStorage.setItem('signupEmail', email);
+        sessionStorage.setItem('signupFirstName', firstName);
+        sessionStorage.setItem('signupLastName', lastName);
+        
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'OTP sent to your email!', type: 'success' }
         }));
@@ -164,23 +177,45 @@ const SignupPage = () => {
     setError('');
     setInvalidOtp(false);
     validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
-      .then(() => loginUser({ email: formData.email, password: formData.password }))
       .then((data) => {
-        try {
-          const existing = localStorage.getItem('userData');
-          const parsed = existing ? JSON.parse(existing) : {};
-          const merged = { ...parsed, ...(data?.user || {}), email: formData.email };
-          localStorage.setItem('userData', JSON.stringify(merged));
-        } catch (error) {
-          console.error('Error storing user data:', error);
+        // Extract token - handle both string response and object response
+        let token = null;
+        if (typeof data === 'string') {
+          token = data;
+        } else {
+          token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token || data?.data;
         }
+        
+        if (token) {
+          sessionStorage.setItem('accessToken', token);
+        }
+        let userData = null;
+        if (data?.user || data?.data?.user) {
+          userData = data.user || data.data.user;
+        } else {
+          const savedEmail = sessionStorage.getItem('signupEmail');
+          const savedFirstName = sessionStorage.getItem('signupFirstName');
+          const savedLastName = sessionStorage.getItem('signupLastName');
+          userData = {
+            email: savedEmail || formData.email,
+            firstName: savedFirstName || formData.firstName,
+            lastName: savedLastName || formData.lastName
+          };
+        }
+        
+        if (userData) {
+          sessionStorage.setItem('userData', JSON.stringify(userData));
+        }        
+        checkAuthStatus();
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Account created successfully!', type: 'success' }
         }));
-        navigate('/profile/setup');
+        setTimeout(() => {
+          navigate('/profile/setup');
+        }, 200);
       })
       .catch((err) => {
-        console.error('OTP verification or login failed:', err.message);
+        console.error('OTP verification failed:', err.message);
         const errorMessage = err.message || 'Verification failed. Please try again.';
         if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
           setInvalidOtp(true);

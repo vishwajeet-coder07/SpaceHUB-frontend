@@ -40,6 +40,7 @@ const ProfileSetupPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
+  const [dateOfBirthError, setDateOfBirthError] = useState('');
 
   useEffect(() => {
     const userDataRaw = localStorage.getItem('userData');
@@ -59,7 +60,11 @@ const ProfileSetupPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_UPLOAD_BYTES) {
-      setError('Image must be 2MB or smaller');
+      const errorMessage = 'Image must be 2MB or smaller';
+      setError(errorMessage);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMessage, type: 'error' }
+      }));
       e.target.value = '';
       return;
     }
@@ -67,6 +72,7 @@ const ProfileSetupPage = () => {
     const url = URL.createObjectURL(file);
     setUploadPreview(url);
     setSelectedAvatarUrl('');
+    setError(''); // Clear any previous errors
   };
 
   const onSelectPresetAvatar = (url) => {
@@ -75,8 +81,43 @@ const ProfileSetupPage = () => {
     setUploadPreview(url);
   };
 
+  const validateDateOfBirth = (dateValue) => {
+    if (!dateValue) {
+      setDateOfBirthError('');
+      return true;
+    }
+    
+    const selectedDate = new Date(dateValue);
+    const today = new Date();
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(today.getFullYear() - 2);
+    
+    // Reset time to compare only dates
+    selectedDate.setHours(0, 0, 0, 0);
+    twoYearsAgo.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate > today) {
+      setDateOfBirthError('Date of birth cannot be in the future');
+      return false;
+    }
+    
+    if (selectedDate > twoYearsAgo) {
+      setDateOfBirthError('Date of birth must be at least 2 years ago');
+      return false;
+    }
+    
+    setDateOfBirthError('');
+    return true;
+  };
+
+  const handleDateOfBirthChange = (e) => {
+    const value = e.target.value;
+    setDateOfBirth(value);
+    validateDateOfBirth(value);
+  };
+
   const uploadAvatar = async () => {
-    // If a file was manually chosen, upload that
     if (uploadFile) {
       const formData = new FormData();
       let emailToSend = (email && email.trim()) || '';
@@ -85,7 +126,7 @@ const ProfileSetupPage = () => {
           const raw = localStorage.getItem('userData');
           if (raw) emailToSend = JSON.parse(raw)?.email || '';
         } catch {
-          //for errors
+
         }
       }
       formData.append('email', emailToSend);
@@ -101,7 +142,6 @@ const ProfileSetupPage = () => {
       return;
     }
 
-    // If a preset was selected, fetch it and upload as Blob
     if (selectedAvatarUrl) {
       const res = await fetch(selectedAvatarUrl);
       const blob = await res.blob();
@@ -148,6 +188,12 @@ const ProfileSetupPage = () => {
       setError('Username is required');
       return;
     }
+    
+    if (dateOfBirth && !validateDateOfBirth(dateOfBirth)) {
+      setError(dateOfBirthError || 'Please enter a valid date of birth');
+      return;
+    }
+    
     setError('');
     setSaving(true);
     try {
@@ -226,10 +272,19 @@ const ProfileSetupPage = () => {
                 <input
                   type="date"
                   value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  
-                  className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white"
+                  onChange={handleDateOfBirthChange}
+                  max={(() => {
+                    const twoYearsAgo = new Date();
+                    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+                    return twoYearsAgo.toISOString().split('T')[0];
+                  })()}
+                  className={`w-full h-10 rounded-md border px-3 bg-white ${
+                    dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
+                {dateOfBirthError && (
+                  <p className="mt-1 text-sm text-red-600">{dateOfBirthError}</p>
+                )}
               </div>
             </div>
           </div>
