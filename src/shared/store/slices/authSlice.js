@@ -19,10 +19,10 @@ const authSlice = createSlice({
         const token = sessionStorage.getItem('accessToken');
         const userData = sessionStorage.getItem('userData');
 
-        if (token && userData) {
+        if (userData) {
           const parsedUserData = JSON.parse(userData);
           state.user = parsedUserData;
-          state.token = token;
+          state.token = token || null;
           state.isAuthenticated = true;
         } else {
           state.user = null;

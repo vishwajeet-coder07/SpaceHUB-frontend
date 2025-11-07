@@ -11,7 +11,7 @@ const ProfileSetupRoute = ({ children }) => {
     return <LoadingSpinner message="Checking authentication..." />;
   }
 const accessToken = getToken();
-  if (!accessToken) {
+  if (!accessToken && !isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return children;

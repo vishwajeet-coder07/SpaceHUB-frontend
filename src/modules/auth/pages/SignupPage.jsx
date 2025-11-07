@@ -176,7 +176,12 @@ const SignupPage = () => {
     setLoading(true);
     setError('');
     setInvalidOtp(false);
-    validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
+    validateRegisterOtp({ 
+      email: formData.email, 
+      otp: onlyDigits, 
+      type: 'REGISTRATION',
+      sessionToken: registrationToken || sessionStorage.getItem('registrationToken') || ''
+    })
       .then((data) => {
         let token = null;
         if (typeof data === 'string') {
@@ -209,9 +214,9 @@ const SignupPage = () => {
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Account created successfully!', type: 'success' }
         }));
-        setTimeout(() => {
+       
           navigate('/profile/setup');
-        }, 200);
+ 
       })
       .catch((err) => {
         console.error('OTP verification failed:', err.message);
