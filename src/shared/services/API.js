@@ -472,6 +472,18 @@ export async function getIncomingFriendRequests(userEmail) {
   return handleJson(response);
 }
 
+// Get outgoing (pending) friend requests
+export async function getOutgoingFriendRequests(userEmail) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/pending/outgoing`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail })
+  });
+  return handleJson(response);
+}
+
 // Respond to friend request (accept/reject)
 export async function respondToFriendRequest({ userEmail, requesterEmail, accept }) {
   const response = await authenticatedFetch(`${BASE_URL}friends/respond`, {

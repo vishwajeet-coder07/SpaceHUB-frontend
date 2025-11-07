@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMyPendingRequests, acceptJoinRequest, rejectJoinRequest, getIncomingFriendRequests, respondToFriendRequest } from '../../../shared/services/API';
+import { getMyPendingRequests, acceptJoinRequest, rejectJoinRequest, getIncomingFriendRequests, getOutgoingFriendRequests, respondToFriendRequest } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import {
   selectRequests,
@@ -104,6 +104,40 @@ const InboxModal = ({ isOpen, onClose }) => {
         } catch (err) {
           console.error('Error fetching community requests:', err);
         }
+
+        // Fetch outgoing (pending) friend requests
+        let transformedPendingRequests = [];
+        try {
+          const outgoingResponse = await getOutgoingFriendRequests(userEmail);
+          const outgoingRequests = outgoingResponse?.data || outgoingResponse?.requests || outgoingResponse?.friends || outgoingResponse?.pending || outgoingResponse || [];
+
+          transformedPendingRequests = Array.isArray(outgoingRequests)
+            ? outgoingRequests.map((req, idx) => {
+                let displayName = 'Pending user';
+                const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
+                if (candidateName) {
+                  displayName = candidateName;
+                } else if (req.friendEmail || req.receiverEmail || req.email) {
+                  const rawEmail = req.friendEmail || req.receiverEmail || req.email;
+                  displayName = rawEmail.split('@')[0];
+                }
+
+                return {
+                  id: `pending-${req.id || req.friendEmail || req.receiverEmail || idx}`,
+                  type: req.type || 'friend',
+                  name: displayName,
+                  requester: displayName,
+                  avatar: req.avatar || req.avatarUrl || req.profileImage || null,
+                  raw: req,
+                  rawJson: JSON.stringify(req, null, 2),
+                };
+              })
+            : [];
+        } catch (pendingErr) {
+          console.error('Error fetching pending friend requests:', pendingErr);
+        }
+
+        dispatch(setPending(transformedPendingRequests));
 
         // Combine friend requests and community requests
         dispatch(setRequests([...transformedFriendRequests, ...communityRequests]));
@@ -401,9 +435,14 @@ const InboxModal = ({ isOpen, onClose }) => {
                       <div className="text-sm font-semibold text-gray-800 leading-tight">
                         {item.name}
                         <span className="text-xs font-normal text-gray-500 ml-1">
-                          ({item.type})
+                          ({item.type || 'friend'})
                         </span>
                       </div>
+                      {item.rawJson && (
+                        <pre className="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-2 whitespace-pre-wrap break-words">
+                          {item.rawJson}
+                        </pre>
+                      )}
                     </div>
 
                     {/* Requested Button */}

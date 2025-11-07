@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMyCommunities, getAllLocalGroups, BASE_URL } from '../../../shared/services/API';
+import { getMyCommunities, getAllLocalGroups, getChatHistory, BASE_URL } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const formatFriendName = (friend) => {
@@ -269,6 +269,82 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   // WebSocket connection for direct messaging
   useEffect(() => {
     if (!friendEmail || !userEmail) {
+      setMessages([]);
+      setLoadingMessages(false);
+      // Close WebSocket if no friend selected
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+        setWsConnected(false);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const friendName = formatFriendName(selectedFriend || {});
+    const friendAvatar = selectedFriend?.avatar || selectedFriend?.avatarUrl || selectedFriend?.profileImage || '/avatars/avatar-1.png';
+    const selfAvatar = user?.avatarUrl || '/avatars/avatar-1.png';
+
+    const loadHistory = async () => {
+      setLoadingMessages(true);
+      try {
+        const response = await getChatHistory(userEmail, friendEmail);
+        const rawMessages = response?.data || response?.messages || response?.history || response?.chat || response || [];
+
+        if (cancelled) return;
+
+        const normalized = Array.isArray(rawMessages)
+          ? rawMessages.map((msg, idx) => {
+              const senderEmail = msg.senderEmail || msg.sender || msg.from || msg.userEmail || msg.email || '';
+              const text = msg.content || msg.message || msg.text || '';
+              const timestamp = msg.timestamp || msg.createdAt || msg.sentAt || msg.time || new Date().toISOString();
+              const isSelf = senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase();
+              const rawImages = Array.isArray(msg.images)
+                ? msg.images
+                : msg.image
+                  ? [msg.image]
+                  : [];
+
+              const resolvedImages = rawImages.map((img) => safeUrl(img));
+
+              return {
+                id: msg.id || msg.messageId || msg._id || `history-${idx}`,
+                author: isSelf ? (user?.username || userEmail) : friendName,
+                email: senderEmail,
+                text,
+                createdAt: timestamp,
+                avatar: isSelf ? selfAvatar : friendAvatar,
+                isSelf,
+                images: resolvedImages,
+              };
+            })
+          : [];
+
+        setMessages(normalized);
+      } catch (historyError) {
+        console.error('Failed to load chat history:', historyError);
+        if (!cancelled) {
+          setMessages([]);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Unable to load chat history.', type: 'error' }
+          }));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMessages(false);
+        }
+      }
+    };
+
+    loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [friendEmail, userEmail, selectedFriend, user]);
+
+  useEffect(() => {
+    if (!friendEmail || !userEmail) {
       // Close WebSocket if no friend selected
       if (wsRef.current) {
         wsRef.current.close();
@@ -286,10 +362,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       wsRef.current.close();
       wsRef.current = null;
     }
-
-    // Clear messages when switching friends
-    setMessages([]);
-    setLoadingMessages(false);
 
     // Establish WebSocket connection with sender/receiver emails in query params
     const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
