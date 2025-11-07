@@ -45,11 +45,11 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
 
   useEffect(() => {
     if (currentMode !== 'chat') {
-    
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
+      setMessages([]);
       return;
     }
     
@@ -59,6 +59,9 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
 
     const wsRoomCode = activeChatRoomCode || activeRoomCode;
     const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(wsRoomCode)}&email=${encodeURIComponent(userEmail)}`;
+    
+    // Clear messages when switching to a new room/channel
+    setMessages([]);
     
     if (wsRef.current) {
       wsRef.current.close();
@@ -96,49 +99,75 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
 
     ws.onopen = () => {
       console.log('WebSocket connected to room:', roomCodeForLog);
-      setMessages([]); 
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data?.type === 'history' && Array.isArray(data.messages)) {
-          const historyMessages = data.messages
-            .map((msg, index) => {
-              const senderEmail = msg?.senderEmail || '';
-              const createdAt = msg?.timestamp || new Date().toISOString();
-              const fallbackAuthor = senderEmail?.split?.('@')?.[0] || 'Unknown';
-              return {
-                id: msg?.id || `history-${index}-${createdAt}`,
-                author: msg?.senderName || fallbackAuthor,
-                email: senderEmail,
-                text: msg?.content || '',
-                createdAt,
-                avatar: msg?.avatar || '/avatars/avatar-1.png',
-                isSelf: senderEmail === userEmail,
-                images: Array.isArray(msg?.images) ? msg.images : [],
-              };
-            })
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-          setMessages(historyMessages);
-          return;
+                if (data?.type === 'history' || data?.history || (Array.isArray(data) && data.length > 0 && data[0]?.senderEmail)) {
+          const historyArray = data?.type === 'history' 
+            ? (data.messages || data.history || [])
+            : (Array.isArray(data) ? data : []);
+          
+          if (Array.isArray(historyArray) && historyArray.length > 0) {
+            const historyMessages = historyArray
+              .map((msg, index) => {
+                const senderEmail = msg?.senderEmail || msg?.email || msg?.sender || '';
+                const timestamp = msg?.timestamp || msg?.createdAt || msg?.sentAt || msg?.time || new Date().toISOString();
+                const content = msg?.content || msg?.message || msg?.text || '';
+                const senderName = msg?.senderName || msg?.author || msg?.username || '';
+                const fallbackAuthor = senderEmail ? senderEmail.split('@')[0] : 'Unknown';
+                
+                return {
+                  id: msg?.id || msg?.messageId || msg?._id || `history-${index}-${timestamp}`,
+                  author: senderName || fallbackAuthor,
+                  email: senderEmail,
+                  text: content,
+                  createdAt: timestamp,
+                  avatar: msg?.avatar || msg?.avatarUrl || msg?.profileImage || '/avatars/avatar-1.png',
+                  isSelf: senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase(),
+                  images: Array.isArray(msg?.images) ? msg.images : (msg?.image ? [msg.image] : []),
+                };
+              })
+              .filter(msg => msg.text || (msg.images && msg.images.length > 0)) // Filter out empty messages
+              .sort((a, b) => {
+                const timeA = new Date(a.createdAt).getTime();
+                const timeB = new Date(b.createdAt).getTime();
+                return timeA - timeB;
+              });
+            
+            console.log('Received chat history:', historyMessages.length, 'messages');
+            setMessages(historyMessages);
+            return;
+          }
         }
+        
+        // Handle regular incoming messages
         const isLegacy = typeof data?.message === 'string';
-        const isTyped = data?.type === 'message';
+        const isTyped = data?.type === 'message' || data?.type === 'chat';
         if (isLegacy || isTyped) {
-          const text = isLegacy ? data.message : (data.text || '');
+          const text = isLegacy ? data.message : (data.text || data.content || '');
           const senderEmail = data.senderEmail || data.email || '';
+          
           const receivedMsg = {
-            id: `m-${Date.now()}-${Math.random()}`,
-            author: data.author || data.username || senderEmail || 'Unknown',
+            id: data.id || `m-${Date.now()}-${Math.random()}`,
+            author: data.author || data.username || data.senderName || senderEmail || 'Unknown',
             email: senderEmail,
             text,
-            createdAt: data.timestamp || new Date().toISOString(),
-            avatar: data.avatar || '/avatars/avatar-1.png',
-            isSelf: senderEmail === userEmail,
+            createdAt: data.timestamp || data.createdAt || new Date().toISOString(),
+            avatar: data.avatar || data.avatarUrl || '/avatars/avatar-1.png',
+            isSelf: senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase(),
             images: Array.isArray(data.images) ? data.images : [],
           };
-          setMessages((prev) => [...prev, receivedMsg]);
+          
+          setMessages((prev) => {
+            const updated = [...prev, receivedMsg];
+            return updated.sort((a, b) => {
+              const timeA = new Date(a.createdAt).getTime();
+              const timeB = new Date(b.createdAt).getTime();
+              return timeA - timeB;
+            });
+          });
         }
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
