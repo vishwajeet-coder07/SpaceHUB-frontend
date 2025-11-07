@@ -291,8 +291,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     setMessages([]);
     setLoadingMessages(false);
 
-    // Establish WebSocket connection
-    const wsUrl = 'wss://codewithketan.me/ws/direct-chat';
+    // Establish WebSocket connection with sender/receiver emails in query params
+    const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
     
     try {
       const ws = new WebSocket(wsUrl);
@@ -423,13 +423,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
-        const payload = {
-          senderEmail: userEmail,
-          receiverEmail: friendEmail,
-          content: trimmed
-        };
+        const payload = { content: trimmed };
         wsRef.current.send(JSON.stringify(payload));
-                setMessage('');
+        setMessage('');
         try { attachments.forEach((a) => URL.revokeObjectURL(a.url)); } catch {}
         setAttachments([]);
       } catch (e) {

@@ -79,7 +79,6 @@ const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
       const response = await removeCommunityMember(communityId, userEmail, requesterEmail);
       console.log('Member removed successfully:', response);
 
-      // Optimistically remove member from local state on successful response
       setMembers((prev) => {
         return prev.filter((m) => {
           const prevEmail = m?.email || m?.username;
