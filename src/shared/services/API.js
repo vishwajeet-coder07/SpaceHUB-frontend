@@ -472,7 +472,6 @@ export async function getIncomingFriendRequests(userEmail) {
   return handleJson(response);
 }
 
-// Get outgoing (pending) friend requests
 export async function getOutgoingFriendRequests(userEmail) {
   const response = await authenticatedFetch(`${BASE_URL}friends/pending/outgoing`, {
     method: 'POST',
@@ -484,7 +483,6 @@ export async function getOutgoingFriendRequests(userEmail) {
   return handleJson(response);
 }
 
-// Respond to friend request (accept/reject)
 export async function respondToFriendRequest({ userEmail, requesterEmail, accept }) {
   const response = await authenticatedFetch(`${BASE_URL}friends/respond`, {
     method: 'POST',
@@ -516,7 +514,7 @@ export async function getFriendMessages({ userEmail, friendEmail, page = 0, size
   return handleJson(response);
 }
 
-// Get chat history between two users (for WebSocket direct chat)
+
 export async function getChatHistory(user1, user2) {
   const response = await authenticatedFetch(`${BASE_URL}messages/chat?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`, {
     method: 'GET'
@@ -524,7 +522,7 @@ export async function getChatHistory(user1, user2) {
   return handleJson(response);
 }
 
-// Search communities
+
 export async function searchCommunities({ query, requesterEmail, page = 0, size = 10 }) {
   const params = new URLSearchParams();
   params.set('q', query);
@@ -580,7 +578,7 @@ export async function deleteCommunityRoom(communityId, roomId, requesterEmail) {
   return handleJson(response);
 }
 
-// Local-Group: members list
+// Local-Group: members lis
 export async function getLocalGroupMembers(groupId) {
   const response = await authenticatedFetch(`${BASE_URL}local-group/${groupId}/members`, {
     method: 'GET'
@@ -588,7 +586,7 @@ export async function getLocalGroupMembers(groupId) {
   return handleJson(response);
 }
 
-// Local-Group: settings
+// Local-Group: setting
 export async function getLocalGroupSettings(groupId) {
   const response = await authenticatedFetch(`${BASE_URL}local-group/${groupId}/settings`, {
     method: 'GET'
@@ -601,7 +599,27 @@ export async function joinRoom(roomCode, userId) {
   const response = await authenticatedFetch(`${BASE_URL}rooms/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomCode, userId })
+    body: JSON.stringify({ roomCode, email: userId })
+  });
+  return handleJson(response);
+}
+
+// Create new chatroom
+export async function createNewChatroom(roomCode, name) {
+  const formData = new FormData();
+  formData.append('roomCode', roomCode);
+  formData.append('name', name);
+  
+  const response = await authenticatedFetch(`${BASE_URL}new-chatroom/create`, {
+    method: 'POST',
+    body: formData
+  });
+  return handleJson(response);
+}
+
+export async function getChatroomsSummary(roomCode) {
+  const response = await authenticatedFetch(`${BASE_URL}new-chatroom/list/summary?roomCode=${encodeURIComponent(roomCode)}`, {
+    method: 'GET'
   });
   return handleJson(response);
 }
@@ -624,7 +642,7 @@ export const getAuthHeaders = (isFormData = false) => {
   const token = sessionStorage.getItem('accessToken');
   return {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token && { 'Authorization': `Bearer ${token}` })
+    // ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 

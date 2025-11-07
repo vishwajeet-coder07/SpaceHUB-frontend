@@ -39,13 +39,13 @@ const AvatarPlaceholder = ({ src, size = 'lg' }) => {
 
   return (
     <div className={`${container} rounded-full bg-white shadow-inner flex items-center justify-center overflow-hidden`}>
-      {src ? (
-        <img src={src} alt="avatar" className="w-full h-full object-cover" />
-      ) : (
+    {src ? (
+      <img src={src} alt="avatar" className="w-full h-full object-cover" />
+    ) : (
         <div className={`${inner} rounded-full bg-gray-200`} />
-      )}
-    </div>
-  );
+    )}
+  </div>
+);
 };
 
 const ProfileSetupPage = () => {
@@ -400,61 +400,61 @@ const ProfileSetupPage = () => {
           backgroundRepeat: 'no-repeat',
         }}
       >
-        <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
-            <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
-            <div className="flex items-center gap-2">
-              <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
-              <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+      <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
+          <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
+            <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+          </div>
+        </div>
+        {error && (
+          <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          <div className="p-6 md:p-8 bg-gray-100 border-r">
+            <div className="flex flex-col items-center gap-6">
+              <AvatarPlaceholder src={uploadPreview} />
+              <div className="grid grid-cols-5 gap-4">
+                {presetAvatarUrls.map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => onSelectPresetAvatar(url)}
+                    className={`w-12 h-12 rounded-full overflow-hidden border ${selectedAvatarUrl === url ? 'border-indigo-500' : 'border-transparent'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    aria-label="Select preset avatar"
+                  >
+                    <img src={url} alt="avatar option" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">Upload your profile</button>
             </div>
           </div>
-          {error && (
-            <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            <div className="p-6 md:p-8 bg-gray-100 border-r">
-              <div className="flex flex-col items-center gap-6">
-                <AvatarPlaceholder src={uploadPreview} />
-                <div className="grid grid-cols-5 gap-4">
-                  {presetAvatarUrls.map((url) => (
-                    <button
-                      key={url}
-                      type="button"
-                      onClick={() => onSelectPresetAvatar(url)}
-                      className={`w-12 h-12 rounded-full overflow-hidden border ${selectedAvatarUrl === url ? 'border-indigo-500' : 'border-transparent'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                      aria-label="Select preset avatar"
-                    >
-                      <img src={url} alt="avatar option" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-                <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">Upload your profile</button>
+          <div className="p-6 md:p-8 bg-gray-100">
+            <div className="space-y-4 max-w-xl">
+              <div>
+                <label className="block text-sm font-medium mb-1">Username</label>
+                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
               </div>
-            </div>
-            <div className="p-6 md:p-8 bg-gray-100">
-              <div className="space-y-4 max-w-xl">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Username</label>
-                  <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Date of birth</label>
-                  <input
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={handleDateOfBirthChange}
-                    max={(() => {
-                      const twoYearsAgo = new Date();
-                      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
-                      return twoYearsAgo.toISOString().split('T')[0];
-                    })()}
-                    className={`w-full h-10 rounded-md border px-3 bg-white ${
-                      dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
-                  />
-                  {dateOfBirthError && (
-                    <p className="mt-1 text-sm text-red-600">{dateOfBirthError}</p>
-                  )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Date of birth</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={handleDateOfBirthChange}
+                  max={(() => {
+                    const twoYearsAgo = new Date();
+                    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+                    return twoYearsAgo.toISOString().split('T')[0];
+                  })()}
+                  className={`w-full h-10 rounded-md border px-3 bg-white ${
+                    dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
+                />
+                {dateOfBirthError && (
+                  <p className="mt-1 text-sm text-red-600">{dateOfBirthError}</p>
+                )}
                 </div>
               </div>
             </div>

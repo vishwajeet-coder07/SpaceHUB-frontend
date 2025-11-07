@@ -17,11 +17,13 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
   const [currentRoomTitle, setCurrentRoomTitle] = useState('#general');
   const [localMuted, setLocalMuted] = useState(false);
 
-  // Listen for channel selection events
-  useEffect(() => {
+  const [activeChatRoomCode, setActiveChatRoomCode] = useState(null);
+ useEffect(() => {
     const handleChannelSelect = (event) => {
-      const { channelId, roomCode: newRoomCode } = event.detail || {};
+      const { channelId, roomCode: newRoomCode, chatRoomCode } = event.detail || {};
       if (newRoomCode) setCurrentRoomCode(newRoomCode);
+      if (chatRoomCode) setActiveChatRoomCode(chatRoomCode);
+      else setActiveChatRoomCode(null);
       if (channelId && typeof channelId === 'string') {
         const parts = channelId.split(':');
         if (parts.length >= 3) {
@@ -31,6 +33,7 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
         } else if (channelId.startsWith('announcement:')) {
           setCurrentMode('chat');
           setCurrentRoomTitle('# general');
+          setActiveChatRoomCode(null);
         }
       }
     };
@@ -54,7 +57,8 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
     const activeRoomCode = currentRoomCode || roomCode;
     if (!userEmail || !activeRoomCode) return;
 
-    const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(activeRoomCode)}&email=${encodeURIComponent(userEmail)}`;
+    const wsRoomCode = activeChatRoomCode || activeRoomCode;
+    const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(wsRoomCode)}&email=${encodeURIComponent(userEmail)}`;
     
     if (wsRef.current) {
       wsRef.current.close();
@@ -62,82 +66,93 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
     }
     
     try {
-      joinRoom(activeRoomCode, userEmail)
-        .catch(() => {})
-        .finally(() => {
-          const ws = new WebSocket(wsUrl);
-          wsRef.current = ws;
-
-          ws.onopen = () => {
-            console.log('WebSocket connected to room:', activeRoomCode);
-            setMessages([]); 
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (data?.type === 'history' && Array.isArray(data.messages)) {
-                const historyMessages = data.messages
-                  .map((msg, index) => {
-                    const senderEmail = msg?.senderEmail || '';
-                    const createdAt = msg?.timestamp || new Date().toISOString();
-                    const fallbackAuthor = senderEmail?.split?.('@')?.[0] || 'Unknown';
-                    return {
-                      id: msg?.id || `history-${index}-${createdAt}`,
-                      author: msg?.senderName || fallbackAuthor,
-                      email: senderEmail,
-                      text: msg?.content || '',
-                      createdAt,
-                      avatar: msg?.avatar || '/avatars/avatar-1.png',
-                      isSelf: senderEmail === userEmail,
-                      images: Array.isArray(msg?.images) ? msg.images : [],
-                    };
-                  })
-                  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                setMessages(historyMessages);
-                return;
-              }
-              const isLegacy = typeof data?.message === 'string';
-              const isTyped = data?.type === 'message';
-              if (isLegacy || isTyped) {
-                const text = isLegacy ? data.message : (data.text || '');
-                const senderEmail = data.senderEmail || data.email || '';
-                const receivedMsg = {
-                  id: `m-${Date.now()}-${Math.random()}`,
-                  author: data.author || data.username || senderEmail || 'Unknown',
-                  email: senderEmail,
-                  text,
-                  createdAt: data.timestamp || new Date().toISOString(),
-                  avatar: data.avatar || '/avatars/avatar-1.png',
-                  isSelf: senderEmail === userEmail,
-                  images: Array.isArray(data.images) ? data.images : [],
-                };
-                setMessages((prev) => [...prev, receivedMsg]);
-              }
-            } catch (e) {
-              console.error('Failed to parse WebSocket message:', e);
-            }
-          };
-
-          ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-          };
-
-          ws.onclose = () => {
-            console.log('WebSocket disconnected');
-          };
-
-          return () => {
-            if (wsRef.current) {
-              wsRef.current.close();
-              wsRef.current = null;
-            }
-          };
-        });
+      if (!activeChatRoomCode) {
+        joinRoom(activeRoomCode, userEmail)
+          .catch(() => {})
+          .finally(() => {
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+            setupWebSocket(ws, wsRoomCode);
+          });
+      } else {
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+        setupWebSocket(ws, wsRoomCode);
+      }
     } catch (e) {
       console.error('Failed to create WebSocket:', e);
     }
-  }, [currentRoomCode, roomCode, currentMode, user?.email]);
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [currentRoomCode, roomCode, currentMode, user?.email, activeChatRoomCode]);
+
+  const setupWebSocket = (ws, roomCodeForLog) => {
+    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+
+    ws.onopen = () => {
+      console.log('WebSocket connected to room:', roomCodeForLog);
+      setMessages([]); 
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type === 'history' && Array.isArray(data.messages)) {
+          const historyMessages = data.messages
+            .map((msg, index) => {
+              const senderEmail = msg?.senderEmail || '';
+              const createdAt = msg?.timestamp || new Date().toISOString();
+              const fallbackAuthor = senderEmail?.split?.('@')?.[0] || 'Unknown';
+              return {
+                id: msg?.id || `history-${index}-${createdAt}`,
+                author: msg?.senderName || fallbackAuthor,
+                email: senderEmail,
+                text: msg?.content || '',
+                createdAt,
+                avatar: msg?.avatar || '/avatars/avatar-1.png',
+                isSelf: senderEmail === userEmail,
+                images: Array.isArray(msg?.images) ? msg.images : [],
+              };
+            })
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          setMessages(historyMessages);
+          return;
+        }
+        const isLegacy = typeof data?.message === 'string';
+        const isTyped = data?.type === 'message';
+        if (isLegacy || isTyped) {
+          const text = isLegacy ? data.message : (data.text || '');
+          const senderEmail = data.senderEmail || data.email || '';
+          const receivedMsg = {
+            id: `m-${Date.now()}-${Math.random()}`,
+            author: data.author || data.username || senderEmail || 'Unknown',
+            email: senderEmail,
+            text,
+            createdAt: data.timestamp || new Date().toISOString(),
+            avatar: data.avatar || '/avatars/avatar-1.png',
+            isSelf: senderEmail === userEmail,
+            images: Array.isArray(data.images) ? data.images : [],
+          };
+          setMessages((prev) => [...prev, receivedMsg]);
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+  };
 
   useEffect(() => {
     const checkAdminAndMaybeShow = async () => {

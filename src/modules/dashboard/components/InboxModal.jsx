@@ -105,7 +105,7 @@ const InboxModal = ({ isOpen, onClose }) => {
           console.error('Error fetching community requests:', err);
         }
 
-        // Fetch outgoing (pending) friend requests
+       
         let transformedPendingRequests = [];
         try {
           const outgoingResponse = await getOutgoingFriendRequests(userEmail);

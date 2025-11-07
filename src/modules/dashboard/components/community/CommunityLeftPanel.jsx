@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectChannel }) => {
@@ -63,15 +63,53 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 
 // Chat Room or Voice Room Section
 const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode }) => {
-  const defaultChannels = channels && channels.length > 0 ? channels : ['general'];
+  const filteredChannels = (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
+  const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
+  const [loadingChatrooms, setLoadingChatrooms] = useState(false);
   
   const getChannelId = (channelName) => `${groupName}:${roomType}:${channelName}`;
+  
+  
+  useEffect(() => {
+    if (open && !isVoice && roomCode) {
+      const fetchChatrooms = async () => {
+        setLoadingChatrooms(true);
+        try {
+          const response = await getChatroomsSummary(roomCode);
+          const chatroomsData = response?.data || [];
+          const chatroomNames = chatroomsData.map((cr) => cr.name || cr.chatRoomCode).filter(Boolean);
+          setFetchedChatrooms(chatroomNames);
+        } catch (error) {
+          console.error('Failed to fetch chatrooms:', error);
+          setFetchedChatrooms([]);
+        } finally {
+          setLoadingChatrooms(false);
+        }
+      };
+      
+      fetchChatrooms();
+    } else if (!open) {
+      setFetchedChatrooms([]);
+    }
+  }, [open, isVoice, roomCode]);
+  
+  const allChannels = useMemo(() => {
+    const merged = [...filteredChannels];
+    fetchedChatrooms.forEach((name) => {
+      if (!merged.includes(name)) {
+        merged.push(name);
+      }
+    });
+    return merged;
+  }, [filteredChannels, fetchedChatrooms]);
   
   const handleChannelClick = (channelName) => {
     const channelId = getChannelId(channelName);
     onSelectChannel?.(channelId, roomCode);
   };
+  
+  const hasChannels = allChannels.length > 0;
   
   return (
     <div className="mb-2 ml-4">
@@ -96,9 +134,18 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       </div>
       {open && (
         <div className="mt-2 pl-5 space-y-1">
-          {defaultChannels.map((channel) => {
+          {loadingChatrooms && !isVoice && (
+            <div className="px-3 py-2 text-xs text-gray-500">Loading chatrooms...</div>
+          )}
+          {!hasChannels && !loadingChatrooms && (
+            <div className="px-3 py-3 text-xs text-gray-500 italic">
+              No {isVoice ? 'voice' : 'chat'} rooms yet. Click + to create one!
+            </div>
+          )}
+          {hasChannels && allChannels.map((channel) => {
             const channelId = getChannelId(channel);
             const isSelected = selectedChannel === channelId;
+            const isFetched = fetchedChatrooms.includes(channel);
             return (
               <button
                 key={channel}
@@ -117,6 +164,9 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
                   <span className={isSelected ? 'text-white' : 'text-gray-700'}>#</span>
                 )}
                 <span>{channel}</span>
+                {isFetched && !isVoice && (
+                  <span className="ml-auto text-xs text-gray-400" title="Fetched from API">•</span>
+                )}
               </button>
             );
           })}
@@ -503,6 +553,52 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
+  const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
+  const [loadingChatrooms, setLoadingChatrooms] = useState(false);
+  
+  // Fetch chatrooms when group dropdown opens
+  useEffect(() => {
+    if (open && roomCode) {
+      const fetchChatrooms = async () => {
+        setLoadingChatrooms(true);
+        try {
+          const response = await getChatroomsSummary(roomCode);
+          const chatroomsData = response?.data || [];
+          
+          // Extract chatroom names from the response
+          const chatroomNames = chatroomsData.map((cr) => cr.name || cr.chatRoomCode).filter(Boolean);
+          setFetchedChatrooms(chatroomNames);
+        } catch (error) {
+          console.error('Failed to fetch chatrooms:', error);
+          setFetchedChatrooms([]);
+        } finally {
+          setLoadingChatrooms(false);
+        }
+      };
+      
+      fetchChatrooms();
+    } else if (!open) {
+      // Clear fetched chatrooms when dropdown closes
+      setFetchedChatrooms([]);
+    }
+  }, [open, roomCode]);
+  
+  // Filter out 'general' from both room types
+  const filteredChatRooms = (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+  const filteredVoiceRooms = (voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+  
+  // Merge fetched chatrooms with existing chat rooms, avoiding duplicates
+  const allChatRooms = useMemo(() => {
+    const merged = [...filteredChatRooms];
+    fetchedChatrooms.forEach((name) => {
+      if (!merged.includes(name)) {
+        merged.push(name);
+      }
+    });
+    return merged;
+  }, [filteredChatRooms, fetchedChatrooms]);
+  
+  const hasNoRooms = allChatRooms.length === 0 && filteredVoiceRooms.length === 0;
   
   return (
     <div className="mb-3">
@@ -524,30 +620,76 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       </div>
       {open && (
         <div className="mt-2">
-          <RoomSection
-            title="Chat room"
-            open={chatOpen}
-            onToggle={() => setChatOpen(!chatOpen)}
-            onAdd={() => onAddChatRoom(groupName)}
-            channels={chatRooms}
-            isVoice={false}
-            selectedChannel={selectedChannel}
-            onSelectChannel={onSelectChannel}
-            groupName={groupName}
-            roomCode={roomCode}
-          />
-          <RoomSection
-            title="Voice room"
-            open={voiceOpen}
-            onToggle={() => setVoiceOpen(!voiceOpen)}
-            onAdd={() => onAddVoiceRoom(groupName)}
-            channels={voiceRooms}
-            isVoice={true}
-            selectedChannel={selectedChannel}
-            onSelectChannel={onSelectChannel}
-            groupName={groupName}
-            roomCode={roomCode}
-          />
+          {loadingChatrooms ? (
+            <div className="ml-4 space-y-2">
+              {/* Shimmer for Chat Room section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-4 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+                <div className="pl-5 space-y-1">
+                  <div className="h-8 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                  <div className="h-8 w-3/4 bg-gray-200 rounded-md animate-pulse"></div>
+                </div>
+              </div>
+              {/* Shimmer for Voice Room section */}
+              <div className="space-y-2 mt-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-28 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-4 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+                <div className="pl-5 space-y-1">
+                  <div className="h-8 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ) : hasNoRooms ? (
+            <div className="ml-4 px-3 py-4 text-xs text-gray-500 italic bg-gray-50 rounded-md border border-gray-200">
+              <p className="mb-2">No channels yet. Create a channel to get started!</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onAddChatRoom(groupName)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors"
+                >
+                  Create Chat Room
+                </button>
+                <button
+                  onClick={() => onAddVoiceRoom(groupName)}
+                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-xs font-medium transition-colors"
+                >
+                  Create Voice Room
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <RoomSection
+                title="Chat room"
+                open={chatOpen}
+                onToggle={() => setChatOpen(!chatOpen)}
+                onAdd={() => onAddChatRoom(groupName)}
+                channels={allChatRooms}
+                isVoice={false}
+                selectedChannel={selectedChannel}
+                onSelectChannel={onSelectChannel}
+                groupName={groupName}
+                roomCode={roomCode}
+              />
+              <RoomSection
+                title="Voice room"
+                open={voiceOpen}
+                onToggle={() => setVoiceOpen(!voiceOpen)}
+                onAdd={() => onAddVoiceRoom(groupName)}
+                channels={filteredVoiceRooms}
+                isVoice={true}
+                selectedChannel={selectedChannel}
+                onSelectChannel={onSelectChannel}
+                groupName={groupName}
+                roomCode={roomCode}
+              />
+            </>
+          )}
         </div>
       )}
     </div>
@@ -571,11 +713,46 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [error, setError] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('announcement:general');
 
-  const handleChannelSelect = (channelId, roomCode) => {
+  const handleChannelSelect = async (channelId, roomCode) => {
     setSelectedChannel(channelId);
+    
+    let chatRoomCode = null;
+    
+    // Parse channelId to extract channel name
+    const parts = channelId?.split(':') || [];
+    if (parts.length >= 3 && parts[1] === 'chat') {
+      const channelName = parts[2];
+      
+      // Only fetch chatRoomCode for non-general channels
+      if (channelName && channelName !== 'general' && roomCode) {
+        try {
+          // First, check session storage for existing chatroom
+          const storageKey = `chatroom_${roomCode}_${channelName}`;
+          const stored = sessionStorage.getItem(storageKey);
+          
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            chatRoomCode = parsed?.data?.chatRoomCode || parsed?.chatRoomCode;
+          }
+          
+          if (!chatRoomCode) {
+            const response = await getChatroomsSummary(roomCode);
+            const chatroomsData = response?.data || [];
+            const chatroom = chatroomsData.find((cr) => cr.name === channelName);
+            if (chatroom) {
+              chatRoomCode = chatroom.chatRoomCode;
+              sessionStorage.setItem(storageKey, JSON.stringify({ data: { chatRoomCode } }));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to get chatRoomCode:', error);
+        }
+      }
+    }
+    
     try {
       window.dispatchEvent(new CustomEvent('community:channel-selected', {
-        detail: { channelId, roomCode }
+        detail: { channelId, roomCode, chatRoomCode }
       }));
     } catch (error) {
       console.error('Error dispatching channel-selected event:', error);
@@ -642,8 +819,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           {
             id: lg.id || lg.groupId || communityId,
             name: lg.name || lg.groupName || title || 'Local Group',
-            chatRooms: ['general'],
-            voiceRooms: ['general'],
+            chatRooms: [],
+            voiceRooms: [],
             roomCode: lg.roomCode || lg.code || undefined,
           },
         ];
@@ -656,13 +833,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         const data = await getCommunityRooms(communityId);
         const roomsList = data?.data || [];
 
-        const transformedGroups = roomsList.map((room) => ({
-          id: room.id,
-          name: room.name || room.roomName,
-          chatRooms: room.chatRooms || ['general'],
-          voiceRooms: room.voiceRooms || ['general'],
-          roomCode: room.roomCode
-        }));
+        const transformedGroups = roomsList.map((room) => {
+          const chatRooms = (room.chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+          const voiceRooms = (room.voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+          return {
+            id: room.id,
+            name: room.name || room.roomName,
+            chatRooms,
+            voiceRooms,
+            roomCode: room.roomCode
+          };
+        });
 
         setGroups(transformedGroups);
         setOpenGroups(
@@ -708,17 +889,66 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     setShowCreateChannelModal(true);
   };
 
-  const handleChannelCreated = (channelName) => {
+  const handleChannelCreated = async (channelName) => {
     const { groupName, roomType } = channelModalContext;
     if (!groupName || !channelName) return;
 
     const clean = channelName.trim();
     
+    // Only create chatroom via API for chat rooms
     if (roomType === 'chat') {
+      // Find the group to get roomCode
+      const targetGroup = groups.find((g) => g.name === groupName);
+      const roomCode = targetGroup?.roomCode;
+      
+      if (roomCode) {
+        try {
+          const response = await createNewChatroom(roomCode, clean);
+          
+          // Save response to session storage
+          const storageKey = `chatroom_${roomCode}_${clean}`;
+          const existingChatrooms = JSON.parse(sessionStorage.getItem('chatrooms') || '[]');
+          const chatroomData = {
+            id: response?.data?.id || response?.id,
+            name: response?.data?.name || clean,
+            createdAt: response?.data?.createdAt || Date.now(),
+            chatRoomCode: response?.data?.chatRoomCode || response?.data?.id,
+            roomCode: roomCode,
+            groupName: groupName,
+            created: new Date().toISOString()
+          };
+          
+          // Check if already exists, update if found, otherwise add
+          const existingIndex = existingChatrooms.findIndex(
+            (cr) => cr.chatRoomCode === chatroomData.chatRoomCode || 
+                    (cr.name === clean && cr.roomCode === roomCode)
+          );
+          
+          if (existingIndex >= 0) {
+            existingChatrooms[existingIndex] = chatroomData;
+          } else {
+            existingChatrooms.push(chatroomData);
+          }
+          
+          sessionStorage.setItem('chatrooms', JSON.stringify(existingChatrooms));
+          sessionStorage.setItem(storageKey, JSON.stringify(response));
+          
+          // Show success toast
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Chatroom created successfully!', type: 'success' }
+          }));
+        } catch (error) {
+          console.error('Failed to create chatroom:', error);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: error.message || 'Failed to create chatroom', type: 'error' }
+          }));
+        }
+      }
+      
       setGroups((prev) =>
         prev.map((g) =>
           g.name === groupName
-            ? { ...g, chatRooms: [...(g.chatRooms || ['general']), clean] }
+            ? { ...g, chatRooms: [...(g.chatRooms || []), clean] }
             : g
         )
       );
@@ -726,7 +956,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       setGroups((prev) =>
         prev.map((g) =>
           g.name === groupName
-            ? { ...g, voiceRooms: [...(g.voiceRooms || ['general']), clean] }
+            ? { ...g, voiceRooms: [...(g.voiceRooms || []), clean] }
             : g
         )
       );
@@ -747,38 +977,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       [groupName]: !prev[groupName],
     }));
 
-    if (!isLocalGroup) {
-      try {
-        const grp = groups.find((g) => g.name === groupName);
-        const roomCode = grp?.roomCode;
-        const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
-        if (roomCode) {
-          // Ensure center panel starts WS even if already joined
-          try {
-            window.dispatchEvent(new CustomEvent('community:channel-selected', {
-              detail: { channelId: `${groupName}:chat:general`, roomCode }
-            }));
-          } catch {}
-
-          if (userEmail) {
-          joinRoom(roomCode, userEmail)
-            .then((res) => {
-              const msg = (res && (res.message || res.status || res.result) ? String(res.message || res.status || res.result).toLowerCase() : '');
-              const already = msg.includes('already') || msg.includes('exist') || msg.includes('joined');
-              if (already) return; // suppress toast if already in room
-              try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You have joined successfully', type: 'success' } })); } catch {}
-            })
-            .catch((err) => {
-              console.error('Join room failed:', err);
-              const emsg = err && err.message ? String(err.message).toLowerCase() : '';
-              const already = emsg.includes('already') || emsg.includes('exist') || emsg.includes('joined');
-              if (already) return; // suppress toast if already in room
-              try { window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to join room', type: 'error' } })); } catch {}
-            });
-          }
-        }
-      } catch {}
-    }
+    // Removed auto-selection of 'general' channel since general channels are no longer used
   };
 
   const handleDropdownAction = (action) => {
