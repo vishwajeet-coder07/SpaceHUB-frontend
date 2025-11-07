@@ -43,7 +43,8 @@ const ProfileSetupPage = () => {
   const [dateOfBirthError, setDateOfBirthError] = useState('');
 
   useEffect(() => {
-    const userDataRaw = localStorage.getItem('userData');
+    
+    let userDataRaw = sessionStorage.getItem('userData');
     if (userDataRaw) {
       try {
         const data = JSON.parse(userDataRaw);
@@ -118,16 +119,27 @@ const ProfileSetupPage = () => {
   };
 
   const uploadAvatar = async () => {
-    if (uploadFile) {
-      const formData = new FormData();
+    const getEmailFromStorage = () => {
       let emailToSend = (email && email.trim()) || '';
       if (!emailToSend) {
         try {
-          const raw = localStorage.getItem('userData');
-          if (raw) emailToSend = JSON.parse(raw)?.email || '';
-        } catch {
+          let raw = sessionStorage.getItem('userData');
 
+          if (raw) {
+            emailToSend = JSON.parse(raw)?.email || '';
+          }
+        } catch {
+          // Ignore parse errors
         }
+      }
+      return emailToSend;
+    };
+
+    if (uploadFile) {
+      const formData = new FormData();
+      const emailToSend = getEmailFromStorage();
+      if (!emailToSend) {
+        throw new Error('Email is required. Please log in again.');
       }
       formData.append('email', emailToSend);
       formData.append('image', uploadFile);
@@ -150,13 +162,9 @@ const ProfileSetupPage = () => {
       }
       const fileFromBlob = new File([blob], 'avatar.png', { type: blob.type || 'image/png' });
       const formData = new FormData();
-      let emailToSend = (email && email.trim()) || '';
+      const emailToSend = getEmailFromStorage();
       if (!emailToSend) {
-        try {
-          const raw = localStorage.getItem('userData');
-          if (raw) emailToSend = JSON.parse(raw)?.email || '';
-        } catch { //for errors
-        }
+        throw new Error('Email is required. Please log in again.');
       }
       formData.append('email', emailToSend);
       formData.append('image', fileFromBlob);
