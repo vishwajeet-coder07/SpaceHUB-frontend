@@ -4,17 +4,16 @@ import { useAuth } from '../contexts/AuthContextContext';
 import LoadingSpinner from './LoadingSpinner';
 
 const ProfileSetupRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, getToken } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return <LoadingSpinner message="Checking authentication..." />;
   }
-
-  if (!isAuthenticated) {
+const accessToken = getToken();
+  if (!accessToken) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
   return children;
 };
 

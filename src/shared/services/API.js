@@ -14,13 +14,13 @@ export async function loginUser(payload) {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, type: 'LOGIN' })
+    body: JSON.stringify(payload)
   });
   const data = await handleJson(response);
-  console.log('data', data);
+  // console.log('data', data);
 
   const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
-  console.log('token', token);
+  // console.log('token', token);
   if (token) {
     sessionStorage.setItem('accessToken', token);
     if (data.user || data.data?.user) {
@@ -612,7 +612,7 @@ export const getAuthHeaders = (isFormData = false) => {
   const token = sessionStorage.getItem('accessToken');
   return {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    // ...(token && { 'Authorization': `Bearer ${token}` })
+    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 

@@ -178,7 +178,6 @@ const SignupPage = () => {
     setInvalidOtp(false);
     validateRegisterOtp({ email: formData.email, otp: onlyDigits, type: 'REGISTRATION' })
       .then((data) => {
-        // Extract token - handle both string response and object response
         let token = null;
         if (typeof data === 'string') {
           token = data;
