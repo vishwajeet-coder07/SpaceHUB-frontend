@@ -76,6 +76,27 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
           ws.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);
+              if (data?.type === 'history' && Array.isArray(data.messages)) {
+                const historyMessages = data.messages
+                  .map((msg, index) => {
+                    const senderEmail = msg?.senderEmail || '';
+                    const createdAt = msg?.timestamp || new Date().toISOString();
+                    const fallbackAuthor = senderEmail?.split?.('@')?.[0] || 'Unknown';
+                    return {
+                      id: msg?.id || `history-${index}-${createdAt}`,
+                      author: msg?.senderName || fallbackAuthor,
+                      email: senderEmail,
+                      text: msg?.content || '',
+                      createdAt,
+                      avatar: msg?.avatar || '/avatars/avatar-1.png',
+                      isSelf: senderEmail === userEmail,
+                      images: Array.isArray(msg?.images) ? msg.images : [],
+                    };
+                  })
+                  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                setMessages(historyMessages);
+                return;
+              }
               const isLegacy = typeof data?.message === 'string';
               const isTyped = data?.type === 'message';
               if (isLegacy || isTyped) {

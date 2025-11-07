@@ -195,8 +195,8 @@ const InboxModal = ({ isOpen, onClose }) => {
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Friend request accepted!', type: 'success' }
         }));
+        try { window.dispatchEvent(new Event('friends:refresh')); } catch {}
       } else {
-        // Handle community join request accept (existing functionality)
         await acceptJoinRequest({
           communityName: request.name,
           creatorEmail: userEmail,

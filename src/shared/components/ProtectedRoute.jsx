@@ -6,6 +6,7 @@ import LoadingSpinner from './LoadingSpinner';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
+  const profileSetupRequired = sessionStorage.getItem('profileSetupRequired') === 'true';
 
   if (loading) {
     return <LoadingSpinner message="Checking authentication..." />;
@@ -13,6 +14,10 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (profileSetupRequired && location.pathname !== '/profile/setup') {
+    return <Navigate to="/profile/setup" replace />;
   }
 
   return children;

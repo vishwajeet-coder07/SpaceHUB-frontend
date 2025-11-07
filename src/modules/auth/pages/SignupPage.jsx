@@ -214,8 +214,8 @@ const SignupPage = () => {
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Account created successfully!', type: 'success' }
         }));
-       
-          navigate('/profile/setup');
+        sessionStorage.setItem('profileSetupRequired', 'true');
+        navigate('/profile/setup', { replace: true });
  
       })
       .catch((err) => {

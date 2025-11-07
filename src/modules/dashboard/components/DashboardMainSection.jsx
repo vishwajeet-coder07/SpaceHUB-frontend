@@ -378,29 +378,47 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          const mapMessage = (msg) => ({
+            id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+            author: msg.senderEmail === userEmail 
+              ? (user?.username || userEmail) 
+              : friendName,
+            email: msg.senderEmail || '',
+            text: msg.content || msg.message || '',
+            createdAt: msg.timestamp || new Date().toISOString(),
+            avatar: msg.senderEmail === userEmail
+              ? (user?.avatarUrl || '/avatars/avatar-1.png')
+              : friendAvatar,
+            isSelf: msg.senderEmail === userEmail,
+            images: []
+          });
+
+          if (data?.type === 'history' && Array.isArray(data.messages)) {
+            const sorted = [...data.messages].sort(
+              (a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+            );
+            const historyMessages = sorted
+              .filter((msg) => (
+                (msg.senderEmail === userEmail && msg.receiverEmail === friendEmail) ||
+                (msg.senderEmail === friendEmail && msg.receiverEmail === userEmail)
+              ))
+              .map(mapMessage);
+            setMessages(historyMessages);
+            return;
+          }
           
-          // Check if this message is for the current conversation
           const isForCurrentChat = 
             (data.senderEmail === userEmail && data.receiverEmail === friendEmail) ||
             (data.senderEmail === friendEmail && data.receiverEmail === userEmail);
 
           if (isForCurrentChat) {
-            const receivedMsg = {
-              id: data.id || `msg-${Date.now()}-${Math.random()}`,
-              author: data.senderEmail === userEmail 
-                ? (user?.username || userEmail) 
-                : friendName,
-              email: data.senderEmail || '',
-              text: data.content || '',
-              createdAt: data.timestamp || new Date().toISOString(),
-              avatar: data.senderEmail === userEmail
-                ? (user?.avatarUrl || '/avatars/avatar-1.png')
-                : friendAvatar,
-              isSelf: data.senderEmail === userEmail,
-              images: []
-            };
-
-            setMessages((prev) => [...prev, receivedMsg]);
+            const receivedMsg = mapMessage(data);
+            setMessages((prev) => {
+              const next = [...prev, receivedMsg];
+              return next.sort(
+                (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+              );
+            });
           }
         } catch (e) {
           console.error('Failed to parse WebSocket message:', e);

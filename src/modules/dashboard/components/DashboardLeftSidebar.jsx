@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getFriendsList } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
@@ -59,8 +59,7 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
       setLoading(true);
       setError('');
       
@@ -124,10 +123,17 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
       } finally {
         setLoading(false);
       }
-    };
+    }, [user]);
 
+  useEffect(() => {
     fetchFriends();
-  }, [user]);
+  }, [fetchFriends]);
+
+  useEffect(() => {
+    const handler = () => fetchFriends();
+    window.addEventListener('friends:refresh', handler);
+    return () => window.removeEventListener('friends:refresh', handler);
+  }, [fetchFriends]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {

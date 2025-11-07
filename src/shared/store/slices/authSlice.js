@@ -24,15 +24,19 @@ const authSlice = createSlice({
           state.user = parsedUserData;
           state.token = token || null;
           state.isAuthenticated = true;
+          const needsProfileSetup = !parsedUserData?.username;
+          sessionStorage.setItem('profileSetupRequired', needsProfileSetup ? 'true' : 'false');
         } else {
           state.user = null;
           state.token = null;
           state.isAuthenticated = false;
+          sessionStorage.removeItem('profileSetupRequired');
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('userData');
+        sessionStorage.removeItem('profileSetupRequired');
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
@@ -50,6 +54,8 @@ const authSlice = createSlice({
         sessionStorage.setItem('userData', JSON.stringify(userData));
         state.user = userData;
         state.isAuthenticated = true;
+        const needsProfileSetup = !userData?.username;
+        sessionStorage.setItem('profileSetupRequired', needsProfileSetup ? 'true' : 'false');
       } catch (error) {
         console.error('Error saving auth data:', error);
       }
@@ -60,6 +66,7 @@ const authSlice = createSlice({
         sessionStorage.removeItem('userData');
         sessionStorage.removeItem('resetEmail');
         sessionStorage.removeItem('resetAccessToken');
+        sessionStorage.removeItem('profileSetupRequired');
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
@@ -72,6 +79,8 @@ const authSlice = createSlice({
         const updatedUserData = action.payload;
         sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
         state.user = updatedUserData;
+        const needsProfileSetup = !updatedUserData?.username;
+        sessionStorage.setItem('profileSetupRequired', needsProfileSetup ? 'true' : 'false');
       } catch (error) {
         console.error('Error updating user data:', error);
       }

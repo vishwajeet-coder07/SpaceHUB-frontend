@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch, BASE_URL } from '../../../shared/services/API';
+import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 const USERNAME_API = `${BASE_URL}dashboard/set-username`;
 const UPLOAD_API = `${BASE_URL}dashboard/upload-profile-image`;
@@ -18,18 +19,38 @@ const presetAvatarUrls = [
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2MB
 
-const AvatarPlaceholder = ({ src }) => (
-  <div className="w-56 h-56 rounded-full bg-white shadow-inner flex items-center justify-center overflow-hidden">
-    {src ? (
-      <img src={src} alt="avatar" className="w-full h-full object-cover" />
-    ) : (
-      <div className="w-40 h-40 rounded-full bg-gray-200" />
-    )}
-  </div>
-);
+const AvatarPlaceholder = ({ src, size = 'lg' }) => {
+  const sizeClasses = {
+    sm: {
+      container: 'w-32 h-32',
+      inner: 'w-24 h-24',
+    },
+    md: {
+      container: 'w-44 h-44',
+      inner: 'w-32 h-32',
+    },
+    lg: {
+      container: 'w-56 h-56',
+      inner: 'w-40 h-40',
+    },
+  };
+
+  const { container, inner } = sizeClasses[size] || sizeClasses.lg;
+
+  return (
+    <div className={`${container} rounded-full bg-white shadow-inner flex items-center justify-center overflow-hidden`}>
+      {src ? (
+        <img src={src} alt="avatar" className="w-full h-full object-cover" />
+      ) : (
+        <div className={`${inner} rounded-full bg-gray-200`} />
+      )}
+    </div>
+  );
+};
 
 const ProfileSetupPage = () => {
   const navigate = useNavigate();
+  const { updateUser } = useAuth() || {};
   const fileInputRef = useRef(null);
   const [username, setUsername] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -118,7 +139,7 @@ const ProfileSetupPage = () => {
     validateDateOfBirth(value);
   };
 
-  const uploadAvatar = async () => {
+  const uploadAvatar = async ({ file: fileOverride, avatarUrl: avatarUrlOverride } = {}) => {
     const getEmailFromStorage = () => {
       let emailToSend = (email && email.trim()) || '';
       if (!emailToSend) {
@@ -135,14 +156,17 @@ const ProfileSetupPage = () => {
       return emailToSend;
     };
 
-    if (uploadFile) {
+    const effectiveFile = fileOverride ?? uploadFile;
+    const effectiveAvatarUrl = avatarUrlOverride ?? selectedAvatarUrl;
+
+    if (effectiveFile) {
       const formData = new FormData();
       const emailToSend = getEmailFromStorage();
       if (!emailToSend) {
         throw new Error('Email is required. Please log in again.');
       }
       formData.append('email', emailToSend);
-      formData.append('image', uploadFile);
+      formData.append('image', effectiveFile);
       const response = await authenticatedFetch(UPLOAD_API, { method: 'POST', body: formData });
       if (!response.ok) {
         const text = await response.text().catch(() => '');
@@ -154,8 +178,8 @@ const ProfileSetupPage = () => {
       return;
     }
 
-    if (selectedAvatarUrl) {
-      const res = await fetch(selectedAvatarUrl);
+    if (effectiveAvatarUrl) {
+      const res = await fetch(effectiveAvatarUrl);
       const blob = await res.blob();
       if (blob.size > MAX_UPLOAD_BYTES) {
         throw new Error('Selected avatar exceeds 2MB limit');
@@ -179,11 +203,12 @@ const ProfileSetupPage = () => {
     }
   };
 
-  const setUserName = async () => {
+  const setUserName = async (nameOverride) => {
+    const sanitizedUsername = (nameOverride ?? username)?.trim();
     const response = await authenticatedFetch(USERNAME_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, username: username }),
+      body: JSON.stringify({ email: email, username: sanitizedUsername }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => null);
@@ -206,7 +231,25 @@ const ProfileSetupPage = () => {
     setSaving(true);
     try {
       if (uploadFile || selectedAvatarUrl) await uploadAvatar();
-      await setUserName();
+      const trimmedUsername = username.trim();
+      await setUserName(trimmedUsername);
+      const sessionUserRaw = sessionStorage.getItem('userData');
+      let sessionUser = {};
+      try {
+        sessionUser = sessionUserRaw ? JSON.parse(sessionUserRaw) : {};
+      } catch {
+        sessionUser = {};
+      }
+
+      const updatedUser = {
+        ...sessionUser,
+        username: trimmedUsername,
+        ...(selectedAvatarUrl ? { avatarUrl: selectedAvatarUrl } : {}),
+      };
+
+      sessionStorage.setItem('userData', JSON.stringify(updatedUser));
+      sessionStorage.setItem('profileSetupRequired', 'false');
+      updateUser?.(updatedUser);
       navigate('/dashboard');
     } catch (e) {
       setError(e.message);
@@ -223,10 +266,27 @@ const ProfileSetupPage = () => {
       setSelectedAvatarUrl(randomUrl);
       setUploadFile(null);
       setUploadPreview(randomUrl);
-      await uploadAvatar();
+      await uploadAvatar({ avatarUrl: randomUrl });
       const finalUsername = username && username.trim() ? username.trim() : `user${Math.floor(1000 + Math.random()*9000)}`;
       setUsername(finalUsername);
-      await setUserName();
+      await setUserName(finalUsername);
+      const sessionUserRaw = sessionStorage.getItem('userData');
+      let sessionUser = {};
+      try {
+        sessionUser = sessionUserRaw ? JSON.parse(sessionUserRaw) : {};
+      } catch {
+        sessionUser = {};
+      }
+
+      const updatedUser = {
+        ...sessionUser,
+        username: finalUsername,
+        avatarUrl: randomUrl,
+      };
+
+      sessionStorage.setItem('userData', JSON.stringify(updatedUser));
+      sessionStorage.setItem('profileSetupRequired', 'false');
+      updateUser?.(updatedUser);
       navigate('/dashboard');
     } catch (e) {
       setError(e.message || 'Failed to complete setup');
@@ -236,47 +296,69 @@ const ProfileSetupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundImage: "url('/profileBg.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-      <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
-          <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
-          <div className="flex items-center gap-2">
-            <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
-            <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+    <div className="min-h-screen bg-gray-100 md:bg-transparent">
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+
+      <div className="md:hidden min-h-screen px-6 py-6">
+        <div className="max-w-sm mx-auto h-full flex flex-col">
+          <div className="flex justify-end">
+            <button
+              onClick={handleSkip}
+              disabled={saving}
+              className="px-5 py-2 rounded-full bg-white text-gray-700 font-medium shadow disabled:opacity-60"
+            >
+              {saving ? 'Please wait...' : 'Skip'}
+            </button>
           </div>
-        </div>
-        {error && (
-          <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-          <div className="p-6 md:p-8 bg-gray-100 border-r">
+
+          <div className="mt-6">
+            <h1 className="text-3xl font-semibold text-gray-800">
+              Set-up your <span className="font-bold text-gray-900">Profile</span>
+            </h1>
+          </div>
+
+          <div className="mt-8 flex flex-col flex-1">
             <div className="flex flex-col items-center gap-6">
-              <AvatarPlaceholder src={uploadPreview} />
-              <div className="grid grid-cols-5 gap-4">
+              <AvatarPlaceholder src={uploadPreview} size="md" />
+              <div className="grid grid-cols-4 gap-4">
                 {presetAvatarUrls.map((url) => (
                   <button
                     key={url}
                     type="button"
                     onClick={() => onSelectPresetAvatar(url)}
-                    className={`w-12 h-12 rounded-full overflow-hidden border ${selectedAvatarUrl === url ? 'border-indigo-500' : 'border-transparent'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-14 h-14 rounded-full overflow-hidden border-2 transition ${
+                      selectedAvatarUrl === url ? 'border-blue-500 shadow' : 'border-transparent shadow-sm'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-400`}
                     aria-label="Select preset avatar"
                   >
                     <img src={url} alt="avatar option" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
-              <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">Upload your profile</button>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+              <button
+                onClick={onPickFile}
+                className="px-6 py-3 rounded-full bg-white text-gray-700 font-medium shadow border border-gray-200 hover:border-gray-300"
+              >
+                Upload your Own
+              </button>
             </div>
-          </div>
-          <div className="p-6 md:p-8 bg-gray-100">
-            <div className="space-y-4 max-w-xl">
-              <div>
-                <label className="block text-sm font-medium mb-1">Username</label>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
+
+            {error && (
+              <p className="mt-6 text-sm text-red-600 text-center">{error}</p>
+            )}
+
+            <div className="mt-8 space-y-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-base font-semibold text-gray-800">Username</label>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-base placeholder:text-gray-400"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date of birth</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-base font-semibold text-gray-800">Date of birth</label>
                 <input
                   type="date"
                   value={dateOfBirth}
@@ -286,13 +368,94 @@ const ProfileSetupPage = () => {
                     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
                     return twoYearsAgo.toISOString().split('T')[0];
                   })()}
-                  className={`w-full h-10 rounded-md border px-3 bg-white ${
+                  className={`h-12 w-full rounded-2xl border bg-white px-4 text-base ${
                     dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
                 />
                 {dateOfBirthError && (
-                  <p className="mt-1 text-sm text-red-600">{dateOfBirthError}</p>
+                  <p className="text-sm text-red-600">{dateOfBirthError}</p>
                 )}
+              </div>
+            </div>
+
+            <div className="mt-auto pt-10">
+              <button
+                onClick={handleConfirm}
+                disabled={saving}
+                className="h-12 w-full rounded-full bg-blue-600 text-white text-base font-semibold shadow disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="hidden md:flex min-h-screen items-center justify-center p-6"
+        style={{
+          backgroundImage: "url('/profileBg.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="w-full max-w-6xl bg-white/95 backdrop-blur rounded-2xl shadow border border-gray-200 overflow-hidden">
+          <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
+            <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
+            <div className="flex items-center gap-2">
+              <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
+              <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
+            </div>
+          </div>
+          {error && (
+            <div className="px-6 pt-4 text-sm text-red-600">{error}</div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            <div className="p-6 md:p-8 bg-gray-100 border-r">
+              <div className="flex flex-col items-center gap-6">
+                <AvatarPlaceholder src={uploadPreview} />
+                <div className="grid grid-cols-5 gap-4">
+                  {presetAvatarUrls.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => onSelectPresetAvatar(url)}
+                      className={`w-12 h-12 rounded-full overflow-hidden border ${selectedAvatarUrl === url ? 'border-indigo-500' : 'border-transparent'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      aria-label="Select preset avatar"
+                    >
+                      <img src={url} alt="avatar option" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <button onClick={onPickFile} className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">Upload your profile</button>
+              </div>
+            </div>
+            <div className="p-6 md:p-8 bg-gray-100">
+              <div className="space-y-4 max-w-xl">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username</label>
+                  <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date of birth</label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={handleDateOfBirthChange}
+                    max={(() => {
+                      const twoYearsAgo = new Date();
+                      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+                      return twoYearsAgo.toISOString().split('T')[0];
+                    })()}
+                    className={`w-full h-10 rounded-md border px-3 bg-white ${
+                      dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {dateOfBirthError && (
+                    <p className="mt-1 text-sm text-red-600">{dateOfBirthError}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
