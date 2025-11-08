@@ -556,6 +556,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
             placeholder="Group name"
             className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg outline-none placeholder:text-gray-400"
             maxLength={14}
+            autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !loading) {
                 handleSubmit();

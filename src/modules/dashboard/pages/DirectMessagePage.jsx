@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getFriendsList, getChatHistory } from '../../../shared/services/API';
@@ -20,8 +20,16 @@ const DirectMessagePage = () => {
   const [filteredFriends, setFilteredFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentConversations, setRecentConversations] = useState([]);
+  const searchInputRef = useRef(null);
 
   const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+
+  // Auto-focus search input when component mounts
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
 
   // Listen for openInbox event
   useEffect(() => {
@@ -240,6 +248,7 @@ const DirectMessagePage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search"
             value={searchQuery}

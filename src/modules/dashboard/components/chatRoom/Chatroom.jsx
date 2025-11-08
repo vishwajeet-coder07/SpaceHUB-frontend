@@ -25,6 +25,13 @@ const ChatRoom = ({
 
   const emojis = useMemo(() => ['😊', '😂', '🎉', '🔥', '👍', '❤️'], []);
 
+  // Auto-focus message input when component mounts or title changes
+  useEffect(() => {
+    if (messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  }, [title]);
+
   const onPickFiles = () => fileInputRef.current?.click();
   const onFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
@@ -100,8 +107,10 @@ const ChatRoom = ({
     
     // If custom send handler provided, use it; otherwise use default onSend
     if (sendMessage) {
+      // For WebSocket-based direct chat, pass text and attachments to the handler
       sendMessage(trimmed, attachments);
     } else {
+      // For regular chat, use onSend with the full message object
       onSend?.(newMsg);
     }
   };
@@ -185,7 +194,7 @@ const ChatRoom = ({
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4 bg-gray-50">
-        {messages.length > 0 && (
+        {messages && messages.length > 0 && (
           <>
             <div className="flex justify-center">
               <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full text-xs font-medium">{formatDateChip(messages[0].createdAt)}</span>

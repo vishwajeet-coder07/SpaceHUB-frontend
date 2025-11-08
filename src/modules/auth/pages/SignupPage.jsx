@@ -612,7 +612,7 @@ const SignupPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.2rem] lg:pt-[0.4rem] border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
+                  className="w-full h-[2.4rem] lg:h-[2.75rem] flex justify-center pt-[0.4rem] lg:pt-[0.4rem] border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-inter text-base lg:text-[1.3rem] gap-[0.625rem] disabled:opacity-60"
                 >
                   {loading ? 'Verifying...' : 'Verify'}
                 </button>

@@ -236,6 +236,7 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      autoFocus
                     />
                   </div>
                 </div>

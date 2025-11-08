@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { searchUsers, sendFriendRequest } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
@@ -53,6 +53,14 @@ const DashboardRightSidebar = ({ onClose }) => {
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery, handleSearch]);
+
+  // Auto-focus search input when component mounts
+  const searchInputRef = useRef(null);
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
 
   const handleAddFriend = async (friendUser) => {
     const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
@@ -130,6 +138,7 @@ const DashboardRightSidebar = ({ onClose }) => {
           <div className="mb-4">
             <div className="relative">
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

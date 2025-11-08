@@ -252,7 +252,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       console.error('No ID found for item:', item);
       return;
     }
-        const idString = String(itemId);
+    const idString = String(itemId);
     if (activeTab === 'Community') {
       navigate(`/dashboard/community/${idString}`);
     } else {
@@ -439,51 +439,96 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
       ws.onmessage = (event) => {
         try {
+          console.log('WebSocket message received:', event.data);
           const data = JSON.parse(event.data);
+          console.log('Parsed WebSocket data:', data);
+          
           const mapMessage = (msg) => ({
-            id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+            id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
             author: msg.senderEmail === userEmail 
               ? (user?.username || userEmail) 
               : friendName,
-            email: msg.senderEmail || '',
-            text: msg.content || msg.message || '',
-            createdAt: msg.timestamp || new Date().toISOString(),
+            email: msg.senderEmail || msg.sender || '',
+            text: msg.content || msg.message || msg.text || '',
+            createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
             avatar: msg.senderEmail === userEmail
               ? (user?.avatarUrl || '/avatars/avatar-1.png')
               : friendAvatar,
-            isSelf: msg.senderEmail === userEmail,
+            isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
             images: []
           });
 
           if (data?.type === 'history' && Array.isArray(data.messages)) {
+            console.log('Received history messages:', data.messages.length);
             const sorted = [...data.messages].sort(
-              (a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+              (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
             );
             const historyMessages = sorted
-              .filter((msg) => (
-                (msg.senderEmail === userEmail && msg.receiverEmail === friendEmail) ||
-                (msg.senderEmail === friendEmail && msg.receiverEmail === userEmail)
-              ))
+              .filter((msg) => {
+                const sender = msg.senderEmail || msg.sender;
+                const receiver = msg.receiverEmail || msg.receiver;
+                return (
+                  (sender === userEmail && receiver === friendEmail) ||
+                  (sender === friendEmail && receiver === userEmail)
+                );
+              })
               .map(mapMessage);
+            console.log('Mapped history messages:', historyMessages);
             setMessages(historyMessages);
             return;
           }
           
+          // Handle single message
+          const sender = data.senderEmail || data.sender;
+          const receiver = data.receiverEmail || data.receiver;
           const isForCurrentChat = 
-            (data.senderEmail === userEmail && data.receiverEmail === friendEmail) ||
-            (data.senderEmail === friendEmail && data.receiverEmail === userEmail);
+            (sender === userEmail && receiver === friendEmail) ||
+            (sender === friendEmail && receiver === userEmail);
 
-          if (isForCurrentChat) {
+          console.log('Message check:', { sender, receiver, userEmail, friendEmail, isForCurrentChat });
+
+          if (isForCurrentChat || !sender || !receiver) {
             const receivedMsg = mapMessage(data);
+            console.log('Adding message to state:', receivedMsg);
             setMessages((prev) => {
+              // Check if message already exists to avoid duplicates
+              // Check by ID, or by text + sender + timestamp (within 3 seconds)
+              const existingIndex = prev.findIndex(m => {
+                if (m.id === receivedMsg.id) return true;
+                if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
+                  const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
+                  if (timeDiff < 3000) return true; // Within 3 seconds
+                }
+                return false;
+              });
+              
+              if (existingIndex !== -1) {
+                const existing = prev[existingIndex];
+                if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
+                  console.log('Replacing optimistic message with server message');
+                  const updated = [...prev];
+                  updated[existingIndex] = receivedMsg;
+                  const sorted = updated.sort(
+                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                  );
+                  return sorted;
+                }
+                console.log('Message already exists, skipping duplicate');
+                return prev;
+              }
+              
               const next = [...prev, receivedMsg];
-              return next.sort(
+              const sorted = next.sort(
                 (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
               );
+              console.log('Updated messages array length:', sorted.length);
+              return sorted;
             });
+          } else {
+            console.log('Message not for current chat, ignoring:', { sender, receiver, userEmail, friendEmail });
           }
         } catch (e) {
-          console.error('Failed to parse WebSocket message:', e);
+          console.error('Failed to parse WebSocket message:', e, event.data);
         }
       };
 
@@ -578,8 +623,44 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
-        const payload = { content: trimmed };
+        const payload = { 
+          content: trimmed,
+          senderEmail: userEmail,
+          receiverEmail: friendEmail
+        };
+        console.log('Sending message via WebSocket:', payload);
         wsRef.current.send(JSON.stringify(payload));
+                const friendName = formatFriendName(selectedFriend);
+        const friendAvatar = selectedFriend?.avatar || selectedFriend?.avatarUrl || selectedFriend?.profileImage || '/avatars/avatar-1.png';
+        const optimisticMessage = {
+          id: `temp-${Date.now()}-${Math.random()}`,
+          author: user?.username || userEmail.split('@')[0] || 'You',
+          email: userEmail,
+          text: trimmed,
+          createdAt: new Date().toISOString(),
+          avatar: user?.avatarUrl || '/avatars/avatar-1.png',
+          isSelf: true,
+          images: attachments.map(a => a.url || a)
+        };
+        
+        console.log('Adding optimistic message:', optimisticMessage);
+        setMessages((prev) => {
+          const exists = prev.some(m => 
+            (m.id === optimisticMessage.id) || 
+            (m.text === trimmed && m.isSelf && Math.abs(new Date(m.createdAt).getTime() - new Date(optimisticMessage.createdAt).getTime()) < 1000)
+          );
+          if (exists) {
+            console.log('Message already exists, skipping duplicate');
+            return prev;
+          }
+          const next = [...prev, optimisticMessage];
+          const sorted = next.sort(
+            (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+          );
+          console.log('Updated messages array length:', sorted.length);
+          return sorted;
+        });
+        
         setMessage('');
         try { attachments.forEach((a) => URL.revokeObjectURL(a.url)); } catch {}
         setAttachments([]);
@@ -591,6 +672,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         }));
       }
     } else {
+      console.log('WebSocket not ready. State:', wsRef.current?.readyState);
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Not connected. Please wait...', type: 'error' }
       }));
@@ -600,6 +682,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   if (selectedFriend) {
     const friendName = formatFriendName(selectedFriend);
     const friendAvatar = selectedFriend.avatar || selectedFriend.avatarUrl || selectedFriend.profileImage || '/avatars/avatar-1.png';
+
+    console.log('Rendering ChatRoom with messages:', messages.length, messages);
 
     return (
       <ChatRoom
@@ -616,8 +700,67 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           dispatch(setSelectedFriend(null));
         }}
         sendMessage={(text, attachments) => {
-          // Use the existing handleSend logic from DashboardMainSection
-                    handleSend();
+          if (!text && (!attachments || attachments.length === 0)) return;
+          if (!friendEmail || !userEmail) return;
+
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            try {
+              const payload = { 
+                content: text || '',
+                senderEmail: userEmail,
+                receiverEmail: friendEmail
+              };
+              console.log('Sending message via WebSocket (from ChatRoom):', payload);
+              wsRef.current.send(JSON.stringify(payload));
+              
+              // Optimistically add message to UI immediately
+              const friendName = formatFriendName(selectedFriend);
+              const optimisticMessage = {
+                id: `temp-${Date.now()}-${Math.random()}`,
+                author: user?.username || userEmail.split('@')[0] || 'You',
+                email: userEmail,
+                text: text || '',
+                createdAt: new Date().toISOString(),
+                avatar: user?.avatarUrl || '/avatars/avatar-1.png',
+                isSelf: true,
+                images: attachments ? attachments.map(a => a.url || a) : []
+              };
+              
+              console.log('Adding optimistic message (from ChatRoom):', optimisticMessage);
+              setMessages((prev) => {
+                // Check if message already exists to avoid duplicates
+                const exists = prev.some(m => {
+                  if (m.id === optimisticMessage.id) return true;
+                  // Check if same text from same sender within 1 second
+                  if (m.text === text && m.isSelf && m.email === userEmail) {
+                    const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(optimisticMessage.createdAt).getTime());
+                    if (timeDiff < 1000) return true; // Within 1 second
+                  }
+                  return false;
+                });
+                if (exists) {
+                  console.log('Message already exists, skipping duplicate');
+                  return prev;
+                }
+                const next = [...prev, optimisticMessage];
+                const sorted = next.sort(
+                  (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                );
+                console.log('Updated messages array length (from ChatRoom):', sorted.length);
+                return sorted;
+              });
+            } catch (e) {
+              console.error('Failed to send message via WebSocket (from ChatRoom):', e);
+              window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: 'Failed to send message. Please try again.', type: 'error' }
+              }));
+            }
+          } else {
+            console.log('WebSocket not ready (from ChatRoom). State:', wsRef.current?.readyState);
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: 'Not connected. Please wait...', type: 'error' }
+            }));
+          }
         }}
       />
     );

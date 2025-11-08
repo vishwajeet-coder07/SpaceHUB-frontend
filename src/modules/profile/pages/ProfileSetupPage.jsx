@@ -301,16 +301,6 @@ const ProfileSetupPage = () => {
 
       <div className="md:hidden min-h-screen px-6 py-6">
         <div className="max-w-sm mx-auto h-full flex flex-col">
-          <div className="flex justify-end">
-            <button
-              onClick={handleSkip}
-              disabled={saving}
-              className="px-5 py-2 rounded-full bg-white text-gray-700 font-medium shadow disabled:opacity-60"
-            >
-              {saving ? 'Please wait...' : 'Skip'}
-            </button>
-          </div>
-
           <div className="mt-6">
             <h1 className="text-3xl font-semibold text-gray-800">
               Set-up your <span className="font-bold text-gray-900">Profile</span>
@@ -404,7 +394,6 @@ const ProfileSetupPage = () => {
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-100 border-b">
           <h1 className="text-2xl font-semibold">Set-up your <span className="font-bold">Profile</span></h1>
           <div className="flex items-center gap-2">
-            <button onClick={handleSkip} disabled={saving} className="px-4 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 disabled:opacity-60">{saving ? 'Please wait...' : 'Skip'}</button>
             <button onClick={handleConfirm} disabled={saving} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60">{saving ? 'Saving...' : 'Confirm'}</button>
           </div>
         </div>
