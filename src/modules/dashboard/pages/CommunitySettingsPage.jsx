@@ -231,11 +231,11 @@ const CommunitySettingsPage = () => {
       formData.append('description', description.trim());
 
       if (profileImageFile) {
-        formData.append('imageFile', profileImageFile);
+        formData.append('avatarFile', profileImageFile);
       }
 
       if (bannerImageFile) {
-        formData.append('userAvatarFile', bannerImageFile);
+        formData.append('imageFile', bannerImageFile);
       }
 
 

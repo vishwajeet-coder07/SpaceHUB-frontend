@@ -510,6 +510,18 @@ export async function respondToFriendRequest({ userEmail, requesterEmail, accept
   return handleJson(response);
 }
 
+// Remove friend
+export async function removeFriend({ userEmail, friendEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}friends/remove`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userEmail, friendEmail })
+  });
+  return handleJson(response);
+}
+
 // Send message to a friend
 export async function sendFriendMessage({ userEmail, friendEmail, message, images }) {
   const response = await authenticatedFetch(`${BASE_URL}friends/message/send`, {

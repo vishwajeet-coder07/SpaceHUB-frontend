@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getFriendsList } from '../../../shared/services/API';
+import { getFriendsList, removeFriend } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
 // Helper function to format name as "first last"
@@ -58,6 +58,9 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
   const [filteredFriends, setFilteredFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [removingFriend, setRemovingFriend] = useState({});
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [friendToRemove, setFriendToRemove] = useState(null);
 
   const fetchFriends = useCallback(async () => {
       setLoading(true);
@@ -160,6 +163,79 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
   const handleFriendClick = (friend) => {
     setSelectedFriend(friend);
     setSelectedView('dashboard');
+  };
+
+  const handleRemoveFriendClick = (e, friend) => {
+    e.stopPropagation();
+    setFriendToRemove(friend);
+    setShowRemoveModal(true);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!friendToRemove) return;
+
+    const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+    const userEmail = user?.email || storedEmail;
+    const friendEmail = friendToRemove?.email;
+
+    if (!userEmail || !friendEmail) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Unable to remove friend. User email not found.', type: 'error' }
+      }));
+      setShowRemoveModal(false);
+      setFriendToRemove(null);
+      return;
+    }
+
+    const friendId = friendToRemove.id || friendToRemove.userId || friendToRemove.friendId;
+    setRemovingFriend((prev) => ({ ...prev, [friendId]: true }));
+
+    try {
+      await removeFriend({ userEmail, friendEmail });
+      
+      setFriends((prev) => prev.filter((f) => {
+        const fId = f.id || f.userId || f.friendId;
+        return fId !== friendId;
+      }));
+      setFilteredFriends((prev) => prev.filter((f) => {
+        const fId = f.id || f.userId || f.friendId;
+        return fId !== friendId;
+      }));
+
+      if (selectedFriend && (selectedFriend.id === friendId || selectedFriend.userId === friendId || selectedFriend.friendId === friendId)) {
+        setSelectedFriend(null);
+      }
+
+      try {
+        const updatedFriends = friends.filter((f) => {
+          const fId = f.id || f.userId || f.friendId;
+          return fId !== friendId;
+        });
+        sessionStorage.setItem('friendsList', JSON.stringify(updatedFriends));
+      } catch (storageError) {
+        console.error('Error updating friends in sessionStorage:', storageError);
+      }
+
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Friend removed successfully', type: 'success' }
+      }));
+
+      fetchFriends();
+      setShowRemoveModal(false);
+      setFriendToRemove(null);
+    } catch (e) {
+      console.error('Failed to remove friend:', e);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: e.message || 'Failed to remove friend', type: 'error' }
+      }));
+    } finally {
+      setRemovingFriend((prev) => ({ ...prev, [friendId]: false }));
+    }
+  };
+
+  const handleCancelRemove = () => {
+    setShowRemoveModal(false);
+    setFriendToRemove(null);
   };
 
   return (
@@ -267,29 +343,54 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
                       const isSelected = selectedFriend?.id === friendId || 
                                        selectedFriend?.userId === friendId ||
                                        selectedFriend?.friendId === friendId;
+                      const isRemoving = removingFriend[friendId];
                       
                       return (
-                        <button
+                        <div
                           key={friendId || friendDisplayName}
-                          onClick={() => handleFriendClick(friend)}
-                          className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                            isSelected
-                              ? 'bg-gray-700 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
+                          className="group relative w-full"
                         >
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          <FriendAvatar 
-                            avatar={friendAvatar}
-                            username={friendDisplayName}
-                            firstName={friend.firstName}
-                            isSelected={isSelected}
-                          />
+                          <button
+                            onClick={() => handleFriendClick(friend)}
+                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                              isSelected
+                                ? 'bg-gray-700 text-white'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              <FriendAvatar 
+                                avatar={friendAvatar}
+                                username={friendDisplayName}
+                                firstName={friend.firstName}
+                                isSelected={isSelected}
+                              />
+                            </div>
+                            <span className="font-medium text-sm truncate">
+                              {friendDisplayName}
+                            </span>
+                          </button>
+                          <button
+                            onClick={(e) => handleRemoveFriendClick(e, friend)}
+                            disabled={isRemoving}
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-opacity ${
+                              isSelected
+                                ? 'text-white hover:bg-white/20'
+                                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                            } opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            title="Remove friend"
+                          >
+                            {isRemoving ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
-                          <span className="font-medium text-sm truncate">
-                            {friendDisplayName}
-                          </span>
-                        </button>
                       );
                     })
                   )}
@@ -299,6 +400,44 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
           </div>
         </div>
       </div>
+
+      {/* Remove Friend Confirmation Modal */}
+      {showRemoveModal && friendToRemove && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-black rounded-lg md:rounded-xl p-5 md:p-8 max-w-md w-full relative">
+            <button
+              onClick={handleCancelRemove}
+              className="absolute top-3 md:top-4 right-3 md:right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Remove Friend</h2>
+            <p className="text-sm md:text-base text-white/80 mb-6">
+              Are you sure you want to remove <span className="font-semibold">{formatFriendName(friendToRemove)}</span> from your friends list? This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelRemove}
+                disabled={removingFriend[friendToRemove.id || friendToRemove.userId || friendToRemove.friendId]}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRemove}
+                disabled={removingFriend[friendToRemove.id || friendToRemove.userId || friendToRemove.friendId]}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {removingFriend[friendToRemove.id || friendToRemove.userId || friendToRemove.friendId] ? 'Removing...' : 'Remove Friend'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
