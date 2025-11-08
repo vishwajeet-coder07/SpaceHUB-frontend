@@ -1,0 +1,53 @@
+* Unmerged path src/modules/dashboard/pages/SettingPage.jsx
+[1mdiff --git a/src/modules/dashboard/pages/SettingPage.jsx b/src/modules/dashboard/pages/SettingPage.jsx[m
+[1mindex d8d5009..d919274 100644[m
+[1m--- a/src/modules/dashboard/pages/SettingPage.jsx[m
+[1m+++ b/src/modules/dashboard/pages/SettingPage.jsx[m
+[36m@@ -1,7 +1,7 @@[m
+ import React, { useMemo, useState } from 'react';[m
+ import { useNavigate } from 'react-router-dom';[m
+ import { useAuth } from '../../../shared/contexts/AuthContextContext';[m
+[31m-import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount } from '../../../shared/services/API';[m
+[32m+[m[32mimport { setUsername as apiSetUsername, uploadProfileImage, deleteAccount, getProfileSummary } from '../../../shared/services/API';[m
+ [m
+ const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIcon, onRightIconClick, readOnly = false, isMobile = false }) => {[m
+   const inputClasses = isMobile[m
+[36m@@ -148,9 +148,35 @@[m [mconst SettingPage = () => {[m
+         nextUser.username = username.trim();[m
+       }[m
+       if (isImageChanged) {[m
+[31m-        const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));[m
+[31m-        const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;[m
+[31m-        if (newUrl) nextUser.avatarUrl = newUrl;[m
+[32m+[m[41m       [m
+[32m+[m[32m        try {[m
+[32m+[m[32m          const profileSummary = await getProfileSummary(initialUser.email);[m
+[32m+[m[41m        [m
+[32m+[m[32m          if (profileSummary) {[m
+[32m+[m[32m            if (profileSummary.data) {[m
+[32m+[m[41m           [m
+[32m+[m[32m              Object.assign(nextUser, profileSummary.data);[m
+[32m+[m[32m            } else {[m
+[32m+[m[41m             [m
+[32m+[m[32m              Object.assign(nextUser, profileSummary);[m
+[32m+[m[32m            }[m
+[32m+[m[41m        [m
+[32m+[m[32m            if (profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage) {[m
+[32m+[m[32m              nextUser.avatarUrl = profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage;[m
+[32m+[m[32m            }[m
+[32m+[m[32m          } else {[m
+[32m+[m[41m           [m
+[32m+[m[32m            const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));[m
+[32m+[m[32m            const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;[m
+[32m+[m[32m            if (newUrl) nextUser.avatarUrl = newUrl;[m
+[32m+[m[32m          }[m
+[32m+[m[32m        } catch (profileError) {[m
+[32m+[m[32m          console.error('Failed to fetch profile summary:', profileError);[m
+[32m+[m[41m         [m
+[32m+[m[32m          const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));[m
+[32m+[m[32m          const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;[m
+[32m+[m[32m          if (newUrl) nextUser.avatarUrl = newUrl;[m
+[32m+[m[32m        }[m
+       }[m
+       sessionStorage.setItem('userData', JSON.stringify(nextUser));[m
+       updateUser?.(nextUser);[m
