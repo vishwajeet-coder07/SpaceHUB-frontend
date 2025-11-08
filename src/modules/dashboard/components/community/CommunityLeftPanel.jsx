@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectChannel }) => {
@@ -208,7 +208,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
 };
 
 // Invite People Modal
-const InviteModal = ({ isOpen, onClose, communityId }) => {
+const InviteModal = ({ isOpen, onClose, communityId, isLocalGroup = false }) => {
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -218,7 +218,7 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
 
   const generateInviteLink = useCallback(async () => {
     if (!communityId || !user?.email) {
-      setError('Community ID or user email not found');
+      setError('Group ID or user email not found');
       return;
     }
 
@@ -226,12 +226,24 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
     setError('');
 
     try {
-      const response = await createCommunityInvite({
-        communityId,
-        inviterEmail: user.email,
-      });
+      let response;
+      if (isLocalGroup) {
+        // Use local group invite API
+        response = await createLocalGroupInvite({
+          groupId: communityId,
+          inviterEmail: user.email,
+          maxUses: 5,
+          expiresInHours: 24
+        });
+      } else {
+        // Use community invite API
+        response = await createCommunityInvite({
+          communityId,
+          inviterEmail: user.email,
+        });
+      }
 
-      const link = response?.data?.inviteLink || response?.inviteLink || '';
+      const link = response?.data?.inviteLink || response?.inviteLink || response?.data?.link || response?.link || '';
       if (link) {
         setInviteLink(link);
       } else {
@@ -240,10 +252,13 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
     } catch (err) {
       console.error('Error generating invite link:', err);
       setError(err.message || 'Failed to generate invite link');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to generate invite link', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
-  }, [communityId, user?.email]);
+  }, [communityId, user?.email, isLocalGroup]);
 
   useEffect(() => {
     if (isOpen) {
@@ -1418,6 +1433,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         onClose={() => setShowInviteModal(false)}
         communityName={title}
         communityId={communityId}
+        isLocalGroup={isLocalGroup}
       />
 
       {/* Create Channel Modal */}

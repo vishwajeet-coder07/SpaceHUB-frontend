@@ -340,6 +340,46 @@ export async function createCommunityInvite({ communityId, inviterEmail, email }
   return data;
 }
 
+// Create Local Group Invite Link
+export async function createLocalGroupInvite({ groupId, inviterEmail, maxUses = 5, expiresInHours = 24 }) {
+  const response = await authenticatedFetch(`${BASE_URL}localgroup/invites/create/${groupId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ inviterEmail, maxUses, expiresInHours })
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+// Get Local Group Invites/Join Requests List
+export async function getLocalGroupInvites(groupId) {
+  const response = await authenticatedFetch(`${BASE_URL}localgroup/invites/list/${groupId}`, {
+    method: 'GET'
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 export async function acceptCommunityInvite({ communityId, inviteCode, acceptorEmail }) {
   const response = await authenticatedFetch(`${BASE_URL}community/invites/accept`, {
     method: 'POST',
@@ -650,6 +690,18 @@ export async function joinRoom(roomCode, userId) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ roomCode, email: userId })
+  });
+  return handleJson(response);
+}
+
+// Join local group via invite link
+export async function joinLocalGroup({ groupId, userEmail }) {
+  const response = await authenticatedFetch(`${BASE_URL}local-group/join`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ groupId, userEmail })
   });
   return handleJson(response);
 }

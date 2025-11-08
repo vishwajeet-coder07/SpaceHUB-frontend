@@ -28,21 +28,42 @@ const CreatePopup = ({ open, onClose }) => {
   const storedEmail = (JSON.parse(sessionStorage.getItem('userData'))?.email) || '';
   const userEmail = (user && user.email) || storedEmail || '';
 
-  const handleJoinSuccess = (communityData) => {
-    const communityId = communityData?.id || communityData?.communityId;
+  const handleJoinSuccess = (responseData) => {
+    const type = responseData?.type;
     
-    if (communityId) {
-      onClose();
-      // Add the new community to Redux store if it's provided
-      if (communityData) {
-        dispatch(addCommunity(communityData));
+    if (type === 'localGroup') {
+      const groupId = responseData?.groupId || responseData?.id || responseData?.localGroupId;
+      
+      if (groupId) {
+        onClose();
+        // Add the new local group to Redux store if it's provided
+        if (responseData) {
+          dispatch(addLocalGroup(responseData));
+        }
+        // Trigger refresh for backwards compatibility
+        window.dispatchEvent(new Event('refresh:local-groups'));
+        navigate(`/dashboard/local-group/${groupId}`);
+      } else {
+        setDoneSubtitle('Successfully joined the local group!');
+        setMode('done');
       }
-      // Trigger refresh for backwards compatibility
-      window.dispatchEvent(new Event('refresh:communities'));
-      navigate(`/dashboard/community/${communityId}`);
     } else {
-      setDoneSubtitle('Successfully joined the community!');
-      setMode('done');
+      // Handle community join
+      const communityId = responseData?.id || responseData?.communityId || responseData?.communityId;
+      
+      if (communityId) {
+        onClose();
+        // Add the new community to Redux store if it's provided
+        if (responseData) {
+          dispatch(addCommunity(responseData));
+        }
+        // Trigger refresh for backwards compatibility
+        window.dispatchEvent(new Event('refresh:communities'));
+        navigate(`/dashboard/community/${communityId}`);
+      } else {
+        setDoneSubtitle('Successfully joined the community!');
+        setMode('done');
+      }
     }
   };
 

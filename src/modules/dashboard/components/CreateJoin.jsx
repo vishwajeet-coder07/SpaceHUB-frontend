@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { acceptCommunityInvite } from '../../../shared/services/API';
+import { acceptCommunityInvite, joinLocalGroup } from '../../../shared/services/API';
 
 const CreateJoin = ({ onBack, onSend, onSuccess }) => {
   const [inviteLink, setInviteLink] = useState('');
@@ -13,23 +13,33 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
     try {
       const trimmedLink = link.trim();
       
+      // Check for local group invite link: https://codewithketan.me.localgroup/invite/{groupId}/{inviteCode}
+      const localGroupPattern = /localgroup\/invite\/([a-f0-9-]{36})\/([a-zA-Z0-9]+)/i;
+      const localGroupMatch = trimmedLink.match(localGroupPattern);
+      
+      if (localGroupMatch) {
+        const groupId = localGroupMatch[1];
+        return { type: 'localGroup', groupId };
+      }
+      
+      // Check for community invite link: /invite/{communityId}/{inviteCode}
       const invitePattern = /\/invite\/([a-f0-9-]{36})\/([a-zA-Z0-9]+)/i;
       const match = trimmedLink.match(invitePattern);
       
       if (match) {
         const communityId = match[1];
         const inviteCode = trimmedLink; 
-        return { communityId, inviteCode };
+        return { type: 'community', communityId, inviteCode };
       }
       
-
+      // Fallback: try to extract UUID (for community invites)
       const uuidPattern = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i;
       const uuidMatch = trimmedLink.match(uuidPattern);
       
       if (uuidMatch) {
         const communityId = uuidMatch[1];
         const inviteCode = trimmedLink;
-        return { communityId, inviteCode };
+        return { type: 'community', communityId, inviteCode };
       }
       
       throw new Error('Invalid invite link format');
@@ -49,7 +59,6 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
     setError('');
 
     try {
-
       const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
       const userEmail = userData?.email;
 
@@ -57,26 +66,57 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
         throw new Error('User email not found. Please log in again.');
       }
 
-      const { communityId, inviteCode } = parseInviteLink(inviteLink);
+      const parsed = parseInviteLink(inviteLink);
 
-      const response = await acceptCommunityInvite({
-        communityId,
-        inviteCode,
-        acceptorEmail: userEmail
-      });
-
-      if (response?.status === 200 && response?.data) {
-        if (onSuccess) {  
-          onSuccess(response.data);
-        } else if (onSend) {
-          onSend(response.data);
-        }
+      let response;
+      if (parsed.type === 'localGroup') {
+        // Join local group
+        response = await joinLocalGroup({
+          groupId: parsed.groupId,
+          userEmail: userEmail
+        });
       } else {
-        throw new Error(response?.message || 'Failed to join community');
+        // Join community
+        response = await acceptCommunityInvite({
+          communityId: parsed.communityId,
+          inviteCode: parsed.inviteCode,
+          acceptorEmail: userEmail
+        });
+      }
+
+      // Handle success - response can be in different formats
+      const isSuccess = response?.status === 200 || response?.data || response?.success || response?.message?.toLowerCase().includes('success');
+      
+      if (isSuccess) {
+        const responseData = response?.data || response;
+        // Pass both the response data and the parsed info (type and groupId/communityId) to onSuccess
+        if (onSuccess) {  
+          onSuccess({
+            ...responseData,
+            type: parsed.type,
+            groupId: parsed.groupId,
+            communityId: parsed.communityId
+          });
+        } else if (onSend) {
+          onSend({
+            ...responseData,
+            type: parsed.type,
+            groupId: parsed.groupId,
+            communityId: parsed.communityId
+          });
+        }
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: parsed.type === 'localGroup' ? 'Successfully joined local group!' : 'Successfully joined community!', type: 'success' }
+        }));
+      } else {
+        throw new Error(response?.message || response?.error || `Failed to join ${parsed.type === 'localGroup' ? 'local group' : 'community'}`);
       }
     } catch (err) {
-      console.error('Error joining community:', err);
-      setError(err.message || 'Failed to join community. Please check the invite link.');
+      console.error('Error joining:', err);
+      setError(err.message || 'Failed to join. Please check the invite link.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to join. Please check the invite link.', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
