@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
-import { getAllCommunities, deleteCommunity, leaveCommunity, authenticatedFetch, BASE_URL, deleteCommunityRoom } from '../../../shared/services/API';
+import { getAllCommunities, deleteCommunity, leaveCommunity, authenticatedFetch, BASE_URL, deleteCommunityRoom, getCommunityMembers, changeCommunityRole } from '../../../shared/services/API';
 import { setShowInbox } from '../../../shared/store/slices/uiSlice';
 
 const CommunitySettingsPage = () => {
@@ -42,6 +42,17 @@ const CommunitySettingsPage = () => {
   const deleteModalRef = useRef(null);
   const leaveModalRef = useRef(null);
   const deleteGroupModalRef = useRef(null);
+  
+  // Roles section state
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [hasRoleChanges, setHasRoleChanges] = useState(false);
+  const [roleChanges, setRoleChanges] = useState({}); // { userEmail: newRole }
+  const [communityOwner, setCommunityOwner] = useState(null);
+  const [showOwnerSection, setShowOwnerSection] = useState(true);
+  const dropdownRefs = useRef({});
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -136,6 +147,65 @@ const CommunitySettingsPage = () => {
 
     fetchGroups();
   }, [id, activeSection]);
+
+  // Fetch members when roles section is active
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!id || activeSection !== 'roles') return;
+
+      setLoadingMembers(true);
+      try {
+        const data = await getCommunityMembers(id);
+        
+        // Save response to sessionStorage
+        try {
+          sessionStorage.setItem(`communityMembers:${id}`, JSON.stringify(data));
+        } catch (e) {
+          console.warn('Failed to save members to sessionStorage:', e);
+        }
+
+        const membersList = data?.data?.members || data?.members || [];
+        
+        // Find community owner (usually has role "OWNER" or "WORKSPACE_OWNER")
+        const owner = membersList.find(m => 
+          (m.role || '').toUpperCase() === 'OWNER' || 
+          (m.role || '').toUpperCase() === 'WORKSPACE_OWNER' ||
+          (m.role || '').toUpperCase() === 'COMMUNITY_OWNER'
+        );
+        
+        if (owner) {
+          setCommunityOwner(owner);
+          // Filter out owner from members list
+          const regularMembers = membersList.filter(m => 
+            m.email !== owner.email && 
+            (m.role || '').toUpperCase() !== 'OWNER' && 
+            (m.role || '').toUpperCase() !== 'WORKSPACE_OWNER' &&
+            (m.role || '').toUpperCase() !== 'COMMUNITY_OWNER'
+          );
+          setMembers(regularMembers);
+        } else {
+          setCommunityOwner(null);
+          setMembers(membersList);
+        }
+      } catch (err) {
+        console.error('Error fetching members:', err);
+        try {
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: err.message || 'Failed to load members', type: 'error' }
+          }));
+        } catch {}
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [id, activeSection]);
+
+  // Track role changes
+  useEffect(() => {
+    setHasRoleChanges(Object.keys(roleChanges).length > 0);
+  }, [roleChanges]);
 
   const handleBack = () => {
     navigate(`/dashboard/community/${id}`);
@@ -501,16 +571,112 @@ const CommunitySettingsPage = () => {
       if (deleteGroupModalRef.current && !deleteGroupModalRef.current.contains(event.target)) {
         setShowDeleteGroupModal(false);
       }
+      
+      // Close dropdown menus when clicking outside
+      if (openDropdownId) {
+        const dropdownRef = dropdownRefs.current[openDropdownId];
+        if (dropdownRef && !dropdownRef.contains(event.target)) {
+          setOpenDropdownId(null);
+        }
+      }
     };
 
-    if (showDeleteModal || showLeaveModal || showDeleteGroupModal) {
+    if (showDeleteModal || showLeaveModal || showDeleteGroupModal || openDropdownId) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDeleteModal, showLeaveModal, showDeleteGroupModal]);
+  }, [showDeleteModal, showLeaveModal, showDeleteGroupModal, openDropdownId]);
+
+  // Handle role change
+  const handleRoleChange = (userEmail, newRole) => {
+    setRoleChanges(prev => ({
+      ...prev,
+      [userEmail]: newRole
+    }));
+    setOpenDropdownId(null);
+  };
+
+  // Save role changes
+  const handleSaveRoles = async () => {
+    if (!id || Object.keys(roleChanges).length === 0) return;
+
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    const requesterEmail = userData?.email;
+
+    if (!requesterEmail) {
+      try {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'User email not found', type: 'error' }
+        }));
+      } catch {}
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const changePromises = Object.entries(roleChanges).map(([targetUserEmail, newRole]) =>
+        changeCommunityRole({
+          communityId: id,
+          targetUserEmail,
+          requesterEmail,
+          newRole: newRole.toUpperCase()
+        })
+      );
+
+      await Promise.all(changePromises);
+
+      // Refresh members list
+      const data = await getCommunityMembers(id);
+      const membersList = data?.data?.members || data?.members || [];
+      
+      const owner = membersList.find(m => 
+        (m.role || '').toUpperCase() === 'OWNER' || 
+        (m.role || '').toUpperCase() === 'WORKSPACE_OWNER' ||
+        (m.role || '').toUpperCase() === 'COMMUNITY_OWNER'
+      );
+      
+      if (owner) {
+        setCommunityOwner(owner);
+        const regularMembers = membersList.filter(m => 
+          m.email !== owner.email && 
+          (m.role || '').toUpperCase() !== 'OWNER' && 
+          (m.role || '').toUpperCase() !== 'WORKSPACE_OWNER' &&
+          (m.role || '').toUpperCase() !== 'COMMUNITY_OWNER'
+        );
+        setMembers(regularMembers);
+      } else {
+        setCommunityOwner(null);
+        setMembers(membersList);
+      }
+
+      setRoleChanges({});
+      setHasRoleChanges(false);
+      
+      try {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Roles updated successfully', type: 'success' }
+        }));
+      } catch {}
+    } catch (err) {
+      console.error('Error saving role changes:', err);
+      try {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: err.message || 'Failed to update roles', type: 'error' }
+        }));
+      } catch {}
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Don't save role changes
+  const handleDontSaveRoles = () => {
+    setRoleChanges({});
+    setHasRoleChanges(false);
+  };
 
   const handleImageUpload = () => {
     fileInputRef.current?.click();
@@ -656,7 +822,7 @@ const CommunitySettingsPage = () => {
                   onClick={() => setActiveSection('roles')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeSection === 'roles'
-                      ? 'bg-white text-gray-900'
+                      ? 'bg-gray-600 text-white'
                       : 'text-white hover:bg-gray-700'
                   }`}
                 >
@@ -928,8 +1094,219 @@ const CommunitySettingsPage = () => {
 
               {activeSection === 'roles' && (
                 <div className="p-8">
-                  <h2 className="text-3xl font-bold text-white mb-8">Roles</h2>
-                  <p className="text-gray-400">Roles management coming soon...</p>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-3xl font-bold text-white">Roles</h2>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleDontSaveRoles}
+                        disabled={!hasRoleChanges}
+                        className={`px-4 py-2 rounded-md font-semibold transition-colors ${
+                          hasRoleChanges
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        Don't save
+                      </button>
+                      <button
+                        onClick={handleSaveRoles}
+                        disabled={!hasRoleChanges || saving}
+                        className={`px-6 py-2 rounded-md font-semibold transition-colors ${
+                          hasRoleChanges && !saving
+                            ? 'bg-indigo-200 hover:bg-indigo-300 text-black'
+                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {saving ? 'Saving...' : 'Save changes'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Community Owner Section */}
+                  {communityOwner && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-white">Community owner</h3>
+                        <button
+                          onClick={() => setShowOwnerSection(!showOwnerSection)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
+                          <svg 
+                            className={`w-5 h-5 transition-transform ${showOwnerSection ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                      {showOwnerSection && (
+                        <div className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
+                            {communityOwner.avatarUrl || communityOwner.profileImage ? (
+                              <img 
+                                src={communityOwner.avatarUrl || communityOwner.profileImage} 
+                                alt={communityOwner.username || communityOwner.email}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-gray-800 font-semibold text-sm">
+                                {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-white font-medium">
+                              {communityOwner.username || communityOwner.email}
+                              {communityOwner.role && (
+                                <span className="ml-2 text-gray-300 text-sm">
+                                  {communityOwner.role === 'OWNER' || communityOwner.role === 'WORKSPACE_OWNER' 
+                                    ? 'Admin' 
+                                    : communityOwner.role}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Search Bar */}
+                  <div className="mb-6">
+                    <div className="relative">
+                      <svg 
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-gray-700 text-white px-10 py-2.5 rounded-md outline-none placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Community Members Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Community Members</h3>
+                    {loadingMembers ? (
+                      <div className="text-gray-400 text-sm">Loading members...</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {members
+                          .filter(member => {
+                            if (!searchQuery.trim()) return true;
+                            const query = searchQuery.toLowerCase();
+                            const username = (member.username || member.email || '').toLowerCase();
+                            const email = (member.email || '').toLowerCase();
+                            return username.includes(query) || email.includes(query);
+                          })
+                          .map((member) => {
+                            const memberId = member.email || member.id;
+                            const originalRole = (member.role || 'MEMBER').toUpperCase();
+                            const pendingRole = roleChanges[member.email];
+                            const currentRole = pendingRole ? pendingRole.toUpperCase() : originalRole;
+                            const roleUpper = currentRole;
+                            const isAdmin = roleUpper === 'ADMIN';
+                            const isWorkspaceOwner = roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER';
+                            const isMember = roleUpper === 'MEMBER';
+                            
+                            return (
+                              <div 
+                                key={memberId}
+                                className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 relative"
+                              >
+                                <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
+                                  {member.avatarUrl || member.profileImage ? (
+                                    <img 
+                                      src={member.avatarUrl || member.profileImage} 
+                                      alt={member.username || member.email}
+                                      className="w-full h-full rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-gray-800 font-semibold text-sm">
+                                      {(member.username || member.email || 'U').charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-white font-medium">
+                                    {member.username || member.email}
+                                    {currentRole && (
+                                      <span className="ml-2 text-gray-300 text-sm">
+                                        {roleUpper === 'ADMIN' 
+                                          ? 'Admin' 
+                                          : roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER'
+                                          ? 'Workspace Owner'
+                                          : 'Member'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="relative" ref={el => dropdownRefs.current[memberId] = el}>
+                                  <button
+                                    onClick={() => setOpenDropdownId(openDropdownId === memberId ? null : memberId)}
+                                    className="text-gray-400 hover:text-white transition-colors p-1"
+                                  >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                    </svg>
+                                  </button>
+                                  {openDropdownId === memberId && (
+                                    <div className="absolute right-0 top-full mt-1 bg-gray-800 rounded-md shadow-lg z-50 min-w-[200px] border border-gray-700">
+                                      {!isAdmin && (
+                                        <button
+                                          onClick={() => handleRoleChange(member.email, 'ADMIN')}
+                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                        >
+                                          Change role to Admin
+                                        </button>
+                                      )}
+                                      {!isWorkspaceOwner && (
+                                        <button
+                                          onClick={() => handleRoleChange(member.email, 'WORKSPACE_OWNER')}
+                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                        >
+                                          Change role to Workspace Owner
+                                        </button>
+                                      )}
+                                      {!isMember && (
+                                        <button
+                                          onClick={() => handleRoleChange(member.email, 'MEMBER')}
+                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                        >
+                                          Change role to Member
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        {members.filter(member => {
+                          if (!searchQuery.trim()) return true;
+                          const query = searchQuery.toLowerCase();
+                          const username = (member.username || member.email || '').toLowerCase();
+                          const email = (member.email || '').toLowerCase();
+                          return username.includes(query) || email.includes(query);
+                        }).length === 0 && (
+                          <div className="text-gray-400 text-sm text-center py-8">
+                            {searchQuery.trim() ? 'No members found' : 'No members yet'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

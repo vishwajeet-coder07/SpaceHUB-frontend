@@ -128,6 +128,9 @@ const DirectMessagePage = () => {
       console.error('Error fetching friends:', error);
       setFriends([]);
       setFilteredFriends([]);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: error.message || 'Failed to fetch friends', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }

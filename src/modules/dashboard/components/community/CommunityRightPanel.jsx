@@ -42,8 +42,12 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
         // console.warn('User email not found for role check');
       }
     } catch (e) {
-      setError(e.message || 'Failed to fetch members');
+      const errorMsg = e.message || 'Failed to fetch members';
+      setError(errorMsg);
       console.error('Error fetching members:', e);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
@@ -63,7 +67,9 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
 
     if (!userEmail || !requesterEmail || !communityId) {
       console.error('Missing required info:', { userEmail, requesterEmail, communityId });
-      alert('Unable to remove member. Missing required information.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Unable to remove member. Missing required information.', type: 'error' }
+      }));
       return;
     }
 

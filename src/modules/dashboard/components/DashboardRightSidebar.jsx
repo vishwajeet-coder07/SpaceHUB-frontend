@@ -17,20 +17,34 @@ const DashboardRightSidebar = ({ onClose }) => {
       return;
     }
 
+    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+    if (!userEmail) {
+      const errorMsg = 'User email not found';
+      setSearchError(errorMsg);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
+      return;
+    }
+
     setSearchLoading(true);
     setSearchError('');
     try {
-      const data = await searchUsers(query.trim(), 0, 10);
+      const data = await searchUsers(query.trim(), userEmail, 0, 10);
       // console.log('data', data);
       const results = data?.data?.content || [];
       setSearchResults(Array.isArray(results) ? results : []);
     } catch (e) {
-      setSearchError(e.message || 'Failed to search users');
+      const errorMsg = e.message || 'Failed to search users';
+      setSearchError(errorMsg);
       setSearchResults([]);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -45,7 +59,9 @@ const DashboardRightSidebar = ({ onClose }) => {
     const friendEmail = friendUser?.email;
 
     if (!userEmail || !friendEmail) {
-      alert('Unable to send friend request. User email not found.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Unable to send friend request. User email not found.', type: 'error' }
+      }));
       return;
     }
 

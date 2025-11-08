@@ -62,7 +62,9 @@ const CreatePopup = ({ open, onClose }) => {
     const trimmedDesc = (description || '').trim();
     const trimmedEmail = (userEmail || '').trim();
     if (!trimmedName || !trimmedDesc || !trimmedEmail) {
-      alert('Please fill Name, Description, and make sure your account email is present.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Please fill Name, Description, and make sure your account email is present.', type: 'error' }
+      }));
       return;
     }
 
@@ -122,7 +124,9 @@ const CreatePopup = ({ open, onClose }) => {
         setMode('done');
       }
     } catch (err) {
-      alert(err.message || 'Failed to create.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to create.', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }

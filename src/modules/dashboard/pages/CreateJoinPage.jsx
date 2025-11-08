@@ -75,7 +75,9 @@ const CreateJoinPage = () => {
     const trimmedDesc = (description || '').trim();
     const trimmedEmail = (userEmail || '').trim();
     if (!trimmedName || !trimmedDesc || !trimmedEmail) {
-      alert('Please fill Name, Description, and make sure your account email is present.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Please fill Name, Description, and make sure your account email is present.', type: 'error' }
+      }));
       return;
     }
 
@@ -132,16 +134,27 @@ const CreateJoinPage = () => {
         setMode('done');
       }
     } catch (err) {
-      alert(err.message || 'Failed to create.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: err.message || 'Failed to create.', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
   };
 
+  // Redirect to dashboard on desktop screens (only on initial mount)
+  useEffect(() => {
+    // Only redirect on initial mount if screen is desktop size
+    // Don't redirect on resize to avoid interrupting users
+    if (window.innerWidth >= 768) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   return (
-    <div className="min-h-screen md:hidden bg-[#E6E6E6]">
+    <div className="min-h-screen bg-[#E6E6E6]">
       {/* Mobile Header */}
-      <div className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200 h-14 flex items-center px-4">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 h-14 flex items-center px-4">
         <button
           onClick={() => {
             if (mode === 'menu') {
@@ -234,7 +247,7 @@ const CreateJoinPage = () => {
         )}
 
         {mode === 'create' && (
-          <div className="md:hidden -mx-4">
+          <div className="-mx-4">
             <CreateGroup
               onBack={goToMenu}
               onConfirm={handleGroupConfirm}
@@ -251,7 +264,7 @@ const CreateJoinPage = () => {
         )}
 
         {mode === 'desc' && (
-          <div className="md:hidden -mx-4">
+          <div className="-mx-4">
             <CreateGroupDescription
               onBack={() => setMode('create')}
               onSkip={() => setMode('done')}
@@ -264,7 +277,7 @@ const CreateJoinPage = () => {
         )}
 
         {mode === 'done' && (
-          <div className="md:hidden -mx-4">
+          <div className="-mx-4">
             <CreateCongrats
               onDone={() => navigate('/dashboard')}
               entityTitle={kind === 'community' ? 'Community' : 'Local-Group'}
@@ -274,7 +287,7 @@ const CreateJoinPage = () => {
         )}
 
         {mode === 'join' && (
-          <div className="md:hidden -mx-4">
+          <div className="-mx-4">
             <CreateJoin onBack={goToMenu} onSuccess={handleJoinSuccess} />
           </div>
         )}

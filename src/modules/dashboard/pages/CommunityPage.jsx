@@ -157,6 +157,15 @@ const CommunityPage = () => {
 
             <div className="flex-1"></div>
 
+            {/* Settings Icon */}
+            <button 
+              title='Settings'
+              onClick={() => navigate('/dashboard/settings')}
+              className="w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
+            </button>
+
             {/* Logout Icon */}
             <button 
               title='Logout'

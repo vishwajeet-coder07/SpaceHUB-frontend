@@ -231,6 +231,22 @@ export async function getCommunityMembers(communityId) {
   return data;
 }
 
+// Change community member role
+export async function changeCommunityRole({ communityId, targetUserEmail, requesterEmail, newRole }) {
+  const response = await authenticatedFetch(`${BASE_URL}community/changeRole`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ communityId, targetUserEmail, requesterEmail, newRole })
+  });
+  let data;
+  try { data = await response.json(); } catch { data = null; }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 // Community: rooms
 export async function getCommunityRooms(communityId) {
   const response = await authenticatedFetch(`${BASE_URL}community/${communityId}/rooms/all`, {
@@ -430,8 +446,8 @@ export async function rejectJoinRequest({ communityName, creatorEmail, userEmail
   return data;
 }
 
-export async function searchUsers(query, page = 0, size = 10) {
-  const response = await authenticatedFetch(`${BASE_URL}search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`, {
+export async function searchUsers(query, email, page = 0, size = 10) {
+  const response = await authenticatedFetch(`${BASE_URL}search?query=${encodeURIComponent(query)}&email=${encodeURIComponent(email)}&page=${page}&size=${size}`, {
     method: 'GET'
   });
   return handleJson(response);

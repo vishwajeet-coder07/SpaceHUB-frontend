@@ -201,7 +201,11 @@ const Discover = ({ onOpenMenu }) => {
       const list = data?.data?.communities || data?.communities || data?.data || [];
       setCommunities(list);
     } catch (e) {
-      setError(e.message || 'Failed to fetch');
+      const errorMsg = e.message || 'Failed to fetch communities';
+      setError(errorMsg);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
@@ -233,8 +237,12 @@ const Discover = ({ onOpenMenu }) => {
         const list = res?.data?.communities || res?.communities || res?.data || [];
         setSearchResults(Array.isArray(list) ? list : []);
       } catch (e) {
-        setSearchError(e.message || 'Search failed');
+        const errorMsg = e.message || 'Search failed';
+        setSearchError(errorMsg);
         setSearchResults([]);
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: errorMsg, type: 'error' }
+        }));
       } finally {
         setSearching(false);
       }

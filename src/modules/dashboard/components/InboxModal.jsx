@@ -103,6 +103,9 @@ const InboxModal = ({ isOpen, onClose }) => {
           });
         } catch (err) {
           console.error('Error fetching community requests:', err);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: err.message || 'Failed to fetch community requests', type: 'error' }
+          }));
         }
 
        
@@ -135,6 +138,9 @@ const InboxModal = ({ isOpen, onClose }) => {
             : [];
         } catch (pendingErr) {
           console.error('Error fetching pending friend requests:', pendingErr);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: pendingErr.message || 'Failed to fetch pending requests', type: 'error' }
+          }));
         }
 
         dispatch(setPending(transformedPendingRequests));
@@ -144,8 +150,12 @@ const InboxModal = ({ isOpen, onClose }) => {
         dispatch(setLoading(false));
       } catch (err) {
         console.error('Error fetching friend requests:', err);
-        dispatch(setError(err.message || 'Failed to load requests'));
+        const errorMsg = err.message || 'Failed to load requests';
+        dispatch(setError(errorMsg));
         dispatch(setLoading(false));
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: errorMsg, type: 'error' }
+        }));
       }
     };
 

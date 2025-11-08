@@ -77,7 +77,9 @@ const SettingPage = () => {
   const handleSave = async () => {
     if (saving) return;
     if (usernameTooLong) {
-      alert('Username must be 15 characters or fewer');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Username must be 15 characters or fewer', type: 'error' }
+      }));
       return;
     }
 

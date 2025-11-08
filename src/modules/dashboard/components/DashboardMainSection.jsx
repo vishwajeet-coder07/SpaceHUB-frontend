@@ -95,7 +95,11 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       const list = res?.data?.communities || res?.communities || res?.data || [];
       dispatch(setCommunities(list));
     } catch (e) {
-      dispatch(setError(e.message || 'Failed to load'));
+      const errorMsg = e.message || 'Failed to load communities';
+      dispatch(setError(errorMsg));
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
     }
   }, [user, dispatch]);
 
@@ -117,7 +121,11 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       const list = res?.data?.groups || res?.groups || res?.data || res?.rooms || [];
       dispatch(setLocalGroups(list));
     } catch (e) {
-      dispatch(setError(e.message || 'Failed to load'));
+      const errorMsg = e.message || 'Failed to load local groups';
+      dispatch(setError(errorMsg));
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: errorMsg, type: 'error' }
+      }));
     }
   }, [user, dispatch]);
 
@@ -255,7 +263,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   const renderList = (items, emptyTitle, emptySub) => {
     if (loading) {
       return (
-        <div className="w-full flex flex-col gap-3 overflow-y-auto">
+        <div className="w-full flex flex-col gap-3">
           {/* Mobile Skeleton */}
           <div className="md:hidden space-y-3">
             {Array.from({ length: 6 }).map((_, idx) => (
@@ -309,7 +317,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       );
     }
     return (
-      <div className="w-full flex flex-col gap-3 overflow-y-auto">
+      <div className="w-full flex flex-col gap-3">
         {items.map((it) => (
           <ListCard 
             key={it.id || it.groupId || it.roomId || it.communityId || it.name} 
@@ -509,6 +517,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     } catch (e) {
       console.error('Failed to create WebSocket:', e);
       setWsConnected(false);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: e.message || 'Failed to connect to chat', type: 'error' }
+      }));
     }
   }, [friendEmail, userEmail, selectedFriend, user]);
     
@@ -689,7 +700,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 px-4 py-4 md:p-4 md:sm:p-6 overflow-y-auto">
+      <div className="flex-1 px-4 py-4 md:p-4 md:sm:p-6">
         {activeTab === 'Community'
           ? renderList(
               communities,
