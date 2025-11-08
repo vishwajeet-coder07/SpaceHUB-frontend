@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { registerUser, validateRegisterOtp, resendRegisterOtp } from '../../../shared/services/API';
+import { registerUser, validateRegisterOtp, resendRegisterOtp, getProfileSummary } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthSlides from '../components/AuthSlides';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
@@ -165,7 +165,7 @@ const SignupPage = () => {
       .finally(() => setLoading(false));
   };
 
-  const handleVerifyOtpAndRegister = (e) => {
+  const handleVerifyOtpAndRegister = async (e) => {
     e.preventDefault();
     const onlyDigits = otp.replace(/\D/g, '');
     if (!/^\d{6}$/.test(onlyDigits)) {
@@ -176,13 +176,13 @@ const SignupPage = () => {
     setLoading(true);
     setError('');
     setInvalidOtp(false);
-    validateRegisterOtp({ 
-      email: formData.email, 
-      otp: onlyDigits, 
-      type: 'REGISTRATION',
-      sessionToken: registrationToken || sessionStorage.getItem('registrationToken') || ''
-    })
-      .then((data) => {
+    try {
+      const data = await validateRegisterOtp({ 
+        email: formData.email, 
+        otp: onlyDigits, 
+        type: 'REGISTRATION',
+        sessionToken: registrationToken || sessionStorage.getItem('registrationToken') || ''
+      });
         let token = null;
         if (typeof data === 'string') {
           token = data;
@@ -208,6 +208,21 @@ const SignupPage = () => {
         }
         
         if (userData) {
+          // Fetch profile summary to get profile image
+          try {
+            const profileData = await getProfileSummary(formData.email);
+            if (profileData?.data?.profileImage) {
+              userData.profileImage = profileData.data.profileImage;
+              userData.avatarUrl = profileData.data.profileImage;
+            }
+            if (profileData?.data?.username) {
+              userData.username = profileData.data.username;
+            }
+          } catch (error) {
+            console.error('Failed to fetch profile summary:', error);
+            // Continue with registration even if profile fetch fails
+          }
+          
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }        
         checkAuthStatus();
@@ -216,9 +231,7 @@ const SignupPage = () => {
         }));
         sessionStorage.setItem('profileSetupRequired', 'true');
         navigate('/profile/setup', { replace: true });
- 
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('OTP verification failed:', err.message);
         const errorMessage = err.message || 'Verification failed. Please try again.';
         if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
@@ -227,8 +240,9 @@ const SignupPage = () => {
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: errorMessage, type: 'error' }
         }));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
   };
 
   const handleResendOtp = (e) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser } from '../../../shared/services/API';
+import { loginUser, getProfileSummary } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import AuthSlides from '../components/AuthSlides';
@@ -23,10 +23,26 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     loginUser({ email, password })
-      .then((data) => {
+      .then(async (data) => {
         console.log('Login successful');
         const userWithEmail = { ...(data?.user || data?.data?.user || {}), email };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
+        
+        // Fetch profile summary to get profile image
+        try {
+          const profileData = await getProfileSummary(email);
+          if (profileData?.data?.profileImage) {
+            userWithEmail.profileImage = profileData.data.profileImage;
+            userWithEmail.avatarUrl = profileData.data.profileImage;
+          }
+          if (profileData?.data?.username) {
+            userWithEmail.username = profileData.data.username;
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile summary:', error);
+          // Continue with login even if profile fetch fails
+        }
+        
         login(userWithEmail, token);
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Login successful!', type: 'success' }

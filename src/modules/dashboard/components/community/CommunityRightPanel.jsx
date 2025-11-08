@@ -37,9 +37,9 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
         });
         const role = (me?.role || '').toUpperCase();
         setCurrentUserRole(role);
-        console.log('Current user role:', role, 'User email:', userEmail, 'Found member:', me);
+        // console.log('Current user role:', role, 'User email:', userEmail, 'Found member:', me);
       } else {
-        console.warn('User email not found for role check');
+        // console.warn('User email not found for role check');
       }
     } catch (e) {
       setError(e.message || 'Failed to fetch members');

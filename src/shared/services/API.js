@@ -554,6 +554,14 @@ export async function uploadProfileImage({ imageFile }) {
   });
   return handleJson(response);
 }
+
+// Get profile summary (profile image, username, etc.)
+export async function getProfileSummary(email) {
+  const response = await authenticatedFetch(`${BASE_URL}dashboard/profile-summary?email=${encodeURIComponent(email)}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
 export async function removeCommunityMember(communityId, userEmail, requesterEmail) {
   const url = `${BASE_URL}community/removeMember`;
   const payload = { communityId, userEmail, requesterEmail };  

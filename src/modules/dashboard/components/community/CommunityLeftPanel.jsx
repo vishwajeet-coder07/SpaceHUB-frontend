@@ -1241,7 +1241,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
 
   {/* Community Left Panel */}
   return (
-    <div className=" min-w-70 sm:min-w-120 md:min-w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl ">
+    <div className="min-w-70 sm:min-w-120 md:min-w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl overflow-hidden">
       {/* Header */}
       <div
         ref={dropdownRef}

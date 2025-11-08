@@ -71,7 +71,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     if (!rawUrl) return '';
 
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-      console.log('rawUrl', rawUrl);
       return rawUrl;
     }
     const absolute = `${BASE_URL}${rawUrl}`;
@@ -201,9 +200,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           </div>
         </div>
 
-        {/* Desktop Design - Original */}
         <div className="hidden md:flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] w-full">
-          {/* Left Section - Icon */}
           <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-l-xl overflow-hidden bg-zinc-400 flex-shrink-0">
             {imgSrc && !imageError ? (
               <img 
@@ -247,8 +244,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       console.error('No ID found for item:', item);
       return;
     }
-    // Ensure ID is converted to string for URL
-    const idString = String(itemId);
+        const idString = String(itemId);
     if (activeTab === 'Community') {
       navigate(`/dashboard/community/${idString}`);
     } else {
@@ -405,7 +401,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
   useEffect(() => {
     if (!friendEmail || !userEmail) {
-      // Close WebSocket if no friend selected
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -423,7 +418,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       wsRef.current = null;
     }
 
-    // Establish WebSocket connection with sender/receiver emails in query params
     const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
     
     try {
@@ -586,7 +580,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         }));
       }
     } else {
-      // WebSocket not connected, show error
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Not connected. Please wait...', type: 'error' }
       }));
@@ -620,7 +613,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   }
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden bg-[#E6E6E6] md:bg-gray-100">
+    <div className="flex-1 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden bg-[#E6E6E6] md:bg-gray-100 md:border md:border-gray-500 md:rounded-xl">
       {/* Mobile Header - Dashboard Title with Icon */}
       <div className="md:hidden px-4 pt-4 pb-2">
         <div className="flex items-center gap-2 mb-3">
