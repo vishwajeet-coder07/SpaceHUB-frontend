@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
-import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount } from '../../../shared/services/API';
+import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount, getProfileSummary } from '../../../shared/services/API';
 
 const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIcon, onRightIconClick, readOnly = false, isMobile = false }) => {
   const inputClasses = isMobile
@@ -148,9 +148,35 @@ const SettingPage = () => {
         nextUser.username = username.trim();
       }
       if (isImageChanged) {
-        const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
-        const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
-        if (newUrl) nextUser.avatarUrl = newUrl;
+       
+        try {
+          const profileSummary = await getProfileSummary(initialUser.email);
+        
+          if (profileSummary) {
+            if (profileSummary.data) {
+           
+              Object.assign(nextUser, profileSummary.data);
+            } else {
+             
+              Object.assign(nextUser, profileSummary);
+            }
+        
+            if (profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage) {
+              nextUser.avatarUrl = profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage;
+            }
+          } else {
+           
+            const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
+            const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
+            if (newUrl) nextUser.avatarUrl = newUrl;
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch profile summary:', profileError);
+         
+          const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
+          const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
+          if (newUrl) nextUser.avatarUrl = newUrl;
+        }
       }
       sessionStorage.setItem('userData', JSON.stringify(nextUser));
       updateUser?.(nextUser);
