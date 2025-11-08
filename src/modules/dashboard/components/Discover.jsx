@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { authenticatedFetch, BASE_URL, searchCommunities } from '../../../shared/services/API';
 import JoinCommunityModal from './JoinCommunityModal';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setSelectedView } from '../../../shared/store/slices/uiSlice';
 
-const CommunityCard = ({ community, onClick }) => {
+const CommunityCard = ({ community, onClick, isMobile = false }) => {
   const title = community.name || 'Untitled';
   const desc = community.description || '';
   const bannerImg = community.bannerUrl || '';
@@ -20,11 +23,60 @@ const CommunityCard = ({ community, onClick }) => {
     return `${BASE_URL}${rawUrl}`;
   };
 
+  if (isMobile) {
+    return (
+      <div
+        onClick={() => onClick?.(community)}
+        className="rounded-lg overflow-hidden shadow-sm bg-transparent cursor-pointer aspect-square"
+      >
+        {/* Top section - Image */}
+        <div className="h-[66%] bg-gray-200 relative">
+          {bannerImg && !bannerError ? (
+            <img 
+              src={safeUrl(bannerImg)} 
+              alt={title} 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => setBannerError(true)}
+            />
+          ) : null}
+        </div>
+        
+        {/* Bottom section - Dark grey with logo and community name */}
+        <div className="h-[34%] bg-[#282828] flex items-center gap-2 px-2">
+          {/* Logo/Icon */}
+          <div className="w-10 h-10 rounded-md overflow-hidden bg-zinc-400 border border-gray-600 flex-shrink-0">
+            {profileImg && !profileError ? (
+              <img
+                src={safeUrl(profileImg)}
+                alt={title}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setProfileError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-zinc-400 flex items-center justify-center">
+                <div className="text-xs font-bold text-gray-800">
+                  {title.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Community Name */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-white truncate">{title}</h3>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop design - matching image
   return (
     <div
       key={community.id || community.communityId || title}
       onClick={() => onClick?.(community)}
-      className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] bg-transparent cursor-pointer"
+      className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] bg-transparent cursor-pointer"
     >
       {/* Top banner area */}
       <div className="h-40 sm:h-44 bg-gray-200">
@@ -41,7 +93,6 @@ const CommunityCard = ({ community, onClick }) => {
       {/* Bottom dark card */}
       <div className="bg-[#282828] text-white px-4 py-4 min-h-[170px] relative">
         {/* Profile image above community name */}
-        
         <div className="flex items-center justify-between">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-400 border-2 border-[#282828] flex-shrink-0">
             {profileImg && !profileError ? (
@@ -60,14 +111,13 @@ const CommunityCard = ({ community, onClick }) => {
               </div>
             )}
           </div>
-        
-        <div className="flex items-center justify-between text-sm text-gray-300 mb-2 pt-2">
-          <div></div>
-          <div>
-            <div>members: {members || 0}</div>
-            <div className="text-green-400">• {online || 0} Online</div>
+          <div className="flex items-center justify-between text-sm text-gray-300 mb-2 pt-2">
+            <div></div>
+            <div>
+              <div>members: {members || 0}</div>
+              <div className="text-green-400">• {online || 0} Online</div>
+            </div>
           </div>
-        </div>
         </div>
         <div>
           <h3 className="text-2xl font-bold mb-2">{title}</h3>
@@ -78,20 +128,34 @@ const CommunityCard = ({ community, onClick }) => {
   );
 };
 
-const SkeletonCard = () => {
+const SkeletonCard = ({ isMobile = false }) => {
+  if (isMobile) {
+    return (
+      <div className="rounded-lg overflow-hidden shadow-sm bg-transparent aspect-square">
+        <div className="h-[66%] bg-gray-200 animate-pulse" />
+        <div className="h-[34%] bg-[#282828] relative">
+          <div className="absolute bottom-2 left-2 w-10 h-10 rounded-md bg-zinc-400 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="rounded-2xl overflow-hidden shadow-sm bg-transparent">
+    <div className="rounded-lg overflow-hidden shadow-sm bg-transparent">
       <div className="h-40 sm:h-44 bg-gray-200 animate-pulse" />
-      <div className="bg-[#282828] px-4 py-4 min-h-[170px]">
+      <div className="bg-[#282828] px-4 py-4 min-h-[170px] relative">
         <div className="flex items-center justify-between">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-400 border-2 border-[#282828] animate-pulse" />
-          <div className="text-sm text-gray-300 mb-2 pt-2">
-            <div className="h-4 w-20 bg-gray-500/50 rounded mb-1 animate-pulse" />
-            <div className="h-3 w-24 bg-green-500/40 rounded animate-pulse" />
+          <div className="flex items-center justify-between text-sm mb-2 pt-2">
+            <div></div>
+            <div>
+              <div className="h-4 w-20 bg-gray-500/50 rounded mb-1 animate-pulse" />
+              <div className="h-4 w-24 bg-green-500/40 rounded animate-pulse" />
+            </div>
           </div>
         </div>
-        <div className="mt-3">
-          <div className="h-6 w-40 bg-gray-500/60 rounded mb-2 animate-pulse" />
+        <div>
+          <div className="h-7 w-40 bg-gray-500/60 rounded mb-2 animate-pulse" />
           <div className="space-y-2">
             <div className="h-3 w-full bg-gray-500/40 rounded animate-pulse" />
             <div className="h-3 w-5/6 bg-gray-500/30 rounded animate-pulse" />
@@ -103,7 +167,9 @@ const SkeletonCard = () => {
   );
 };
 
-const Discover = () => {
+const Discover = ({ onOpenMenu }) => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -113,7 +179,16 @@ const Discover = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const debounceRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchCommunities = async (page = 0, size = 30) => {
     setLoading(true);
@@ -180,19 +255,34 @@ const Discover = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-100 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-y-auto">
-      {/* Header row with pill and search */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
-        <span className="px-3 py-3 rounded-full bg-[#282828] text-white text-md font-semibold">Community</span>
-        <div className="flex-1" />
-        <div className="w-full sm:w-[360px]">
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
+    <div className="flex-1 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-y-auto bg-[#E6E6E6] md:bg-gray-100">
+      {/* Desktop Header */}
+      <div className="hidden md:block bg-gray-200 border-b border-gray-500 px-4 sm:px-6 py-4 flex-shrink-0 rounded-t-xl">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-1.5 bg-[#282828] text-white rounded-md text-sm font-medium">
+              Community
+            </div>
+          </div>
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search communities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -200,27 +290,28 @@ const Discover = () => {
       <div className="flex-1 p-4 sm:p-6">
         {/* Loading and error states */}
         {(searching || (!searching && loading)) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl ">
+          <div className="grid grid-cols-2 md:grid-cols-1 md:sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-7xl">
             {Array.from({ length: 6 }).map((_, idx) => (
-              <SkeletonCard key={idx} />
+              <SkeletonCard key={idx} isMobile={isMobile} />
             ))}
           </div>
         )}
         {searchError && <div className="text-red-600">{searchError}</div>}
         {!searching && error && <div className="text-red-600">{error}</div>}
 
-        {/* Results grid */}
+        {/* Results grid - Mobile: 2 columns, Desktop: 3 columns */}
         {!searching && !loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-7xl ">
+          <div className="grid grid-cols-2 md:grid-cols-1 md:sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-7xl">
             {(searchQuery.trim().length >= 3 ? searchResults : communities).map((community) => (
               <CommunityCard 
                 key={community.id || community.communityId || community.name}
                 community={community}
                 onClick={handleCommunityClick}
+                isMobile={isMobile}
               />
             ))}
             {searchQuery.trim().length >= 3 && !searching && searchResults.length === 0 && (
-              <div className="text-gray-600">No communities found.</div>
+              <div className="text-gray-600 col-span-2 md:col-span-3">No communities found.</div>
             )}
           </div>
         )}

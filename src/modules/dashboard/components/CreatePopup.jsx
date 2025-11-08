@@ -129,7 +129,7 @@ const CreatePopup = ({ open, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-[#282828]/40" onClick={onClose} />
 

@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 const ChatRoom = ({
   title = '#general',
   currentUser = {},
   messages = [],
   onSend,
   onMessage,
+  chatUser = null, // { name, avatar, status } for direct chat or group chat
+  isGroupChat = false,
+  onBack = null,
+  sendMessage = null, // Optional custom send handler (for WebSocket, etc.)
+  onToggleRightPanel = null, // Callback to toggle right panel on small/medium screens
 }) => {
+  const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [attachments, setAttachments] = useState([]); // [{file, url}]
@@ -33,7 +41,12 @@ const ChatRoom = ({
 
   const formatTime = (date) => {
     const d = new Date(date);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours}:${displayMinutes}${ampm}`;
   };
 
   const formatDateChip = (date) => {
@@ -60,6 +73,7 @@ const ChatRoom = ({
 
   const handleSend = () => {
     const trimmed = message.trim();
+    // Allow sending if there's any message content (including emojis) or attachments
     if (!trimmed && attachments.length === 0) return;
     const selfAvatar = currentUser?.avatarUrl || '/avatars/avatar-1.png';
     const selfName = currentUser?.username || currentUser?.email || 'You';
@@ -83,7 +97,13 @@ const ChatRoom = ({
         }
       });
     } catch {}
-    onSend?.(newMsg);
+    
+    // If custom send handler provided, use it; otherwise use default onSend
+    if (sendMessage) {
+      sendMessage(trimmed, attachments);
+    } else {
+      onSend?.(newMsg);
+    }
   };
 
   useEffect(() => {
@@ -92,129 +112,266 @@ const ChatRoom = ({
     }
   }, [messages]);
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const displayName = chatUser?.name || title;
+  const displayAvatar = chatUser?.avatar || '/avatars/avatar-1.png';
+  const displayStatus = chatUser?.status || 'Active now';
+
   return (
-    <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
-      {/* Header */}
-      <div className="h-12 border-b border-gray-500 flex items-center justify-between px-4">
-        <div className="font-semibold text-gray-800 truncate">{title}</div>
+    <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
+      {/* Header - Mobile Design */}
+      <div className="h-14 md:h-12 border-b border-gray-300 flex items-center justify-between px-4 bg-white">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Back Button*/}
+          {onBack && (
+            <button
+              onClick={handleBack}
+              className="md:hidden p-1 -ml-1 text-gray-700 hover:text-gray-900"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          
+          {/* User Info */}
+          {chatUser ? (
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                <img
+                  src={displayAvatar}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = '/avatars/avatar-1.png';
+                  }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-900 truncate text-base">{displayName}</div>
+                <div className="text-xs text-green-600 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                  {displayStatus}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="font-semibold text-gray-800 truncate">{title}</div>
+          )}
+        </div>
+        
+        {/* Action Buttons */}
+        {onToggleRightPanel && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={onToggleRightPanel}
+              className="p-2 text-gray-700 hover:text-gray-900 lg:hidden"
+              title="Members"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-3">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4 bg-gray-50">
         {messages.length > 0 && (
           <>
             <div className="flex justify-center">
-              <span className="px-3 py-1 bg-gray-700 text-white rounded-full text-xs">{formatDateChip(messages[0].createdAt)}</span>
+              <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full text-xs font-medium">{formatDateChip(messages[0].createdAt)}</span>
             </div>
             {messages.map((m, idx) => {
               const prev = messages[idx - 1];
               const showDateChip = !!prev && formatDateChip(prev.createdAt) !== formatDateChip(m.createdAt);
               const isSelf = !!m.isSelf;
+              const showAvatar = idx === 0 || !prev || prev.author !== m.author;
+              
               return (
                 <React.Fragment key={m.id}>
                   {showDateChip && (
                     <div className="flex justify-center mt-2">
-                      <span className="px-3 py-1 bg-gray-700 text-white rounded-full text-xs">{formatDateChip(m.createdAt)}</span>
+                      <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full text-xs font-medium">{formatDateChip(m.createdAt)}</span>
                     </div>
                   )}
-                  <div className={`${isSelf ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-200 border-gray-400'} border-l-8 rounded-md p-3 pl-3 flex gap-3 min-w-0`}>
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 self-start">
-                      <img src={m.avatar || '/avatars/avatar-1.png'} alt={m.author} className="w-full h-full object-cover" />
+                  <div className="flex gap-3 justify-start items-start">
+                    {/* Avatar - show for all messages when author changes */}
+                    <div className={`w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
+                      <img 
+                        src={m.avatar || '/avatars/avatar-1.png'} 
+                        alt={m.author} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = '/avatars/avatar-1.png';
+                        }}
+                      />
                     </div>
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center gap-2 text-sm text-gray-700 mb-1">
-                        <span className="font-semibold text-gray-900 truncate">{m.author}</span>
-                        <span className="text-gray-500 flex-shrink-0">{formatTime(m.createdAt)}</span>
+                    
+                    {/* Message Bubble */}
+                    <div className="flex flex-col items-start flex-1 min-w-0">
+                      {/* Username and timestamp on same line */}
+                      {showAvatar && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
+                          <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
+                        </div>
+                      )}
+                      
+                      <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
+                        isSelf 
+                          ? 'bg-yellow-100/90 border-yellow-400' 
+                          : 'bg-gray-200 border-black/70'
+                      }`}>
+                        <div 
+                          className="whitespace-pre-wrap break-words text-sm text-gray-800 text-left"
+                          style={
+                            shouldClampMessage(m.text) && !expandedMessageIds[m.id]
+                              ? {
+                                  maxHeight: '22.5rem',
+                                  overflow: 'hidden',
+                                }
+                              : {}
+                          }
+                        >
+                          {m.text}
+                        </div>
+                        {shouldClampMessage(m.text) && (
+                          <button
+                            onClick={() => toggleExpand(m.id)}
+                            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            {expandedMessageIds[m.id] ? 'Show less' : 'Show more'}
+                          </button>
+                        )}
                       </div>
-                      {(() => {
-                        const expanded = !!expandedMessageIds[m.id];
-                        const clamp = shouldClampMessage(m.text) && !expanded;
-                        return (
-                          <>
-                            <div
-                              className={`whitespace-pre-wrap break-words break-all text-gray-900 ${clamp ? 'line-clamp-15' : ''}`}
-                              style={clamp ? { display: '-webkit-box', WebkitLineClamp: 15, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
-                            >
-                              {m.text}
-                            </div>
-                            {shouldClampMessage(m.text) && (
-                              <button
-                                onClick={() => toggleExpand(m.id)}
-                                className="mt-2 text-sm text-indigo-700 hover:text-indigo-900 font-medium"
-                              >
-                                {expanded ? 'Show less' : 'Show more'}
-                              </button>
-                            )}
-                          </>
-                        );
-                      })()}
+                      
+                      {/* Images */}
                       {Array.isArray(m.images) && m.images.length > 0 && (
-                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="mt-2 grid grid-cols-2 gap-2 max-w-full">
                           {m.images.map((img, i) => (
-                            <div key={i} className="rounded-md overflow-hidden bg-black/5 border border-gray-300 w-[min(360px,100%)]">
+                            <div key={i} className="rounded-lg overflow-hidden bg-gray-200">
                               <img src={img} alt="attachment" className="w-full h-auto object-cover" />
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
+                    
                   </div>
                 </React.Fragment>
               );
             })}
           </>
         )}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-12">
+            <div className="mb-4">
+              <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No messages yet</h3>
+            <p className="text-gray-500 max-w-md">Start the conversation!</p>
+          </div>
+        )}
       </div>
 
-      {/* Composer */}
-      <div className="px-4 py-3">
-        <div className={`relative bg-[#282828] text-white rounded-xl px-4 ${attachments.length > 0 ? 'py-3' : 'h-12'} flex flex-col gap-2`}>
-          {attachments.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {attachments.map((a, idx) => (
-                <div key={idx} className="relative rounded-md overflow-hidden bg-black/20 border border-gray-600">
-                  <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
-                  <button
-                    onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </div>
+      {/* Composer - Mobile Design */}
+      <div className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 bg-black/90">
+        {attachments.length > 0 && (
+          <div className="mb-2 grid grid-cols-3 gap-2">
+            {attachments.map((a, idx) => (
+              <div key={idx} className="relative rounded-lg overflow-hidden bg-gray-600 border border-gray-500">
+                <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
+                <button
+                  onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/80"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="relative flex items-center gap-1.5 sm:gap-2">
+          {/* Emoji Button */}
+          <button
+            onClick={() => setShowEmoji(!showEmoji)}
+            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0"
+            title="Emoji"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          
+
+          
+          {/* Attachment Button */}
+          <button
+            onClick={onPickFiles}
+            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0"
+            title="Attach file"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={onFilesSelected} />
+          
+          {/* Message Input */}
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={title.startsWith('#') ? title : `#${title}`}
+            className="flex-1 bg-white text-black placeholder-gray-400 rounded-md px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2.5 outline-none transition-colors text-left text-sm sm:text-base"
+            ref={messageInputRef}
+          />
+          
+          {/* Send Button */}
+          <button
+            onClick={handleSend}
+            disabled={!message.trim() && attachments.length === 0}
+            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Send"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+          
+          {/* Emoji Picker */}
+          {showEmoji && (
+            <div className="absolute bottom-14 left-2 bg-gray-800 text-white rounded-lg shadow-lg border border-gray-600 p-2 grid grid-cols-6 gap-2 z-10">
+              {emojis.map((em) => (
+                <button
+                  key={em}
+                  onClick={() => onEmojiClick(em)}
+                  className="text-xl hover:scale-110 transition-transform p-1"
+                  title={em}
+                >
+                  {em}
+                </button>
               ))}
             </div>
           )}
-          <div className="flex items-center mt-2 gap-3">
-            <button onClick={() => setShowEmoji((v) => !v)} className="text-xl" title="Emoji">😊</button>
-            <span>📊</span>
-            <button onClick={onPickFiles} className="text-xl" title="Share files">🗃️</button>
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={onFilesSelected} />
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={title}
-              className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none"
-              ref={messageInputRef}
-            />
-            <button onClick={handleSend} className="ml-auto bg-gray-100 text-gray-900 rounded-md px-3 py-1">➤</button>
-            {showEmoji && (
-              <div className="absolute bottom-14 left-2 bg-white text-gray-900 rounded-lg shadow p-2 grid grid-cols-6 gap-2">
-                {emojis.map((em) => (
-                  <button key={em} onClick={() => onEmojiClick(em)} className="text-xl hover:scale-110 transition-transform" title={em}>
-                    {em}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

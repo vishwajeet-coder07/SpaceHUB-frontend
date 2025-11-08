@@ -123,11 +123,11 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
         }
       });
     } else {
-      fetchedChatrooms.forEach((name) => {
-        if (!merged.includes(name)) {
-          merged.push(name);
-        }
-      });
+    fetchedChatrooms.forEach((name) => {
+      if (!merged.includes(name)) {
+        merged.push(name);
+      }
+    });
     }
     return merged;
   }, [filteredChannels, fetchedChatrooms, fetchedVoiceRooms, isVoice]);
@@ -344,12 +344,7 @@ const InviteModal = ({ isOpen, onClose, communityId }) => {
         ) : null}
 
         <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md font-semibold transition-colors"
-          >
-            Close
-          </button>
+
         </div>
       </div>
     </div>
@@ -628,7 +623,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     });
     return merged;
   }, [filteredChatRooms, fetchedChatrooms]);
-  
+
   const hasNoRooms = allChatRooms.length === 0 && filteredVoiceRooms.length === 0;
   
   return (
@@ -760,31 +755,31 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       const roomType = parts[1];
       
       if (roomType === 'chat') {
-        // Only fetch chatRoomCode for non-general channels
-        if (channelName && channelName !== 'general' && roomCode) {
-          try {
-            // First, check session storage for existing chatroom
-            const storageKey = `chatroom_${roomCode}_${channelName}`;
-            const stored = sessionStorage.getItem(storageKey);
-            
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              chatRoomCode = parsed?.data?.chatRoomCode || parsed?.chatRoomCode;
-            }
-            
-            if (!chatRoomCode) {
-              const response = await getChatroomsSummary(roomCode);
-              const chatroomsData = response?.data || [];
-              const chatroom = chatroomsData.find((cr) => cr.name === channelName);
-              if (chatroom) {
-                chatRoomCode = chatroom.chatRoomCode;
-                sessionStorage.setItem(storageKey, JSON.stringify({ data: { chatRoomCode } }));
-              }
-            }
-          } catch (error) {
-            console.error('Failed to get chatRoomCode:', error);
+      // Only fetch chatRoomCode for non-general channels
+      if (channelName && channelName !== 'general' && roomCode) {
+        try {
+          // First, check session storage for existing chatroom
+          const storageKey = `chatroom_${roomCode}_${channelName}`;
+          const stored = sessionStorage.getItem(storageKey);
+          
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            chatRoomCode = parsed?.data?.chatRoomCode || parsed?.chatRoomCode;
           }
+          
+          if (!chatRoomCode) {
+            const response = await getChatroomsSummary(roomCode);
+            const chatroomsData = response?.data || [];
+            const chatroom = chatroomsData.find((cr) => cr.name === channelName);
+            if (chatroom) {
+              chatRoomCode = chatroom.chatRoomCode;
+              sessionStorage.setItem(storageKey, JSON.stringify({ data: { chatRoomCode } }));
+            }
+          }
+        } catch (error) {
+          console.error('Failed to get chatRoomCode:', error);
         }
+      }
       } else if (roomType === 'voice') {
         // Handle voice room - get janusRoomId from sessionStorage
         if (channelName && roomId && userEmail) {
@@ -1246,7 +1241,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
 
   {/* Community Left Panel */}
   return (
-    <div className="w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl ">
+    <div className=" min-w-70 sm:min-w-120 md:min-w-80 bg-gray-200 h-[calc(100vh-56px)] flex flex-col rounded-r-xl ">
       {/* Header */}
       <div
         ref={dropdownRef}

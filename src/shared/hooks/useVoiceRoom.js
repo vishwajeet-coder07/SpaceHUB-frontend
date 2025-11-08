@@ -22,7 +22,6 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
     console.log(`[VoiceRoom] ${msg}`);
   }, []);
 
-  // Initialize audio container
   useEffect(() => {
     if (enabled && janusRoomId) {
       // Create or get audio container

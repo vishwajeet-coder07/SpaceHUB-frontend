@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMyCommunities, getAllLocalGroups, getChatHistory, BASE_URL } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import ChatRoom from './chatRoom/Chatroom';
 
 const formatFriendName = (friend) => {
   if (friend.firstName && friend.lastName) {
@@ -31,6 +32,7 @@ import {
   setLoading,
   setError,
 } from '../../../shared/store/slices/dashboardSlice';
+import { setSelectedFriend } from '../../../shared/store/slices/uiSlice';
 
 const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSidebar }) => {
   const navigate = useNavigate();
@@ -162,7 +164,45 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
     return (
       <button onClick={() => onSelect(item)} className="text-left w-full">
-        <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] w-full">
+        {/* Mobile Design - White card with light gray border */}
+        <div className="md:hidden flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors">
+          {/* Left - Square Image */}
+          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+            {imgSrc && !imageError ? (
+              <img 
+                src={imgSrc} 
+                alt={title} 
+                referrerPolicy="no-referrer" 
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <div className="text-xl font-bold text-gray-400">
+                  {title.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Middle - Title and Description */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-gray-900 mb-1 truncate">{title}</h3>
+            <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">{description || 'No description'}</p>
+          </div>
+          
+          {/* Right - Members and Online Status */}
+          <div className="flex-shrink-0 text-right">
+            <div className="text-xs text-gray-600 mb-1">members: {members || 0}</div>
+            <div className="text-xs text-green-600 flex items-center justify-end gap-1">
+              <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
+              {online || 0} Online
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Design - Original */}
+        <div className="hidden md:flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] w-full">
           {/* Left Section - Icon */}
           <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-l-xl overflow-hidden bg-zinc-400 flex-shrink-0">
             {imgSrc && !imageError ? (
@@ -220,6 +260,25 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     if (loading) {
       return (
         <div className="w-full flex flex-col gap-3 overflow-y-auto">
+          {/* Mobile Skeleton */}
+          <div className="md:hidden space-y-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-3">
+                <div className="w-16 h-16 rounded-lg bg-gray-200 animate-pulse" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 w-32 bg-gray-200 rounded mb-2 animate-pulse" />
+                  <div className="h-3 w-full bg-gray-200 rounded mb-1 animate-pulse" />
+                  <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className="h-3 w-16 bg-gray-200 rounded mb-1 animate-pulse" />
+                  <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop Skeleton */}
+          <div className="hidden md:block">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div key={idx} className="w-full">
               <div className="flex items-stretch rounded-xl overflow-hidden w-full">
@@ -240,15 +299,16 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               </div>
             </div>
           ))}
+          </div>
         </div>
       );
     }
     if (error) return <div className="text-red-600">{error}</div>;
     if (!items.length) {
       return (
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">{emptyTitle}</h2>
-          <p className="text-lg text-gray-600 max-w-md mx-auto">{emptySub}</p>
+        <div className="text-center py-8">
+          <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-2 md:mb-4">{emptyTitle}</h2>
+          <p className="text-sm md:text-lg text-gray-600 max-w-md mx-auto px-4">{emptySub}</p>
         </div>
       );
     }
@@ -538,164 +598,66 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const friendAvatar = selectedFriend.avatar || selectedFriend.avatarUrl || selectedFriend.profileImage || '/avatars/avatar-1.png';
 
     return (
-      <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
-        {/* Header */}
-        <div className="h-12 border-b border-gray-500 flex items-center justify-between px-4">
-          <div className="font-semibold text-gray-800 truncate">{friendName}</div>
-          <div className="flex items-center gap-2">
-            {wsConnected ? (
-              <span className="text-xs text-green-600 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                Connected
-              </span>
-            ) : (
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                Connecting...
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-3">
-          {loadingMessages ? (
-            <div className="flex justify-center items-center h-full">
-              <div className="text-gray-500">Loading messages...</div>
-            </div>
-          ) : messages.length > 0 ? (
-            <>
-              <div className="flex justify-center">
-                <span className="px-3 py-1 bg-gray-700 text-white rounded-full text-xs">{formatDateChip(messages[0].createdAt)}</span>
-              </div>
-              {messages.map((m, idx) => {
-                const prev = messages[idx - 1];
-                const showDateChip = !!prev && formatDateChip(prev.createdAt) !== formatDateChip(m.createdAt);
-                const isSelf = !!m.isSelf;
-                return (
-                  <React.Fragment key={m.id}>
-                    {showDateChip && (
-                      <div className="flex justify-center mt-2">
-                        <span className="px-3 py-1 bg-gray-700 text-white rounded-full text-xs">{formatDateChip(m.createdAt)}</span>
-                      </div>
-                    )}
-                    <div className={`${isSelf ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-200 border-gray-400'} border-l-8 rounded-md p-3 pl-3 flex gap-3 min-w-0`}>
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 self-start">
-                        <img src={m.avatar || '/avatars/avatar-1.png'} alt={m.author} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex items-center gap-2 text-sm text-gray-700 mb-1">
-                          <span className="font-semibold text-gray-900 truncate">{m.author}</span>
-                          <span className="text-gray-500 flex-shrink-0">{formatTime(m.createdAt)}</span>
-                        </div>
-                        {(() => {
-                          const expanded = !!expandedMessageIds[m.id];
-                          const clamp = shouldClampMessage(m.text) && !expanded;
-                          return (
-                            <>
-                              <div
-                                className={`whitespace-pre-wrap break-words break-all text-gray-900 ${clamp ? 'line-clamp-15' : ''}`}
-                                style={clamp ? { display: '-webkit-box', WebkitLineClamp: 15, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
-                              >
-                                {m.text}
-                              </div>
-                              {shouldClampMessage(m.text) && (
-                                <button
-                                  onClick={() => toggleExpand(m.id)}
-                                  className="mt-2 text-sm text-indigo-700 hover:text-indigo-900 font-medium"
-                                >
-                                  {expanded ? 'Show less' : 'Show more'}
-                                </button>
-                              )}
-                            </>
-                          );
-                        })()}
-                        {Array.isArray(m.images) && m.images.length > 0 && (
-                          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {m.images.map((img, i) => (
-                              <div key={i} className="rounded-md overflow-hidden bg-black/5 border border-gray-300 w-[min(360px,100%)]">
-                                <img src={img} alt="attachment" className="w-full h-auto object-cover" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="mb-4">
-                <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Direct Messaging</h3>
-              <p className="text-gray-500 max-w-md">Start a conversation with {friendName}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Composer - Same style as ChatRoom */}
-        <div className="px-4 py-3">
-          <div className={`relative bg-[#282828] text-white rounded-xl px-4 ${attachments.length > 0 ? 'py-3' : 'h-12'} flex flex-col gap-2`}>
-            {attachments.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {attachments.map((a, idx) => (
-                  <div key={idx} className="relative rounded-md overflow-hidden bg-black/20 border border-gray-600">
-                    <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
-                    <button
-                      onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center mt-2 gap-3">
-              <button onClick={() => setShowEmoji((v) => !v)} className="text-xl" title="Emoji">😊</button>
-              <span>📊</span>
-              <button onClick={onPickFiles} className="text-xl" title="Share files">🗃️</button>
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={onFilesSelected} />
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
+      <ChatRoom
+        title={friendName}
+        currentUser={{ email: user?.email, username: user?.username, avatarUrl: user?.avatarUrl }}
+        messages={messages}
+        chatUser={{
+          name: friendName,
+          avatar: friendAvatar,
+          status: wsConnected ? 'Active now' : 'Offline'
+        }}
+        isGroupChat={false}
+        onBack={() => {
+          dispatch(setSelectedFriend(null));
+        }}
+        sendMessage={(text, attachments) => {
+          // Use the existing handleSend logic from DashboardMainSection
                     handleSend();
-                  }
-                }}
-                placeholder={`Message ${friendName}`}
-                className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none"
-                ref={messageInputRef}
-              />
-              <button onClick={handleSend} className="ml-auto bg-gray-100 text-gray-900 rounded-md px-3 py-1">➤</button>
-              {showEmoji && (
-                <div className="absolute bottom-14 left-2 bg-white text-gray-900 rounded-lg shadow p-2 grid grid-cols-6 gap-2">
-                  {emojis.map((em) => (
-                    <button key={em} onClick={() => onEmojiClick(em)} className="text-xl hover:scale-110 transition-transform" title={em}>
-                      {em}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+        }}
+      />
     );
   }
 
   return (
-    <div className="flex-1 bg-gray-200 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden rounded-xl border border-gray-500">
-      <div className="bg-gray-200 border-b border-gray-500 px-4 sm:px-6 py-4 flex-shrink-0 rounded-t-xl">
+    <div className="flex-1 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden bg-[#E6E6E6] md:bg-gray-100">
+      {/* Mobile Header - Dashboard Title with Icon */}
+      <div className="md:hidden px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2 mb-3">
+          <svg className="w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>
+          </svg>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => dispatch(setActiveTab('Community'))}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'Community'
+                ? 'bg-purple-600 text-white'
+                : 'text-gray-600 bg-transparent'
+            }`}
+          >
+            Community
+          </button>
+          <button
+            onClick={() => dispatch(setActiveTab('Local-Groups'))}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'Local-Groups'
+                ? 'bg-purple-600 text-white'
+                : 'text-gray-600 bg-transparent'
+            }`}
+          >
+            Group
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:block bg-gray-200 border-b border-gray-500 px-4 sm:px-6 py-4 flex-shrink-0 rounded-t-xl">
+        <div className="flex items-center justify-between">
         <div className="flex flex-wrap gap-1">
           <button
             onClick={() => dispatch(setActiveTab('Community'))}
@@ -717,10 +679,24 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           >
             Local-Groups
           </button>
+          </div>
+          {/* Add Friend Button - Desktop Only */}
+          {onOpenAddFriends && (
+            <button
+              onClick={onOpenAddFriends}
+              title='Add Friend'
+              className="hidden md:flex w-7 h-7 items-center justify-center text-black hover:bg-gray-300 rounded-md transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+      {/* Content Area */}
+      <div className="flex-1 px-4 py-4 md:p-4 md:sm:p-6 overflow-y-auto">
         {activeTab === 'Community'
           ? renderList(
               communities,

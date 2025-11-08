@@ -18,6 +18,8 @@ const CommunityPage = () => {
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showCenterPanel, setShowCenterPanel] = useState(false);
   const showInbox = useSelector(selectShowInbox);
 
   useEffect(() => {
@@ -65,9 +67,20 @@ const CommunityPage = () => {
     navigate('/dashboard');
   };
 
+
+  useEffect(() => {
+    const handleChannelSelect = () => {
+      setShowCenterPanel(true);
+    };
+    window.addEventListener('community:channel-selected', handleChannelSelect);
+    return () => {
+      window.removeEventListener('community:channel-selected', handleChannelSelect);
+    };
+  }, []);
+
   if (loading) {
     return (
-      <div className="h-screen bg-gray-100 flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-[#E6E6E6] md:bg-gray-100">
         <div className="text-gray-700">Loading...</div>
       </div>
     );
@@ -75,7 +88,7 @@ const CommunityPage = () => {
 
   if (error || !community) {
     return (
-      <div className="h-screen bg-gray-100 flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-[#E6E6E6] md:bg-gray-100">
         <div className="text-center">
           <div className="text-red-600 mb-4">{error || 'Community not found'}</div>
           <button
@@ -90,7 +103,7 @@ const CommunityPage = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-x-hidden">
+    <div className="h-screen flex flex-col overflow-x-hidden bg-[#E6E6E6] md:bg-gray-100">
       {/* Top Navbar */}
       <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
         <div className="flex items-center gap-2">
@@ -106,20 +119,15 @@ const CommunityPage = () => {
             className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
             <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
           </button>
-          <button 
-            title='Settings'
-            className="w-7 h-7 flex items-center justify-center">
-            <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
       {/* Main 3-column layout */}
-      <div className="flex flex-1 gap-2 p-2">
+      <div className="flex flex-1 gap-2 p-2 md:p-2 relative min-h-0 overflow-hidden">
         {/* Narrow Left Sidebar + Left Panel Group */}
-        <div className="flex border border-gray-500 rounded-xl">
+        <div className={`flex border border-gray-500 rounded-xl h-full ${showCenterPanel ? 'hidden md:flex' : 'flex'}`}>
           {/* Narrow Left Sidebar */}
-          <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl">
+          <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl h-full">
             {/* Profile Picture */}
             <button 
               onClick={() => navigate('/dashboard/settings')}
@@ -165,11 +173,38 @@ const CommunityPage = () => {
           <CommunityLeftPanel community={community} onBack={handleBack} />
         </div>
 
-        {/* Community Center Panel */}
-        <CommunityCenterPanel community={community} />
+        <>
+          {showCenterPanel && (
+            <>
+              <div 
+                className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                onClick={() => setShowCenterPanel(false)}
+              />
+              <div className="fixed inset-0 z-40 md:hidden">
+                <CommunityCenterPanel 
+                  community={community} 
+                  onToggleRightPanel={() => setShowRightPanel(true)}
+                  onBack={() => setShowCenterPanel(false)}
+                />
+              </div>
+            </>
+          )}
+          {/* Desktop: Always show center panel */}
+          <div className="hidden md:block md:flex-1">
+            <CommunityCenterPanel 
+              community={community} 
+              onToggleRightPanel={() => setShowRightPanel(true)}
+            />
+          </div>
+        </>
 
-        {/* Community Right Panel */}
-        <CommunityRightPanel community={community} />
+        {/* Community Right Panel - Desktop only */}
+        <div className="hidden md:block">
+          <CommunityRightPanel 
+            community={community} 
+            onClose={showRightPanel ? () => setShowRightPanel(false) : null}
+          />
+        </div>
       </div>
       <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -21,11 +21,13 @@ import Discover from '../components/Discover';
 import CreatePopup from '../components/CreatePopup';
 import DashboardLeftSidebar from '../components/DashboardLeftSidebar';
 import InboxModal from '../components/InboxModal';
+import MobileHamburgerMenu from '../components/MobileHamburgerMenu';
 
 const Dashboard = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const selectedView = useSelector(selectSelectedView);
   const showCreate = useSelector(selectShowCreate);
@@ -33,17 +35,69 @@ const Dashboard = () => {
   const selectedFriend = useSelector(selectSelectedFriend);
   const showInbox = useSelector(selectShowInbox);
 
+
+  useEffect(() => {
+    const storedFriend = sessionStorage.getItem('selectedFriend');
+    if (storedFriend) {
+      try {
+        const friend = JSON.parse(storedFriend);
+        dispatch(setSelectedFriend(friend));
+        dispatch(setSelectedView('dashboard'));
+        sessionStorage.removeItem('selectedFriend');
+      } catch (e) {
+        console.error('Error parsing selected friend:', e);
+      }
+    }
+  }, [dispatch]);
+
+ 
+  useEffect(() => {
+    const handleOpenInbox = () => {
+      dispatch(setShowInbox(true));
+    };
+    window.addEventListener('openInbox', handleOpenInbox);
+    return () => {
+      window.removeEventListener('openInbox', handleOpenInbox);
+    };
+  }, [dispatch]);
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const handleMobileNavigation = (view) => {
+    if (view === 'direct-message') {
+      navigate('/dashboard/direct-message');
+    } else if (view === 'create-join') {
+      navigate('/dashboard/create-join');
+    } else if (view === 'discover') {
+      dispatch(setSelectedView('discover'));
+    } else if (view === 'dashboard') {
+      dispatch(setSelectedView('dashboard'));
+      dispatch(setSelectedFriend(null));
+    } else {
+      dispatch(setSelectedView('dashboard'));
+    }
+    setIsMobileMenuOpen(false);
+  };
+
 
     return (
-      <div className="h-screen bg-gray-100 flex flex-col overflow-x-hidden">
+      <div className="h-screen flex flex-col overflow-x-hidden bg-[#E6E6E6] md:bg-gray-100">
         {/* Top Navbar */}
         <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
-          <div className="flex items-center gap-2">
+          {/* Mobile Hamburger Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="md:hidden p-2 -ml-2 mr-2"
+          >
+            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <div className="hidden md:flex items-center gap-2">
             <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
           </div>
           <div className="flex-1 text-center">
@@ -63,7 +117,7 @@ const Dashboard = () => {
 
         {/* Main 3-column layout */}
         <div className="flex flex-1 gap-2 p-2">
-        <div className="flex border border-gray-500 rounded-xl">
+        <div className="hidden md:flex border border-gray-500 rounded-xl">
           {/* Narrow Left Sidebar */}
           <div className="w-16 bg-white border-l-b-ts border-gray-400 flex flex-col items-center py-4 space-y-4 rounded-l-xl">
             {/* Profile Picture */}
@@ -127,22 +181,54 @@ const Dashboard = () => {
         </div>
 
         {/* Conditional Rendering: Discover or Main + Right Sidebar */}
+        <div className="flex-1 flex gap-2">
         {selectedView === 'discover' ? (
-          <Discover />
+            <Discover onOpenMenu={() => setIsMobileMenuOpen(true)} />
         ) : (
           <>
+              {/* Dashboard Main Section - Show on both mobile and desktop */}
+              <div className="flex-1">
             <DashboardMainSection 
               selectedFriend={selectedFriend} 
               onOpenAddFriends={() => dispatch(setShowRightSidebar(true))}
               showRightSidebar={showRightSidebar}
             />
+              </div>
+            {/* Right Sidebar - Desktop: In layout, Mobile/Tablet: Slide-in from right */}
             {showRightSidebar && (
-              <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
+              <>
+                {/* Mobile/Tablet: Slide-in Panel from Right */}
+                <div className="lg:hidden">
+                  {/* Overlay */}
+                  <div 
+                    className="fixed inset-0 bg-black/50 z-40"
+                    onClick={() => dispatch(setShowRightSidebar(false))}
+                  />
+                  
+                  {/* Slide-in Panel from Right */}
+                  <div className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white z-50 flex flex-col shadow-2xl">
+                    <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
+                  </div>
+                </div>
+
+                {/* Desktop: In normal layout (1024px and above) */}
+                <div className="hidden lg:block">
+                  <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
+                </div>
+              </>
             )}
           </>
         )}
+        </div>
         <CreatePopup open={showCreate} onClose={() => dispatch(setShowCreate(false))} />
         <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
+        
+        {/* Mobile Hamburger Menu */}
+        <MobileHamburgerMenu
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          onNavigate={handleMobileNavigation}
+        />
         </div>
     </div>
   );

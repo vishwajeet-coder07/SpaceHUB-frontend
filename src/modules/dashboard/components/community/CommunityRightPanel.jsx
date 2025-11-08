@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getCommunityMembers, getLocalGroupMembers, removeCommunityMember } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
-const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
+const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }) => {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -127,8 +127,9 @@ const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
   const isAdmin = currentUserRole === 'ADMIN';
   const currentUserEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
 
-  return (
-    <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
+  // Shared content component
+  const PanelContent = () => (
+    <>
       <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -172,19 +173,6 @@ const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
             const memberId = m.memberId || m.id || memberEmail;
             const isRemoving = removingMember[memberId];
 
-            // Debug logging (remove in production)
-            if (idx === 0) {
-              console.log('Member render check:', {
-                isAdmin,
-                currentUserRole,
-                isCurrentUser,
-                isMemberAdmin,
-                canRemove,
-                memberEmail,
-                currentUserEmail
-              });
-            }
-
             return (
               <div key={memberId} className="flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -217,6 +205,45 @@ const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
           )}
         </div>
       )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile/Tablet: Slide-in Panel from Right */}
+      {onClose && (
+        <>
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={onClose}
+          />
+          
+          {/* Slide-in Panel from Right */}
+          <div className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white z-50 lg:hidden flex flex-col shadow-2xl">
+            <div className="flex-1 overflow-y-auto p-6 relative">
+              {/* Close Button */}
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
+                title="Close"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              
+              <PanelContent />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Desktop: In normal layout (1024px and above) */}
+      <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
+        <PanelContent />
+      </div>
+
       {/* Confirm Remove Modal */}
       {confirmOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-24">
@@ -237,7 +264,7 @@ const CommunityRightPanel = ({ community, isLocalGroup = false }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

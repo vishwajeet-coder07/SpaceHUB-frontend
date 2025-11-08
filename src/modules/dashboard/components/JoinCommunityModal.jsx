@@ -78,11 +78,11 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
   const communityImage = community.imageUrl || community.bannerUrl || community.imageURL || '';
 
   return (
-    <div className="fixed inset-0 bg-[#282828]/50 flex items-center justify-center z-50">
-      <div ref={modalRef} className="bg-[#282828] rounded-xl p-8 max-w-md w-full mx-4 relative">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-center justify-center z-50 p-4">
+      <div ref={modalRef} className="bg-[#282828] rounded-lg md:rounded-xl p-5 md:p-8 max-w-md w-full relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors p-1"
+          className="absolute top-3 md:top-4 right-3 md:right-4 text-white/80 hover:text-white transition-colors p-1 z-10"
           title="Close"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -91,7 +91,7 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
         </button>
         {/* Community Image */}
         {communityImage && (
-          <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-gray-700">
+          <div className="w-full h-24 md:h-32 mb-3 md:mb-4 rounded-lg overflow-hidden bg-gray-700">
             <img 
               src={communityImage} 
               alt={communityName} 
@@ -101,10 +101,10 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
           </div>
         )}
 
-        <h2 className="text-2xl font-bold text-white text-center mb-2">{communityName}</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-2">{communityName}</h2>
         
         {communityDescription && (
-          <p className="text-white/70 text-center text-sm mb-6 line-clamp-3">{communityDescription}</p>
+          <p className="text-white/70 text-center text-sm mb-4 md:mb-6 line-clamp-3">{communityDescription}</p>
         )}
         
         {error && (
@@ -117,18 +117,18 @@ const JoinCommunityModal = ({ isOpen, onClose, community }) => {
             <p className="text-white/80 text-sm">Your join request has been sent to the community.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5 md:gap-3">
             <button
               onClick={handleJoin}
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-md text-sm md:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Joining...' : 'Join Community'}
             </button>
             <button
               onClick={onClose}
               disabled={loading}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-md text-sm md:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>

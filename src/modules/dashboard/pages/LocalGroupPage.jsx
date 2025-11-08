@@ -18,6 +18,8 @@ const LocalGroupPage = () => {
   const [localGroup, setLocalGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showCenterPanel, setShowCenterPanel] = useState(false);
   const showInbox = useSelector(selectShowInbox);
 
   useEffect(() => {
@@ -75,9 +77,19 @@ const LocalGroupPage = () => {
     navigate('/dashboard');
   };
 
+  useEffect(() => {
+    const handleChannelSelect = () => {
+      setShowCenterPanel(true);
+    };
+    window.addEventListener('community:channel-selected', handleChannelSelect);
+    return () => {
+      window.removeEventListener('community:channel-selected', handleChannelSelect);
+    };
+  }, []);
+
   if (loading) {
     return (
-      <div className="h-screen bg-gray-100 flex flex-col">
+      <div className="h-screen flex flex-col bg-[#E6E6E6] md:bg-gray-100">
         {/* Top Navbar skeleton */}
         <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
           <div className="w-7 h-7 bg-gray-300 rounded mr-2 animate-pulse" />
@@ -137,7 +149,7 @@ const LocalGroupPage = () => {
 
   if (error || !localGroup) {
     return (
-      <div className="h-screen bg-gray-100 flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-[#E6E6E6] md:bg-gray-100">
         <div className="text-center">
           <div className="text-red-600 mb-4">{error || 'Local-Group not found'}</div>
           <button
@@ -152,7 +164,7 @@ const LocalGroupPage = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-x-hidden">
+    <div className="h-screen flex flex-col overflow-x-hidden bg-[#E6E6E6] md:bg-gray-100">
       {/* Top Navbar */}
       <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
         <div className="flex items-center gap-2">
@@ -168,20 +180,15 @@ const LocalGroupPage = () => {
             className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
             <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
           </button>
-          <button 
-            title='Settings'
-            className="w-7 h-7 flex items-center justify-center">
-            <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
       {/* Main 3-column layout */}
-      <div className="flex flex-1 gap-2 p-2">
+      <div className="flex flex-1 gap-2 p-2 md:p-2 relative min-h-0 overflow-hidden">
         {/* Narrow Left Sidebar + Left Panel Group (no gap between them) */}
-        <div className="flex border border-gray-500 rounded-xl">
+        <div className={`flex border border-gray-500 rounded-xl h-full ${showCenterPanel ? 'hidden md:flex' : 'flex'}`}>
           {/* Narrow Left Sidebar */}
-          <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl">
+          <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl h-full">
             {/* Profile Picture */}
             <button 
               onClick={() => navigate('/dashboard/settings')}
@@ -227,12 +234,39 @@ const LocalGroupPage = () => {
           {/* Local-Group Left Panel */}
           <CommunityLeftPanel community={localGroup} onBack={handleBack} isLocalGroup={true} />
         </div>
+        <>
+          {showCenterPanel && (
+            <>
+              <div 
+                className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                onClick={() => setShowCenterPanel(false)}
+              />
+              <div className="fixed inset-0 z-40 md:hidden">
+                <CommunityCenterPanel 
+                  community={localGroup} 
+                  onToggleRightPanel={() => setShowRightPanel(true)}
+                  onBack={() => setShowCenterPanel(false)}
+                />
+              </div>
+            </>
+          )}
+          {/* Desktop: Always show center panel */}
+          <div className="hidden md:block md:flex-1">
+            <CommunityCenterPanel 
+              community={localGroup} 
+              onToggleRightPanel={() => setShowRightPanel(true)}
+            />
+          </div>
+        </>
 
-        {/* Local-Group Center Panel */}
-        <CommunityCenterPanel community={localGroup} />
-
-        {/* Local-Group Right Panel */}
-        <CommunityRightPanel community={localGroup} isLocalGroup={true} />
+        {/* Local-Group Right Panel - Desktop only */}
+        <div className="hidden md:block">
+          <CommunityRightPanel 
+            community={localGroup} 
+            isLocalGroup={true}
+            onClose={showRightPanel ? () => setShowRightPanel(false) : null}
+          />
+        </div>
       </div>
       <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
     </div>

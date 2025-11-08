@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import { getAllCommunities, deleteCommunity, leaveCommunity, authenticatedFetch, BASE_URL, deleteCommunityRoom } from '../../../shared/services/API';
+import { setShowInbox } from '../../../shared/store/slices/uiSlice';
 
 const CommunitySettingsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -595,14 +598,10 @@ const CommunitySettingsPage = () => {
          </div>
         <div className="flex items-center gap-3">
           <button 
+            onClick={() => dispatch(setShowInbox(true))}
             title='Inbox'
-            className="w-7 h-7 flex items-center justify-center">
+            className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
             <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
-          </button>
-          <button 
-            title='Settings'
-            className="w-7 h-7 flex items-center justify-center">
-            <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
           </button>
         </div>
       </div>

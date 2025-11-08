@@ -266,32 +266,32 @@ const InboxModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-end z-50 pt-10 pr-6">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-center md:justify-end z-50 p-0 md:pt-10 md:pr-6">
       <div 
         ref={modalRef}
-        className="bg-white rounded-xl shadow-2xl w-[420px] max-h-[calc(100vh-80px)] flex flex-col overflow-hidden"
+        className="bg-white rounded-none md:rounded-xl shadow-2xl w-full h-full md:w-[420px] md:max-h-[calc(100vh-80px)] md:h-auto flex flex-col overflow-hidden"
       >
         {/* Header */}
-        <div className="bg-white px-6 py-5 relative">
+        <div className="bg-white px-4 md:px-6 py-4 md:py-5 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+            className="absolute top-3 md:top-4 right-3 md:right-4 w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
             title="Close"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
-          <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex items-center gap-2.5 mb-4 md:mb-5">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-700">
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <path d="M3 9h18M9 21V9" />
             </svg>
-            <h2 className="text-xl font-bold text-gray-800">Inbox</h2>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">Inbox</h2>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-8">
+          <div className="flex gap-6 md:gap-8">
             <button
               onClick={() => dispatch(setActiveTab('request'))}
               className={`pb-2.5 text-sm font-medium transition-colors relative ${
@@ -322,7 +322,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content Area for requests and pending requests */}
-        <div className="flex-1 overflow-y-auto min-h-[450px] bg-blue-100/90 px-4 py-4">
+        <div className="flex-1 overflow-y-auto min-h-0 md:min-h-[450px] bg-blue-100/90 px-3 md:px-4 py-3 md:py-4">
           {loading ? (
             // Shimmer loading effect
             <div className="space-y-3">
@@ -352,9 +352,9 @@ const InboxModal = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 requests.map((request) => (
-                  <div key={request.id} className="flex items-center gap-4 bg-white rounded-lg p-4 shadow-sm">
+                  <div key={request.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                       {request.avatar ? (
                         <img src={request.avatar} alt={request.requester} className="w-full h-full object-cover" />
                       ) : (
@@ -388,18 +388,18 @@ const InboxModal = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleReject(request.id)}
                         disabled={processingRequest === request.id}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                        className="px-2.5 md:px-4 py-1.5 md:py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                       >
                         {processingRequest === request.id ? 'Processing...' : 'Reject'}
                       </button>
                       <button
                         onClick={() => handleAccept(request.id)}
                         disabled={processingRequest === request.id}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
+                        className="px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-md transition-colors"
                       >
                         {processingRequest === request.id ? 'Processing...' : 'Accept'}
                       </button>
@@ -416,9 +416,9 @@ const InboxModal = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 pending.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 bg-white rounded-lg p-4 shadow-sm">
+                  <div key={item.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                       {item.avatar ? (
                         <img src={item.avatar} alt={item.requester} className="w-full h-full object-cover" />
                       ) : (
@@ -448,7 +448,7 @@ const InboxModal = ({ isOpen, onClose }) => {
                     {/* Requested Button */}
                     <button
                       disabled
-                      className="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-semibold rounded-md flex-shrink-0 cursor-not-allowed"
+                      className="px-2.5 md:px-4 py-1.5 md:py-2 bg-white border border-gray-300 text-gray-600 text-xs font-semibold rounded-md flex-shrink-0 cursor-not-allowed"
                     >
                       Requested
                     </button>

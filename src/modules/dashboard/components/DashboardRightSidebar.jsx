@@ -90,11 +90,11 @@ const DashboardRightSidebar = ({ onClose }) => {
   };
 
   return (
-    <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 relative rounded-xl p-4 border border-gray-500">
+    <div className="w-full lg:w-90 bg-white h-full lg:h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 relative lg:rounded-xl p-4 lg:border lg:border-gray-500">
       {/* Close Button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
+        className="absolute top-3 lg:top-4 right-3 lg:right-4 w-6 h-6 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
         title="Close"
       >
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -5,7 +5,7 @@ import ChatRoom from '../chatRoom/Chatroom';
 import VoiceRoom from '../voiceRoom/VoiceRoom';
 import { useVoiceRoom } from '../../../../shared/hooks/useVoiceRoom';
 
-const CommunityCenterPanel = ({ community, roomCode }) => {
+const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, onBack = null }) => {
   const { user } = useAuth();
   const wsRef = useRef(null);
 
@@ -35,7 +35,6 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
           setCurrentMode(kind);
           setCurrentRoomTitle(`# ${parts[2]}`);
           
-          // For voice rooms, get join response from sessionStorage
           if (kind === 'voice' && janusRoomId) {
             const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
             const joinResponseKey = `voiceRoomJoin_${janusRoomId}`;
@@ -56,9 +55,6 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
                 setVoiceRoomData(null);
               }
             } else {
-              // If join response not found, try to get from the join API response
-              // The join happens in CommunityLeftPanel, so we need to wait for it
-              // For now, set janusRoomId and let the hook handle it
               const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
               setVoiceRoomData({
                 janusRoomId,
@@ -298,6 +294,9 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
           title={currentRoomTitle}
           currentUser={{ email: user?.email, username: user?.username, avatarUrl: JSON.parse(sessionStorage.getItem('userData') || '{}')?.avatarUrl }}
           messages={messages}
+          isGroupChat={true}
+          onToggleRightPanel={onToggleRightPanel}
+          onBack={onBack}
           onSend={async (msg) => {
             try {
               if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

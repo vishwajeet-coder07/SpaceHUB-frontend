@@ -1,13 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { getLocalGroupSettings } from '../../../shared/services/API';
+import InboxModal from '../components/InboxModal';
+import { selectShowInbox, setShowInbox } from '../../../shared/store/slices/uiSlice';
 
 const LocalGroupSettingsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const showInbox = useSelector(selectShowInbox);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [settings, setSettings] = useState(null);
+
+  // Listen for openInbox event
+  useEffect(() => {
+    const handleOpenInbox = () => {
+      dispatch(setShowInbox(true));
+    };
+    window.addEventListener('openInbox', handleOpenInbox);
+    return () => {
+      window.removeEventListener('openInbox', handleOpenInbox);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -62,6 +78,14 @@ const LocalGroupSettingsPage = () => {
         <div className="flex-1 text-center">
           <h1 className="text-lg font-semibold text-gray-800">Local-Group Settings</h1>
         </div>
+        <div className="flex items-center">
+          <button 
+            onClick={() => dispatch(setShowInbox(true))}
+            title='Inbox'
+            className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
+            <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-4">
@@ -92,6 +116,9 @@ const LocalGroupSettingsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Inbox Modal */}
+      <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
     </div>
   );
 };

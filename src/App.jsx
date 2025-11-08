@@ -8,6 +8,8 @@ const LandingPage = lazy(() => import('./modules/landing').then(m => ({ default:
 import TopToast from './shared/components/TopToast'
 import { Dashboard, CommunityPage, CommunitySettingsPage, LocalGroupPage, SettingPage } from './modules/dashboard'
 import LocalGroupSettingsPage from './modules/dashboard/pages/LocalGroupSettingsPage'
+import DirectMessagePage from './modules/dashboard/pages/DirectMessagePage'
+import CreateJoinPage from './modules/dashboard/pages/CreateJoinPage'
 
 function App() {
   return (
@@ -70,6 +72,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SettingPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/direct-message" 
+                element={
+                  <ProtectedRoute>
+                    <DirectMessagePage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/create-join" 
+                element={
+                  <ProtectedRoute>
+                    <CreateJoinPage />
                   </ProtectedRoute>
                 } 
               />
