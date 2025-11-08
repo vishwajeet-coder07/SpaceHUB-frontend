@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
-import { setUsername as apiSetUsername, uploadProfileImage } from '../../../shared/services/API';
+import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount } from '../../../shared/services/API';
 
 const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIcon, onRightIconClick, readOnly = false, isMobile = false }) => {
   const inputClasses = isMobile
@@ -55,6 +55,9 @@ const SettingPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const usernameTooLong = (username || '').length > 15;
   const isUsernameChanged = (username || '') !== (initialUser.username || '');
@@ -72,6 +75,42 @@ const SettingPage = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Please enter your current password', type: 'error' }
+      }));
+      return;
+    }
+
+    if (deleting) return;
+
+    try {
+      setDeleting(true);
+      await deleteAccount({
+        email: initialUser.email,
+        currentPassword: deletePassword
+      });
+
+      // Success - clear session storage and log out
+      sessionStorage.clear();
+      logout();
+      navigate('/');
+      
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Account deleted successfully', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Failed to delete account:', e);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: e.message || 'Failed to delete account. Please check your password.', type: 'error' }
+      }));
+    } finally {
+      setDeleting(false);
+      setDeletePassword('');
+    }
   };
 
   const handleSave = async () => {
@@ -94,7 +133,7 @@ const SettingPage = () => {
       }
       if (isImageChanged) {
         ops.push(
-          uploadProfileImage({ imageFile: selectedImage })
+          uploadProfileImage({ imageFile: selectedImage, email: initialUser.email })
         );
       }
 
@@ -290,7 +329,10 @@ const SettingPage = () => {
             </div>
 
              <div className='ml-6'>  
-            <button className="flex items-center gap-3 text-red-500 hover:text-red-400 mb-4">
+            <button 
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-3 text-red-500 hover:text-red-400 mb-4"
+            >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7l5 5v7a2 2 0 0 1-2 2H6z"/></svg>
               <span>Delete Account</span>
             </button>
@@ -403,6 +445,69 @@ const SettingPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg md:rounded-xl p-5 md:p-8 max-w-md w-full relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletePassword('');
+              }}
+              className="absolute top-3 md:top-4 right-3 md:right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Delete Account</h2>
+            <p className="text-sm md:text-base text-gray-600 mb-6">
+              This action cannot be undone. Please enter your current password to confirm account deletion.
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current Password
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Enter your current password"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && deletePassword.trim() && !deleting) {
+                    handleDeleteAccount();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword('');
+                }}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting || !deletePassword.trim()}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

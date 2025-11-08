@@ -561,12 +561,26 @@ export async function setUsername({ email, username }) {
   return handleJson(response);
 }
 
-export async function uploadProfileImage({ imageFile }) {
+export async function uploadProfileImage({ imageFile, email }) {
   const formData = new FormData();
   formData.append('image', imageFile);
+  if (email) {
+    formData.append('email', email);
+  }
   const response = await authenticatedFetch(`${BASE_URL}dashboard/upload-profile-image`, {
     method: 'POST',
     body: formData
+  });
+  return handleJson(response);
+}
+
+export async function deleteAccount({ email, currentPassword }) {
+  const response = await authenticatedFetch(`${BASE_URL}profile/delete`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, currentPassword })
   });
   return handleJson(response);
 }

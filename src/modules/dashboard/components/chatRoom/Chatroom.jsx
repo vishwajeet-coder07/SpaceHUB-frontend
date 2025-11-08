@@ -131,7 +131,20 @@ const ChatRoom = ({
 
   const displayName = chatUser?.name || title;
   const displayAvatar = chatUser?.avatar || '/avatars/avatar-1.png';
-  const displayStatus = chatUser?.status || 'Active now';
+  const getWsStatusDisplay = () => {
+    const status = chatUser?.wsStatus || 'not-connected';
+    switch (status) {
+      case 'connected':
+        return { text: 'Connected', textColor: 'text-green-600', dotColor: 'bg-green-600' };
+      case 'connecting':
+        return { text: 'Connecting', textColor: 'text-gray-600', dotColor: 'bg-gray-500' };
+      case 'not-connected':
+      default:
+        return { text: 'Not connected', textColor: 'text-orange-600', dotColor: 'bg-orange-500' };
+    }
+  };
+  
+  const wsStatusDisplay = getWsStatusDisplay();
 
   return (
     <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
@@ -165,9 +178,9 @@ const ChatRoom = ({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 truncate text-base">{displayName}</div>
-                <div className="text-xs text-green-600 flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                  {displayStatus}
+                <div className={`text-xs flex items-center gap-1 ${wsStatusDisplay.textColor}`}>
+                  <span className={`w-2 h-2 ${wsStatusDisplay.dotColor} rounded-full`}></span>
+                  {wsStatusDisplay.text}
                 </div>
               </div>
             </div>

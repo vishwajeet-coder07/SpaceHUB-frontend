@@ -53,6 +53,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   const [expandedMessageIds, setExpandedMessageIds] = useState({});
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsStatus, setWsStatus] = useState('not-connected'); // 'connecting', 'connected', 'not-connected'
   
   const fileInputRef = useRef(null);
   const messageInputRef = useRef(null);
@@ -413,6 +414,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         wsRef.current.close();
         wsRef.current = null;
         setWsConnected(false);
+        setWsStatus('not-connected');
       }
       return;
     }
@@ -429,12 +431,14 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
     
     try {
+      setWsStatus('connecting');
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log('WebSocket connected for direct chat');
         setWsConnected(true);
+        setWsStatus('connected');
       };
 
       ws.onmessage = (event) => {
@@ -535,6 +539,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         setWsConnected(false);
+        setWsStatus('not-connected');
         // Show error toast
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Connection error. Please try again.', type: 'error' }
@@ -544,6 +549,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       ws.onclose = (event) => {
         console.log('WebSocket disconnected', event.code, event.reason);
         setWsConnected(false);
+        setWsStatus('not-connected');
         
         if (event.code !== 1000 && event.code !== 1001) {
           window.dispatchEvent(new CustomEvent('toast', {
@@ -557,11 +563,13 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           wsRef.current.close();
           wsRef.current = null;
           setWsConnected(false);
+          setWsStatus('not-connected');
         }
       };
     } catch (e) {
       console.error('Failed to create WebSocket:', e);
       setWsConnected(false);
+      setWsStatus('not-connected');
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: e.message || 'Failed to connect to chat', type: 'error' }
       }));
@@ -693,7 +701,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         chatUser={{
           name: friendName,
           avatar: friendAvatar,
-          status: wsConnected ? 'Active now' : 'Offline'
+          wsStatus: wsStatus
         }}
         isGroupChat={false}
         onBack={() => {

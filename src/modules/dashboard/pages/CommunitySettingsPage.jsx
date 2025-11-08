@@ -1202,97 +1202,109 @@ const CommunitySettingsPage = () => {
                       <div className="text-gray-400 text-sm">Loading members...</div>
                     ) : (
                       <div className="space-y-2">
-                        {members
-                          .filter(member => {
-                            if (!searchQuery.trim()) return true;
-                            const query = searchQuery.toLowerCase();
-                            const username = (member.username || member.email || '').toLowerCase();
-                            const email = (member.email || '').toLowerCase();
-                            return username.includes(query) || email.includes(query);
-                          })
-                          .map((member) => {
-                            const memberId = member.email || member.id;
-                            const originalRole = (member.role || 'MEMBER').toUpperCase();
-                            const pendingRole = roleChanges[member.email];
-                            const currentRole = pendingRole ? pendingRole.toUpperCase() : originalRole;
-                            const roleUpper = currentRole;
-                            const isAdmin = roleUpper === 'ADMIN';
-                            const isWorkspaceOwner = roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER';
-                            const isMember = roleUpper === 'MEMBER';
-                            
-                            return (
-                              <div 
-                                key={memberId}
-                                className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 relative"
-                              >
-                                <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
-                                  {member.avatarUrl || member.profileImage ? (
-                                    <img 
-                                      src={member.avatarUrl || member.profileImage} 
-                                      alt={member.username || member.email}
-                                      className="w-full h-full rounded-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="text-gray-800 font-semibold text-sm">
-                                      {(member.username || member.email || 'U').charAt(0).toUpperCase()}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-white font-medium">
-                                    {member.username || member.email}
-                                    {currentRole && (
-                                      <span className="ml-2 text-gray-300 text-sm">
-                                        {roleUpper === 'ADMIN' 
-                                          ? 'Admin' 
-                                          : roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER'
-                                          ? 'Workspace Owner'
-                                          : 'Member'}
+                        {(() => {
+                          const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+                          const currentUserEmail = userData?.email || '';
+                          
+                          return members
+                            .filter(member => {
+                              if (!searchQuery.trim()) return true;
+                              const query = searchQuery.toLowerCase();
+                              const username = (member.username || member.email || '').toLowerCase();
+                              const email = (member.email || '').toLowerCase();
+                              return username.includes(query) || email.includes(query);
+                            })
+                            .map((member) => {
+                              const memberId = member.email || member.id;
+                              const originalRole = (member.role || 'MEMBER').toUpperCase();
+                              const pendingRole = roleChanges[member.email];
+                              const currentRole = pendingRole ? pendingRole.toUpperCase() : originalRole;
+                              const roleUpper = currentRole;
+                              const isAdmin = roleUpper === 'ADMIN';
+                              const isWorkspaceOwner = roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER';
+                              const isMember = roleUpper === 'MEMBER';
+                              
+                              // Check if this member is the current user
+                              const isCurrentUser = member.email && currentUserEmail && 
+                                member.email.toLowerCase() === currentUserEmail.toLowerCase();
+                              
+                              return (
+                                <div 
+                                  key={memberId}
+                                  className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 relative"
+                                >
+                                  <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
+                                    {member.avatarUrl || member.profileImage ? (
+                                      <img 
+                                        src={member.avatarUrl || member.profileImage} 
+                                        alt={member.username || member.email}
+                                        className="w-full h-full rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-gray-800 font-semibold text-sm">
+                                        {(member.username || member.email || 'U').charAt(0).toUpperCase()}
                                       </span>
                                     )}
                                   </div>
-                                </div>
-                                <div className="relative" ref={el => dropdownRefs.current[memberId] = el}>
-                                  <button
-                                    onClick={() => setOpenDropdownId(openDropdownId === memberId ? null : memberId)}
-                                    className="text-gray-400 hover:text-white transition-colors p-1"
-                                  >
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                                    </svg>
-                                  </button>
-                                  {openDropdownId === memberId && (
-                                    <div className="absolute right-0 top-full mt-1 bg-gray-800 rounded-md shadow-lg z-50 min-w-[200px] border border-gray-700">
-                                      {!isAdmin && (
-                                        <button
-                                          onClick={() => handleRoleChange(member.email, 'ADMIN')}
-                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-                                        >
-                                          Change role to Admin
-                                        </button>
+                                  <div className="flex-1">
+                                    <div className="text-white font-medium">
+                                      {member.username || member.email}
+                                      {currentRole && (
+                                        <span className="ml-2 text-gray-300 text-sm">
+                                          {roleUpper === 'ADMIN' 
+                                            ? 'Admin' 
+                                            : roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER'
+                                            ? 'Workspace Owner'
+                                            : 'Member'}
+                                        </span>
                                       )}
-                                      {!isWorkspaceOwner && (
-                                        <button
-                                          onClick={() => handleRoleChange(member.email, 'WORKSPACE_OWNER')}
-                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-                                        >
-                                          Change role to Workspace Owner
-                                        </button>
-                                      )}
-                                      {!isMember && (
-                                        <button
-                                          onClick={() => handleRoleChange(member.email, 'MEMBER')}
-                                          className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-                                        >
-                                          Change role to Member
-                                        </button>
+                                    </div>
+                                  </div>
+                                  {/* Only show three-dot menu if this is NOT the current user */}
+                                  {!isCurrentUser && (
+                                    <div className="relative" ref={el => dropdownRefs.current[memberId] = el}>
+                                      <button
+                                        onClick={() => setOpenDropdownId(openDropdownId === memberId ? null : memberId)}
+                                        className="text-gray-400 hover:text-white transition-colors p-1"
+                                      >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                        </svg>
+                                      </button>
+                                      {openDropdownId === memberId && (
+                                        <div className="absolute right-0 top-full mt-1 bg-gray-800 rounded-md shadow-lg z-50 min-w-[200px] border border-gray-700">
+                                          {!isAdmin && (
+                                            <button
+                                              onClick={() => handleRoleChange(member.email, 'ADMIN')}
+                                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                            >
+                                              Change role to Admin
+                                            </button>
+                                          )}
+                                          {!isWorkspaceOwner && (
+                                            <button
+                                              onClick={() => handleRoleChange(member.email, 'WORKSPACE_OWNER')}
+                                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                            >
+                                              Change role to Workspace Owner
+                                            </button>
+                                          )}
+                                          {!isMember && (
+                                            <button
+                                              onClick={() => handleRoleChange(member.email, 'MEMBER')}
+                                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                                            >
+                                              Change role to Member
+                                            </button>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                   )}
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                        })()}
                         {members.filter(member => {
                           if (!searchQuery.trim()) return true;
                           const query = searchQuery.toLowerCase();
