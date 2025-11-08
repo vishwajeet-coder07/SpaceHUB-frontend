@@ -183,9 +183,10 @@ const LocalGroupPage = () => {
           {/* Narrow Left Sidebar */}
           <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl">
             {/* Profile Picture */}
-            <div 
-              title='profile'
-              className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden">
+            <button 
+              onClick={() => navigate('/dashboard/settings')}
+              title='Profile Settings'
+              className="w-10 h-10 rounded-md bg-gray-300 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity cursor-pointer">
               {(() => {
                 const sessionUser = JSON.parse(sessionStorage.getItem('userData') || '{}');
                 const avatarUrl = user?.avatarUrl || sessionUser?.avatarUrl;
@@ -198,7 +199,7 @@ const LocalGroupPage = () => {
                   </span>
                 );
               })()}
-            </div>
+            </button>
 
             {/* Plus Icon */}
             <button

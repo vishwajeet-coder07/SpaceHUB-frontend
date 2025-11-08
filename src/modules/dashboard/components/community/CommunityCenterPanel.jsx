@@ -3,6 +3,7 @@ import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 import { getCommunityMembers, joinRoom } from '../../../../shared/services/API';
 import ChatRoom from '../chatRoom/Chatroom';
 import VoiceRoom from '../voiceRoom/VoiceRoom';
+import { useVoiceRoom } from '../../../../shared/hooks/useVoiceRoom';
 
 const CommunityCenterPanel = ({ community, roomCode }) => {
   const { user } = useAuth();
@@ -18,28 +19,83 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
   const [localMuted, setLocalMuted] = useState(false);
 
   const [activeChatRoomCode, setActiveChatRoomCode] = useState(null);
- useEffect(() => {
+  const [voiceRoomData, setVoiceRoomData] = useState(null); // { janusRoomId, sessionId, handleId, userId }
+
+  useEffect(() => {
     const handleChannelSelect = (event) => {
-      const { channelId, roomCode: newRoomCode, chatRoomCode } = event.detail || {};
+      const { channelId, roomCode: newRoomCode, chatRoomCode, janusRoomId } = event.detail || {};
       if (newRoomCode) setCurrentRoomCode(newRoomCode);
       if (chatRoomCode) setActiveChatRoomCode(chatRoomCode);
       else setActiveChatRoomCode(null);
+      
       if (channelId && typeof channelId === 'string') {
         const parts = channelId.split(':');
         if (parts.length >= 3) {
           const kind = parts[1] === 'voice' ? 'voice' : 'chat';
           setCurrentMode(kind);
           setCurrentRoomTitle(`# ${parts[2]}`);
+          
+          // For voice rooms, get join response from sessionStorage
+          if (kind === 'voice' && janusRoomId) {
+            const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+            const joinResponseKey = `voiceRoomJoin_${janusRoomId}`;
+            const joinResponseStr = sessionStorage.getItem(joinResponseKey);
+            
+            if (joinResponseStr) {
+              try {
+                const joinResponse = JSON.parse(joinResponseStr);
+                const data = joinResponse?.data || joinResponse;
+                setVoiceRoomData({
+                  janusRoomId,
+                  sessionId: data?.sessionId,
+                  handleId: data?.handleId,
+                  userId: userEmail
+                });
+              } catch (e) {
+                console.error('Failed to parse join response:', e);
+                setVoiceRoomData(null);
+              }
+            } else {
+              // If join response not found, try to get from the join API response
+              // The join happens in CommunityLeftPanel, so we need to wait for it
+              // For now, set janusRoomId and let the hook handle it
+              const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+              setVoiceRoomData({
+                janusRoomId,
+                sessionId: null,
+                handleId: null,
+                userId: userEmail
+              });
+            }
+          } else {
+            setVoiceRoomData(null);
+          }
         } else if (channelId.startsWith('announcement:')) {
           setCurrentMode('chat');
           setCurrentRoomTitle('# general');
           setActiveChatRoomCode(null);
+          setVoiceRoomData(null);
         }
       }
     };
     window.addEventListener('community:channel-selected', handleChannelSelect);
     return () => {
       window.removeEventListener('community:channel-selected', handleChannelSelect);
+    };
+  }, [user?.email]);
+  
+  // Listen for voice room join completion
+  useEffect(() => {
+    const handleVoiceRoomJoin = (event) => {
+      const { janusRoomId, sessionId, handleId, userId } = event.detail || {};
+      if (janusRoomId && sessionId && handleId && userId) {
+        setVoiceRoomData({ janusRoomId, sessionId, handleId, userId });
+      }
+    };
+    
+    window.addEventListener('voice-room:joined', handleVoiceRoomJoin);
+    return () => {
+      window.removeEventListener('voice-room:joined', handleVoiceRoomJoin);
     };
   }, []);
 
@@ -232,15 +288,9 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
   return (
     <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
       {currentMode === 'voice' ? (
-        <VoiceRoom
+        <VoiceRoomWithWebRTC
           title={currentRoomTitle}
-          participants={[]}
-          localMuted={localMuted}
-          onToggleMute={() => setLocalMuted((prev) => !prev)}
-          onLeave={() => {
-            // Handle leave voice room
-            console.log('Leave voice room');
-          }}
+          voiceRoomData={voiceRoomData}
         />
       ) : (
         <ChatRoom
@@ -303,6 +353,44 @@ const CommunityCenterPanel = ({ community, roomCode }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// Voice Room Component with WebRTC
+const VoiceRoomWithWebRTC = ({ title, voiceRoomData }) => {
+  const enabled = voiceRoomData && voiceRoomData.janusRoomId && voiceRoomData.sessionId && voiceRoomData.handleId;
+  
+  const {
+    isConnected,
+    participants,
+    isMuted,
+    error,
+    toggleMute,
+    leave
+  } = useVoiceRoom(
+    voiceRoomData?.janusRoomId,
+    voiceRoomData?.sessionId,
+    voiceRoomData?.handleId,
+    voiceRoomData?.userId,
+    enabled
+  );
+
+  React.useEffect(() => {
+    if (error) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: error, type: 'error' }
+      }));
+    }
+  }, [error]);
+
+  return (
+    <VoiceRoom
+      title={title}
+      participants={participants}
+      localMuted={isMuted}
+      onToggleMute={toggleMute}
+      onLeave={leave}
+    />
   );
 };
 

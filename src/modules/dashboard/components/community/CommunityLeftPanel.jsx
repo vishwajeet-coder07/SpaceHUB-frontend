@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectChannel }) => {
@@ -62,11 +62,13 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 };
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId }) => {
   const filteredChannels = (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
+  const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
+  const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
   
   const getChannelId = (channelName) => `${groupName}:${roomType}:${channelName}`;
   
@@ -89,24 +91,50 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       };
       
       fetchChatrooms();
+    } else if (open && isVoice && roomId) {
+      const fetchVoiceRooms = async () => {
+        setLoadingVoiceRooms(true);
+        try {
+          const response = await getVoiceRoomsList(roomId);
+          const voiceRoomsData = response?.voiceRooms || [];
+          const voiceRoomNames = voiceRoomsData.map((vr) => vr.name).filter(Boolean);
+          setFetchedVoiceRooms(voiceRoomNames);
+        } catch (error) {
+          console.error('Failed to fetch voice rooms:', error);
+          setFetchedVoiceRooms([]);
+        } finally {
+          setLoadingVoiceRooms(false);
+        }
+      };
+      
+      fetchVoiceRooms();
     } else if (!open) {
       setFetchedChatrooms([]);
+      setFetchedVoiceRooms([]);
     }
-  }, [open, isVoice, roomCode]);
+  }, [open, isVoice, roomCode, roomId]);
   
   const allChannels = useMemo(() => {
     const merged = [...filteredChannels];
-    fetchedChatrooms.forEach((name) => {
-      if (!merged.includes(name)) {
-        merged.push(name);
-      }
-    });
+    if (isVoice) {
+      fetchedVoiceRooms.forEach((name) => {
+        if (!merged.includes(name)) {
+          merged.push(name);
+        }
+      });
+    } else {
+      fetchedChatrooms.forEach((name) => {
+        if (!merged.includes(name)) {
+          merged.push(name);
+        }
+      });
+    }
     return merged;
-  }, [filteredChannels, fetchedChatrooms]);
+  }, [filteredChannels, fetchedChatrooms, fetchedVoiceRooms, isVoice]);
   
   const handleChannelClick = (channelName) => {
     const channelId = getChannelId(channelName);
-    onSelectChannel?.(channelId, roomCode);
+    onSelectChannel?.(channelId, roomCode, roomId);
   };
   
   const hasChannels = allChannels.length > 0;
@@ -137,7 +165,10 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
           {loadingChatrooms && !isVoice && (
             <div className="px-3 py-2 text-xs text-gray-500">Loading chatrooms...</div>
           )}
-          {!hasChannels && !loadingChatrooms && (
+          {loadingVoiceRooms && isVoice && (
+            <div className="px-3 py-2 text-xs text-gray-500">Loading voice rooms...</div>
+          )}
+          {!hasChannels && !loadingChatrooms && !loadingVoiceRooms && (
             <div className="px-3 py-3 text-xs text-gray-500 italic">
               No {isVoice ? 'voice' : 'chat'} rooms yet. Click + to create one!
             </div>
@@ -145,7 +176,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
           {hasChannels && allChannels.map((channel) => {
             const channelId = getChannelId(channel);
             const isSelected = selectedChannel === channelId;
-            const isFetched = fetchedChatrooms.includes(channel);
+            const isFetched = isVoice ? fetchedVoiceRooms.includes(channel) : fetchedChatrooms.includes(channel);
             return (
               <button
                 key={channel}
@@ -164,7 +195,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
                   <span className={isSelected ? 'text-white' : 'text-gray-700'}>#</span>
                 )}
                 <span>{channel}</span>
-                {isFetched && !isVoice && (
+                {isFetched && (
                   <span className="ml-auto text-xs text-gray-400" title="Fetched from API">•</span>
                 )}
               </button>
@@ -550,7 +581,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
@@ -687,6 +718,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 onSelectChannel={onSelectChannel}
                 groupName={groupName}
                 roomCode={roomCode}
+                roomId={roomId}
               />
             </>
           )}
@@ -713,46 +745,149 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [error, setError] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('announcement:general');
 
-  const handleChannelSelect = async (channelId, roomCode) => {
+  const handleChannelSelect = async (channelId, roomCode, roomId) => {
     setSelectedChannel(channelId);
     
     let chatRoomCode = null;
+    let janusRoomId = null;
+    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
     
-    // Parse channelId to extract channel name
+    // Parse channelId to extract channel name and group name
     const parts = channelId?.split(':') || [];
-    if (parts.length >= 3 && parts[1] === 'chat') {
+    if (parts.length >= 3) {
+      const groupName = parts[0]; // Extract groupName from channelId
       const channelName = parts[2];
+      const roomType = parts[1];
       
-      // Only fetch chatRoomCode for non-general channels
-      if (channelName && channelName !== 'general' && roomCode) {
-        try {
-          // First, check session storage for existing chatroom
-          const storageKey = `chatroom_${roomCode}_${channelName}`;
-          const stored = sessionStorage.getItem(storageKey);
-          
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            chatRoomCode = parsed?.data?.chatRoomCode || parsed?.chatRoomCode;
-          }
-          
-          if (!chatRoomCode) {
-            const response = await getChatroomsSummary(roomCode);
-            const chatroomsData = response?.data || [];
-            const chatroom = chatroomsData.find((cr) => cr.name === channelName);
-            if (chatroom) {
-              chatRoomCode = chatroom.chatRoomCode;
-              sessionStorage.setItem(storageKey, JSON.stringify({ data: { chatRoomCode } }));
+      if (roomType === 'chat') {
+        // Only fetch chatRoomCode for non-general channels
+        if (channelName && channelName !== 'general' && roomCode) {
+          try {
+            // First, check session storage for existing chatroom
+            const storageKey = `chatroom_${roomCode}_${channelName}`;
+            const stored = sessionStorage.getItem(storageKey);
+            
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              chatRoomCode = parsed?.data?.chatRoomCode || parsed?.chatRoomCode;
             }
+            
+            if (!chatRoomCode) {
+              const response = await getChatroomsSummary(roomCode);
+              const chatroomsData = response?.data || [];
+              const chatroom = chatroomsData.find((cr) => cr.name === channelName);
+              if (chatroom) {
+                chatRoomCode = chatroom.chatRoomCode;
+                sessionStorage.setItem(storageKey, JSON.stringify({ data: { chatRoomCode } }));
+              }
+            }
+          } catch (error) {
+            console.error('Failed to get chatRoomCode:', error);
           }
-        } catch (error) {
-          console.error('Failed to get chatRoomCode:', error);
+        }
+      } else if (roomType === 'voice') {
+        // Handle voice room - get janusRoomId from sessionStorage
+        if (channelName && roomId && userEmail) {
+          try {
+            // First, try to get from the specific storage key (from create response)
+            const storageKey = `voiceRoom_${roomId}_${channelName}`;
+            const stored = sessionStorage.getItem(storageKey);
+            
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              // Handle different response structures
+              janusRoomId = parsed?.data?.janusRoomId || 
+                           parsed?.data?.voiceRooms?.[0]?.janusRoomId ||
+                           parsed?.janusRoomId ||
+                           parsed?.voiceRooms?.[0]?.janusRoomId;
+            }
+            
+            // If not found, check the voiceRooms array
+            if (!janusRoomId) {
+              const voiceRoomsArray = JSON.parse(sessionStorage.getItem('voiceRooms') || '[]');
+              const voiceRoom = voiceRoomsArray.find(
+                (vr) => vr.name === channelName && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId))
+              );
+              if (voiceRoom) {
+                janusRoomId = voiceRoom.janusRoomId;
+              }
+            }
+            
+            // If still not found, try fetching from API
+            if (!janusRoomId) {
+              try {
+                const response = await getVoiceRoomsList(roomId);
+                const voiceRoomsData = response?.voiceRooms || [];
+                const voiceRoom = voiceRoomsData.find((vr) => vr.name === channelName);
+                if (voiceRoom && voiceRoom.janusRoomId) {
+                  janusRoomId = voiceRoom.janusRoomId;
+                  // Save to sessionStorage for future use
+                  const storageKey = `voiceRoom_${roomId}_${channelName}`;
+                  sessionStorage.setItem(storageKey, JSON.stringify({ data: voiceRoom }));
+                  
+                  // Also update the voiceRooms array
+                  const voiceRoomsArray = JSON.parse(sessionStorage.getItem('voiceRooms') || '[]');
+                  const existingIndex = voiceRoomsArray.findIndex(
+                    (vr) => vr.name === channelName && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId))
+                  );
+                  if (existingIndex >= 0) {
+                    voiceRoomsArray[existingIndex] = { ...voiceRoom, chatRoomId: roomId, groupName };
+                  } else {
+                    voiceRoomsArray.push({ ...voiceRoom, chatRoomId: roomId, groupName });
+                  }
+                  sessionStorage.setItem('voiceRooms', JSON.stringify(voiceRoomsArray));
+                }
+              } catch (error) {
+                console.error('Failed to fetch voice room from API:', error);
+              }
+            }
+            
+            // Join the voice room if janusRoomId is found
+            if (janusRoomId) {
+              try {
+                const joinResponse = await joinVoiceRoom(janusRoomId, userEmail);
+                console.log('Joined voice room:', joinResponse);
+                // Save join response if needed
+                sessionStorage.setItem(`voiceRoomJoin_${janusRoomId}`, JSON.stringify(joinResponse));
+                
+                // Extract sessionId and handleId from response
+                const responseData = joinResponse?.data || joinResponse;
+                const sessionId = responseData?.sessionId;
+                const handleId = responseData?.handleId;
+                
+                // Dispatch event with join data for VoiceRoom component
+                if (sessionId && handleId) {
+                  window.dispatchEvent(new CustomEvent('voice-room:joined', {
+                    detail: { janusRoomId, sessionId, handleId, userId: userEmail }
+                  }));
+                }
+                
+                // Show success toast
+                window.dispatchEvent(new CustomEvent('toast', {
+                  detail: { message: 'Successfully joined voice room!', type: 'success' }
+                }));
+              } catch (error) {
+                console.error('Failed to join voice room:', error);
+                // Don't show error toast for 403, might be expected behavior
+                if (error.message && !error.message.includes('403')) {
+                  window.dispatchEvent(new CustomEvent('toast', {
+                    detail: { message: error.message || 'Failed to join voice room', type: 'error' }
+                  }));
+                }
+              }
+            } else {
+              console.warn('janusRoomId not found for voice room:', channelName);
+            }
+          } catch (error) {
+            console.error('Failed to get janusRoomId:', error);
+          }
         }
       }
     }
     
     try {
       window.dispatchEvent(new CustomEvent('community:channel-selected', {
-        detail: { channelId, roomCode, chatRoomCode }
+        detail: { channelId, roomCode, chatRoomCode, janusRoomId }
       }));
     } catch (error) {
       console.error('Error dispatching channel-selected event:', error);
@@ -765,7 +900,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
-  const [channelModalContext, setChannelModalContext] = useState({ groupName: null, roomType: null });
+  const [channelModalContext, setChannelModalContext] = useState({ groupName: null, roomType: null, roomId: null });
   const [imageError, setImageError] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
   const dropdownRef = useRef(null);
@@ -833,6 +968,13 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         const data = await getCommunityRooms(communityId);
         const roomsList = data?.data || [];
 
+        // Save the community rooms response to sessionStorage for later reference
+        try {
+          sessionStorage.setItem(`communityRooms:${communityId}`, JSON.stringify(data));
+        } catch (err) {
+          console.warn('Failed to save community rooms to sessionStorage:', err);
+        }
+
         const transformedGroups = roomsList.map((room) => {
           const chatRooms = (room.chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
           const voiceRooms = (room.voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
@@ -885,17 +1027,21 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   };
 
   const handleAddVoiceRoom = (groupName) => {
-    setChannelModalContext({ groupName, roomType: 'voice' });
+    // Find the group to get roomId
+    const targetGroup = groups.find((g) => g.name === groupName);
+    const roomId = targetGroup?.id;
+    setChannelModalContext({ groupName, roomType: 'voice', roomId });
     setShowCreateChannelModal(true);
   };
 
   const handleChannelCreated = async (channelName) => {
-    const { groupName, roomType } = channelModalContext;
+    const { groupName, roomType, roomId } = channelModalContext;
     if (!groupName || !channelName) return;
 
     const clean = channelName.trim();
+    const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
     
-    // Only create chatroom via API for chat rooms
+    // Create chatroom via API for chat rooms
     if (roomType === 'chat') {
       // Find the group to get roomCode
       const targetGroup = groups.find((g) => g.name === groupName);
@@ -952,7 +1098,69 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             : g
         )
       );
-    } else {
+    } else if (roomType === 'voice') {
+      // Create voice room via API
+      if (roomId && userEmail) {
+        try {
+          const response = await createVoiceRoom(roomId, clean, userEmail);
+          
+          // Save response to session storage
+          const storageKey = `voiceRoom_${roomId}_${clean}`;
+          const existingVoiceRooms = JSON.parse(sessionStorage.getItem('voiceRooms') || '[]');
+          
+          // Handle different response structures - could be direct object or wrapped in voiceRooms array
+          const voiceRoomFromResponse = response?.data || response;
+          const actualVoiceRoom = voiceRoomFromResponse?.voiceRooms?.[0] || voiceRoomFromResponse;
+          
+          const voiceRoomData = {
+            id: actualVoiceRoom?.id || response?.data?.id || response?.id,
+            janusRoomId: actualVoiceRoom?.janusRoomId || response?.data?.janusRoomId || response?.janusRoomId,
+            name: actualVoiceRoom?.name || response?.data?.name || clean,
+            createdBy: actualVoiceRoom?.createdBy || response?.data?.createdBy || userEmail,
+            createdAt: actualVoiceRoom?.createdAt || response?.data?.createdAt || new Date().toISOString(),
+            active: actualVoiceRoom?.active !== undefined ? actualVoiceRoom?.active : (response?.data?.active !== undefined ? response?.data?.active : true),
+            roomCode: actualVoiceRoom?.roomCode || response?.data?.roomCode || response?.roomCode,
+            chatRoomId: roomId,
+            groupName: groupName,
+            created: new Date().toISOString()
+          };
+          
+          // Check if already exists, update if found, otherwise add
+          const existingIndex = existingVoiceRooms.findIndex(
+            (vr) => (vr.id === voiceRoomData.id && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId))) || 
+                    (vr.name === clean && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId)))
+          );
+          
+          if (existingIndex >= 0) {
+            existingVoiceRooms[existingIndex] = voiceRoomData;
+          } else {
+            existingVoiceRooms.push(voiceRoomData);
+          }
+          
+          sessionStorage.setItem('voiceRooms', JSON.stringify(existingVoiceRooms));
+          // Save the full response for reference
+          sessionStorage.setItem(storageKey, JSON.stringify(response));
+          
+          // Show success toast
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Voice room created successfully!', type: 'success' }
+          }));
+          
+          // Refresh groups to get updated voice rooms list
+          fetchGroups();
+        } catch (error) {
+          console.error('Failed to create voice room:', error);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: error.message || 'Failed to create voice room', type: 'error' }
+          }));
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Room ID or user email not found', type: 'error' }
+        }));
+      }
+      
+      // Update local state immediately for better UX
       setGroups((prev) =>
         prev.map((g) =>
           g.name === groupName
@@ -1186,6 +1394,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             selectedChannel={selectedChannel}
             onSelectChannel={handleChannelSelect}
             roomCode={group.roomCode}
+            roomId={group.id}
           />
         ))}
             {/* Footer */}

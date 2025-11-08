@@ -1,3 +1,8 @@
+// Polyfill for global (needed for sockjs-client)
+if (typeof global === 'undefined') {
+  window.global = window;
+}
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'

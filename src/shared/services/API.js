@@ -624,6 +624,39 @@ export async function getChatroomsSummary(roomCode) {
   return handleJson(response);
 }
 
+// Get voice rooms list for a room
+export async function getVoiceRoomsList(roomId) {
+  const response = await authenticatedFetch(`${BASE_URL}voice-room/list/${roomId}`, {
+    method: 'GET'
+  });
+  return handleJson(response);
+}
+
+// Create voice room
+export async function createVoiceRoom(chatRoomId, roomName, createdBy) {
+  const params = new URLSearchParams();
+  params.set('chatRoomId', chatRoomId);
+  params.set('roomName', roomName);
+  params.set('createdBy', createdBy);
+  
+  const response = await authenticatedFetch(`${BASE_URL}voice-room/create?${params.toString()}`, {
+    method: 'POST'
+  });
+  return handleJson(response);
+}
+
+// Join voice room
+export async function joinVoiceRoom(janusRoomId, displayName) {
+  const params = new URLSearchParams();
+  params.set('janusRoomId', janusRoomId);
+  params.set('displayName', displayName);
+  
+  const response = await authenticatedFetch(`${BASE_URL}voice-room/join?${params.toString()}`, {
+    method: 'POST'
+  });
+  return handleJson(response);
+}
+
 async function handleJson(response) {
   let data;
   try {
