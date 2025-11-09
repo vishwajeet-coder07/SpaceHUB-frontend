@@ -6,6 +6,9 @@ import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import ChatRoom from './chatRoom/Chatroom';
 
 const formatFriendName = (friend) => {
+  if (friend.username) {
+    return friend.username;
+  }
   if (friend.firstName && friend.lastName) {
     return `${friend.firstName} ${friend.lastName}`;
   }
@@ -14,9 +17,6 @@ const formatFriendName = (friend) => {
   }
   if (friend.name) {
     return friend.name;
-  }
-  if (friend.username) {
-    return friend.username;
   }
   return 'Unknown';
 };
@@ -361,9 +361,40 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         const normalized = Array.isArray(rawMessages)
           ? rawMessages.map((msg, idx) => {
               const senderEmail = msg.senderEmail || msg.sender || msg.from || msg.userEmail || msg.email || '';
-              const text = msg.content || msg.message || msg.text || '';
               const timestamp = msg.timestamp || msg.createdAt || msg.sentAt || msg.time || new Date().toISOString();
               const isSelf = senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase();
+              
+              // Handle FILE type messages
+              if (msg.type === 'FILE' || msg.fileUrl) {
+                const fileUrl = msg.fileUrl || msg.file_url || '';
+                const fileName = msg.fileName || msg.file_name || msg.text || 'file';
+                const contentType = msg.contentType || msg.content_type || '';
+                
+                // Check if file is an image
+                const isImage = contentType?.startsWith('image/') || 
+                  ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
+                    fileName?.toLowerCase().split('.').pop()
+                  );
+                
+                return {
+                  id: msg.id || msg.messageId || msg._id || `history-file-${idx}`,
+                  author: isSelf ? (user?.username || userEmail) : friendName,
+                  email: senderEmail,
+                  text: fileName,
+                  createdAt: timestamp,
+                  avatar: isSelf ? selfAvatar : friendAvatar,
+                  isSelf,
+                  images: isImage ? [fileUrl] : [],
+                  fileUrl: fileUrl,
+                  fileName: fileName,
+                  contentType: contentType,
+                  isFile: true,
+                  isImage: isImage
+                };
+              }
+              
+              // Regular text message
+              const text = msg.content || msg.message || msg.text || '';
               const rawImages = Array.isArray(msg.images)
                 ? msg.images
                 : msg.image
@@ -422,20 +453,51 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           const data = JSON.parse(event.data);
         console.log('Parsed WebSocket data:', data);
         
-          const mapMessage = (msg) => ({
-          id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
-            author: msg.senderEmail === userEmail 
-              ? (user?.username || userEmail) 
-              : friendName,
-          email: msg.senderEmail || msg.sender || '',
-          text: msg.content || msg.message || msg.text || '',
-          createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
-            avatar: msg.senderEmail === userEmail
-              ? (user?.avatarUrl || '/avatars/avatar-1.png')
-              : friendAvatar,
-          isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
-            images: []
-          });
+          const mapMessage = (msg) => {
+            // Handle FILE type messages
+            if (msg.type === 'FILE') {
+              const isImage = msg.contentType?.startsWith('image/') || 
+                ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
+                  msg.fileName?.toLowerCase().split('.').pop()
+                );
+              
+              return {
+                id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
+                author: msg.senderEmail === userEmail 
+                  ? (user?.username || userEmail) 
+                  : friendName,
+                email: msg.senderEmail || msg.sender || '',
+                text: msg.fileName || 'file',
+                createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
+                avatar: msg.senderEmail === userEmail
+                  ? (user?.avatarUrl || '/avatars/avatar-1.png')
+                  : friendAvatar,
+                isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+                images: isImage ? [msg.fileUrl] : [],
+                fileUrl: msg.fileUrl,
+                fileName: msg.fileName,
+                contentType: msg.contentType,
+                isFile: true,
+                isImage: isImage
+              };
+            }
+            
+            // Regular text message
+            return {
+              id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
+              author: msg.senderEmail === userEmail 
+                ? (user?.username || userEmail) 
+                : friendName,
+              email: msg.senderEmail || msg.sender || '',
+              text: msg.content || msg.message || msg.text || '',
+              createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
+              avatar: msg.senderEmail === userEmail
+                ? (user?.avatarUrl || '/avatars/avatar-1.png')
+                : friendAvatar,
+              isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+              images: []
+            };
+          };
 
           if (data?.type === 'history' && Array.isArray(data.messages)) {
           console.log('Received history messages:', data.messages.length);
@@ -451,7 +513,36 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                 (sender === friendEmail && receiver === userEmail)
               );
             })
-              .map(mapMessage);
+              .map((msg) => {
+                // Handle FILE type messages in history
+                if (msg.type === 'FILE' || msg.fileUrl) {
+                  const isImage = msg.contentType?.startsWith('image/') || 
+                    ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
+                      msg.fileName?.toLowerCase().split('.').pop()
+                    );
+                  
+                  return {
+                    id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
+                    author: msg.senderEmail === userEmail 
+                      ? (user?.username || userEmail) 
+                      : friendName,
+                    email: msg.senderEmail || msg.sender || '',
+                    text: msg.fileName || 'file',
+                    createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
+                    avatar: msg.senderEmail === userEmail
+                      ? (user?.avatarUrl || '/avatars/avatar-1.png')
+                      : friendAvatar,
+                    isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+                    images: isImage ? [msg.fileUrl] : [],
+                    fileUrl: msg.fileUrl,
+                    fileName: msg.fileName,
+                    contentType: msg.contentType,
+                    isFile: true,
+                    isImage: isImage
+                  };
+                }
+                return mapMessage(msg);
+              });
           console.log('Mapped history messages:', historyMessages);
             setMessages(historyMessages);
             return;
@@ -740,50 +831,100 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             try {
-              const payload = { 
-                content: text || '',
-                senderEmail: userEmail,
-                receiverEmail: friendEmail
-              };
-              console.log('Sending message via WebSocket (from ChatRoom):', payload);
-              wsRef.current.send(JSON.stringify(payload));
+              // Send file messages first if attachments have S3 URLs
+              const readyAttachments = attachments ? attachments.filter(att => att.s3Url && !att.uploading) : [];
               
-              // Optimistically add message to UI immediately
-              const friendName = formatFriendName(selectedFriend);
-              const optimisticMessage = {
-                id: `temp-${Date.now()}-${Math.random()}`,
-                author: user?.username || userEmail.split('@')[0] || 'You',
-                email: userEmail,
-                text: text || '',
-                createdAt: new Date().toISOString(),
-                avatar: user?.avatarUrl || '/avatars/avatar-1.png',
-                isSelf: true,
-                images: attachments ? attachments.map(a => a.url || a) : []
-              };
-              
-              console.log('Adding optimistic message (from ChatRoom):', optimisticMessage);
-              setMessages((prev) => {
-                // Check if message already exists to avoid duplicates
-                const exists = prev.some(m => {
-                  if (m.id === optimisticMessage.id) return true;
-                  // Check if same text from same sender within 1 second
-                  if (m.text === text && m.isSelf && m.email === userEmail) {
-                    const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(optimisticMessage.createdAt).getTime());
-                    if (timeDiff < 1000) return true; // Within 1 second
-                  }
-                  return false;
+              if (readyAttachments.length > 0) {
+                readyAttachments.forEach((attachment) => {
+                  const fileMessage = {
+                    type: 'FILE',
+                    fileName: attachment.fileName || attachment.file?.name || 'file',
+                    fileUrl: attachment.s3Url,
+                    contentType: attachment.contentType || attachment.file?.type || 'application/octet-stream',
+                    senderEmail: userEmail,
+                    receiverEmail: friendEmail
+                  };
+                  console.log('Sending FILE message via WebSocket:', fileMessage);
+                  wsRef.current.send(JSON.stringify(fileMessage));
+                  
+                  // Optimistically add file message to UI
+                  const isImage = fileMessage.contentType?.startsWith('image/') || 
+                    ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
+                      fileMessage.fileName?.toLowerCase().split('.').pop()
+                    );
+                  
+                  const fileOptimisticMessage = {
+                    id: `temp-file-${Date.now()}-${Math.random()}`,
+                    author: user?.username || userEmail.split('@')[0] || 'You',
+                    email: userEmail,
+                    text: fileMessage.fileName,
+                    createdAt: new Date().toISOString(),
+                    avatar: user?.avatarUrl || '/avatars/avatar-1.png',
+                    isSelf: true,
+                    images: isImage ? [fileMessage.fileUrl] : [],
+                    fileUrl: fileMessage.fileUrl,
+                    fileName: fileMessage.fileName,
+                    contentType: fileMessage.contentType,
+                    isFile: true,
+                    isImage: isImage
+                  };
+                  
+                  setMessages((prev) => {
+                    const next = [...prev, fileOptimisticMessage];
+                    return next.sort(
+                      (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                    );
+                  });
                 });
-                if (exists) {
-                  console.log('Message already exists, skipping duplicate');
-                  return prev;
-                }
-                const next = [...prev, optimisticMessage];
-                const sorted = next.sort(
-                  (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                );
-                console.log('Updated messages array length (from ChatRoom):', sorted.length);
-                return sorted;
-              });
+              }
+              
+              // Send text message if there's text
+              if (text && text.trim()) {
+                const payload = { 
+                  content: text || '',
+                  senderEmail: userEmail,
+                  receiverEmail: friendEmail
+                };
+                console.log('Sending message via WebSocket (from ChatRoom):', payload);
+                wsRef.current.send(JSON.stringify(payload));
+                
+                // Optimistically add message to UI immediately
+                const friendName = formatFriendName(selectedFriend);
+                const optimisticMessage = {
+                  id: `temp-${Date.now()}-${Math.random()}`,
+                  author: user?.username || userEmail.split('@')[0] || 'You',
+                  email: userEmail,
+                  text: text || '',
+                  createdAt: new Date().toISOString(),
+                  avatar: user?.avatarUrl || '/avatars/avatar-1.png',
+                  isSelf: true,
+                  images: []
+                };
+                
+                console.log('Adding optimistic message (from ChatRoom):', optimisticMessage);
+                setMessages((prev) => {
+                  // Check if message already exists to avoid duplicates
+                  const exists = prev.some(m => {
+                    if (m.id === optimisticMessage.id) return true;
+                    // Check if same text from same sender within 1 second
+                    if (m.text === text && m.isSelf && m.email === userEmail) {
+                      const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(optimisticMessage.createdAt).getTime());
+                      if (timeDiff < 1000) return true; // Within 1 second
+                    }
+                    return false;
+                  });
+                  if (exists) {
+                    console.log('Message already exists, skipping duplicate');
+                    return prev;
+                  }
+                  const next = [...prev, optimisticMessage];
+                  const sorted = next.sort(
+                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                  );
+                  console.log('Updated messages array length (from ChatRoom):', sorted.length);
+                  return sorted;
+                });
+              }
             } catch (e) {
               console.error('Failed to send message via WebSocket (from ChatRoom):', e);
               window.dispatchEvent(new CustomEvent('toast', {

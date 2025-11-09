@@ -2,8 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getFriendsList, removeFriend } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
-// Helper function to format name as "first last"
+// Helper function to format name - prioritizes username
 const formatFriendName = (friend) => {
+  if (friend.username) {
+    return friend.username;
+  }
   if (friend.firstName && friend.lastName) {
     return `${friend.firstName} ${friend.lastName}`;
   }
@@ -12,9 +15,6 @@ const formatFriendName = (friend) => {
   }
   if (friend.name) {
     return friend.name;
-  }
-  if (friend.username) {
-    return friend.username;
   }
   return 'Unknown';
 };

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
-import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount, getProfileSummary } from '../../../shared/services/API';
+import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount, getProfileSummary, updateProfile } from '../../../shared/services/API';
 
 const InputRow = ({ label, type = 'text', value, setValue, placeholder, rightIcon, onRightIconClick, readOnly = false, isMobile = false }) => {
   const inputClasses = isMobile
@@ -50,6 +50,7 @@ const SettingPage = () => {
   const [email, setEmail] = useState(initialUser.email);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -122,9 +123,57 @@ const SettingPage = () => {
       return;
     }
 
+    // Check if password change is requested
+    const isPasswordChangeRequested = oldPassword.trim() && newPassword.trim();
+    const isEmailChangeRequested = newEmail.trim() && newEmail.trim() !== initialUser.email;
+
+    // Validate password change
+    if (isPasswordChangeRequested && !oldPassword.trim()) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Please enter your current password', type: 'error' }
+      }));
+      return;
+    }
+
+    if (isPasswordChangeRequested && !newPassword.trim()) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Please enter a new password', type: 'error' }
+      }));
+      return;
+    }
+
     const ops = [];
     try {
       setSaving(true);
+      
+      // Update password and/or email if requested
+      if (isPasswordChangeRequested) {
+        await updateProfile({
+          email: initialUser.email,
+          currentPassword: oldPassword.trim(),
+          newPassword: newPassword.trim(),
+          newEmail: isEmailChangeRequested ? newEmail.trim() : undefined
+        });
+
+        // If email changed, logout immediately
+        if (isEmailChangeRequested) {
+          window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Email changed successfully. Please log in again.', type: 'success' } 
+          }));
+          setTimeout(() => {
+            sessionStorage.clear();
+            logout();
+            navigate('/');
+          }, 1000);
+          return;
+        }
+
+        // Clear password fields after successful update
+        setOldPassword('');
+        setNewPassword('');
+        setNewEmail('');
+      }
+
       // Update username if changed and non-empty
       if (isUsernameChanged && (username || '').trim()) {
         ops.push(
@@ -137,52 +186,53 @@ const SettingPage = () => {
         );
       }
 
-      if (ops.length === 0) {
-        return;
-      }
+      if (ops.length > 0) {
+        const results = await Promise.all(ops);
 
-      const results = await Promise.all(ops);
-
-      const nextUser = { ...JSON.parse(sessionStorage.getItem('userData') || '{}') };
-      if (isUsernameChanged && (username || '').trim()) {
-        nextUser.username = username.trim();
-      }
-      if (isImageChanged) {
+        const nextUser = { ...JSON.parse(sessionStorage.getItem('userData') || '{}') };
+        if (isUsernameChanged && (username || '').trim()) {
+          nextUser.username = username.trim();
+        }
+        if (isImageChanged) {
        
-        try {
-          const profileSummary = await getProfileSummary(initialUser.email);
+          try {
+            const profileSummary = await getProfileSummary(initialUser.email);
         
-          if (profileSummary) {
-            if (profileSummary.data) {
+            if (profileSummary) {
+              if (profileSummary.data) {
            
-              Object.assign(nextUser, profileSummary.data);
-            } else {
+                Object.assign(nextUser, profileSummary.data);
+              } else {
              
-              Object.assign(nextUser, profileSummary);
-            }
+                Object.assign(nextUser, profileSummary);
+              }
         
-            if (profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage) {
-              nextUser.avatarUrl = profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage;
-            }
-          } else {
+              if (profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage) {
+                nextUser.avatarUrl = profileSummary.data?.avatarUrl || profileSummary.data?.profileImage || profileSummary.avatarUrl || profileSummary.profileImage;
+              }
+            } else {
            
+              const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
+              const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
+              if (newUrl) nextUser.avatarUrl = newUrl;
+            }
+          } catch (profileError) {
+            console.error('Failed to fetch profile summary:', profileError);
+         
             const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
             const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
             if (newUrl) nextUser.avatarUrl = newUrl;
           }
-        } catch (profileError) {
-          console.error('Failed to fetch profile summary:', profileError);
-         
-        const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
-        const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
-        if (newUrl) nextUser.avatarUrl = newUrl;
         }
+        sessionStorage.setItem('userData', JSON.stringify(nextUser));
+        updateUser?.(nextUser);
       }
-      sessionStorage.setItem('userData', JSON.stringify(nextUser));
-      updateUser?.(nextUser);
-      try {
-        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Changes saved', type: 'success' } }));
-      } catch {}
+
+      if (ops.length > 0 || isPasswordChangeRequested) {
+        try {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Changes saved', type: 'success' } }));
+        } catch {}
+      }
     } catch (e) {
       console.error('Failed to save settings:', e);
       try {
@@ -323,6 +373,15 @@ const SettingPage = () => {
                     )}
                   </button>
                 }
+              />
+
+              <InputRow
+                label="New email (optional)"
+                type="email"
+                value={newEmail}
+                setValue={setNewEmail}
+                placeholder="New email (optional)"
+                isMobile={true}
               />
         </div>
       </div>
@@ -467,6 +526,15 @@ const SettingPage = () => {
                   )}
                 </button>
               }
+            />
+
+            <InputRow
+              label="New email (optional)"
+              type="email"
+              value={newEmail}
+              setValue={setNewEmail}
+              placeholder="New email (optional)"
+              rightIcon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>}
             />
         </div>
       </div>

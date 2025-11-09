@@ -190,7 +190,6 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
               .map((msg, index) => {
                 const senderEmail = msg?.senderEmail || msg?.email || msg?.sender || '';
                 const timestamp = msg?.timestamp || msg?.createdAt || msg?.sentAt || msg?.time || new Date().toISOString();
-                const content = msg?.content || msg?.message || msg?.text || '';
                 const senderName = msg?.senderName || msg?.author || msg?.username || '';
                 
                 // Get username from session storage as fallback
@@ -200,6 +199,46 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                 // Get avatar from session storage first, then fallback to message data
                 const storedAvatar = getAvatarFromStorage(senderEmail);
                 const avatar = storedAvatar || msg?.avatar || msg?.avatarUrl || msg?.avatarPreviewUrl || msg?.profileImage || '/avatars/avatar-1.png';
+                
+                // Handle FILE type messages
+                if (msg?.type === 'FILE' || msg?.fileUrl || msg?.file_url) {
+                  const fileUrl = msg?.fileUrl || msg?.file_url || '';
+                  const fileName = msg?.fileName || msg?.file_name || msg?.text || 'file';
+                  const contentType = msg?.contentType || msg?.content_type || '';
+                  
+                  // Helper function to check if file is an image
+                  const isImageFile = (contentType, fileName) => {
+                    if (contentType) {
+                      return contentType.startsWith('image/');
+                    }
+                    if (fileName) {
+                      const ext = fileName.toLowerCase().split('.').pop();
+                      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+                    }
+                    return false;
+                  };
+                  
+                  const isImage = isImageFile(contentType, fileName);
+                  
+                  return {
+                    id: msg?.id || msg?.messageId || msg?._id || `history-file-${index}-${timestamp}`,
+                    author: displayName,
+                    email: senderEmail,
+                    text: fileName,
+                    createdAt: timestamp,
+                    avatar: avatar,
+                    isSelf: senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase(),
+                    images: isImage ? [fileUrl] : [],
+                    fileUrl: fileUrl,
+                    fileName: fileName,
+                    contentType: contentType,
+                    isFile: true,
+                    isImage: isImage
+                  };
+                }
+                
+                // Regular text message
+                const content = msg?.content || msg?.message || msg?.text || '';
                 
                 return {
                   id: msg?.id || msg?.messageId || msg?._id || `history-${index}-${timestamp}`,
@@ -212,7 +251,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                   images: Array.isArray(msg?.images) ? msg.images : (msg?.image ? [msg.image] : []),
                 };
               })
-              .filter(msg => msg.text || (msg.images && msg.images.length > 0)) // Filter out empty messages
+              .filter(msg => msg.text || (msg.images && msg.images.length > 0) || msg.isFile) // Filter out empty messages, but allow file messages
               .sort((a, b) => {
                 const timeA = new Date(a.createdAt).getTime();
                 const timeB = new Date(b.createdAt).getTime();
@@ -363,25 +402,46 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           onSend={async (msg) => {
             try {
               if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                const payload = { message: msg.text };
-                if (Array.isArray(msg.images) && msg.images.length > 0) {
-                  const out = [];
-                  for (const url of msg.images) {
-                    try {
-                      const res = await fetch(url);
-                      const blob = await res.blob();
-                      const reader = new FileReader();
-                      const dataUrl = await new Promise((resolve, reject) => {
-                        reader.onload = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                      });
-                      out.push(dataUrl);
-                    } catch {}
+                // Send file messages if attachments have S3 URLs
+                if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
+                  const fileMessages = msg.attachments
+                    .filter(att => att.s3Url && !att.uploading)
+                    .map(att => ({
+                      type: 'FILE',
+                      fileName: att.fileName || att.file?.name || 'file',
+                      fileUrl: att.s3Url,
+                      contentType: att.contentType || att.file?.type || 'application/octet-stream'
+                    }));
+                  
+                  // Send file messages first
+                  for (const fileMsg of fileMessages) {
+                    wsRef.current.send(JSON.stringify(fileMsg));
                   }
-                  if (out.length > 0) payload.images = out;
                 }
-                wsRef.current.send(JSON.stringify(payload));
+                
+                // Send text message if there's text
+                if (msg.text && msg.text.trim()) {
+                  const payload = { message: msg.text };
+                  // Handle images in text message (legacy support)
+                  if (Array.isArray(msg.images) && msg.images.length > 0) {
+                    const out = [];
+                    for (const url of msg.images) {
+                      try {
+                        const res = await fetch(url);
+                        const blob = await res.blob();
+                        const reader = new FileReader();
+                        const dataUrl = await new Promise((resolve, reject) => {
+                          reader.onload = () => resolve(reader.result);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(blob);
+                        });
+                        out.push(dataUrl);
+                      } catch {}
+                    }
+                    if (out.length > 0) payload.images = out;
+                  }
+                  wsRef.current.send(JSON.stringify(payload));
+                }
               }
             } catch {}
 

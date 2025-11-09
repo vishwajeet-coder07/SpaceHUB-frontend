@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadFileAndGetUrl } from '../../../../shared/services/API';
 
 const ChatRoom = ({
   title = '#general',
@@ -16,7 +17,7 @@ const ChatRoom = ({
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
-  const [attachments, setAttachments] = useState([]); // [{file, url}]
+  const [attachments, setAttachments] = useState([]); // [{file, url, s3Url, uploading, fileName, contentType}]
   const [expandedMessageIds, setExpandedMessageIds] = useState({});
 
   const fileInputRef = useRef(null);
@@ -33,12 +34,54 @@ const ChatRoom = ({
   }, [title]);
 
   const onPickFiles = () => fileInputRef.current?.click();
-  const onFilesSelected = (e) => {
+  const onFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const withUrls = files.map((file) => ({ file, url: URL.createObjectURL(file) }));
-    setAttachments((prev) => [...prev, ...withUrls]);
+    
+    // Create attachment objects with preview URLs
+    const newAttachments = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+      s3Url: null,
+      uploading: true,
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream'
+    }));
+    
+    // Add to attachments immediately with uploading state
+    setAttachments((prev) => [...prev, ...newAttachments]);
     e.target.value = '';
+    
+    // Upload each file and get S3 URL
+    newAttachments.forEach(async (attachment, index) => {
+      try {
+        const s3Url = await uploadFileAndGetUrl(attachment.file);
+        
+        // Update attachment with S3 URL
+        setAttachments((prev) => {
+          const updated = [...prev];
+          const attachmentIndex = prev.findIndex(
+            (att) => att.file === attachment.file && att.uploading === true
+          );
+          if (attachmentIndex !== -1) {
+            updated[attachmentIndex] = {
+              ...updated[attachmentIndex],
+              s3Url,
+              uploading: false
+            };
+          }
+          return updated;
+        });
+      } catch (error) {
+        console.error('Failed to upload file:', error);
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: `Failed to upload ${attachment.fileName}: ${error.message}`, type: 'error' }
+        }));
+        
+        // Remove failed attachment
+        setAttachments((prev) => prev.filter((att) => att.file !== attachment.file));
+      }
+    });
   };
 
   const onEmojiClick = (e) => {
@@ -80,20 +123,48 @@ const ChatRoom = ({
 
   const handleSend = () => {
     const trimmed = message.trim();
-    // Allow sending if there's any message content (including emojis) or attachments
-    if (!trimmed && attachments.length === 0) return;
+    // Filter out attachments that are still uploading or don't have S3 URLs
+    const readyAttachments = attachments.filter((att) => !att.uploading && att.s3Url);
+    
+    // Allow sending if there's any message content (including emojis) or ready attachments
+    if (!trimmed && readyAttachments.length === 0) {
+      if (attachments.some(att => att.uploading)) {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Please wait for files to finish uploading', type: 'info' }
+        }));
+      }
+      return;
+    }
+    
     const selfAvatar = currentUser?.avatarUrl || '/avatars/avatar-1.png';
     const selfName = currentUser?.username || currentUser?.email || 'You';
-    const newMsg = {
-      id: `m-${Date.now()}`,
-      author: selfName,
-      email: currentUser?.email || 'me',
-      text: trimmed,
-      createdAt: new Date().toISOString(),
-      avatar: selfAvatar,
-      isSelf: true,
-      images: attachments.map((a) => a.url),
-    };
+    
+    // If custom send handler provided, use it; otherwise use default onSend
+    if (sendMessage) {
+      // For WebSocket-based direct chat, pass text and attachments with S3 URLs
+      sendMessage(trimmed, readyAttachments);
+    } else {
+      // For regular chat (community), send FILE type messages for files and regular message for text
+      const newMsg = {
+        id: `m-${Date.now()}`,
+        author: selfName,
+        email: currentUser?.email || 'me',
+        text: trimmed,
+        createdAt: new Date().toISOString(),
+        avatar: selfAvatar,
+        isSelf: true,
+        images: readyAttachments.filter(att => {
+          const isImage = att.contentType?.startsWith('image/') || 
+            ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
+              att.fileName?.toLowerCase().split('.').pop()
+            );
+          return isImage;
+        }).map((a) => a.s3Url),
+        attachments: readyAttachments // Pass attachments so onSend can send FILE type messages
+      };
+      onSend?.(newMsg);
+    }
+    
     setMessage('');
     try { attachments.forEach((a) => URL.revokeObjectURL(a.url)); } catch {}
     setAttachments([]);
@@ -104,15 +175,6 @@ const ChatRoom = ({
         }
       });
     } catch {}
-    
-    // If custom send handler provided, use it; otherwise use default onSend
-    if (sendMessage) {
-      // For WebSocket-based direct chat, pass text and attachments to the handler
-      sendMessage(trimmed, attachments);
-    } else {
-      // For regular chat, use onSend with the full message object
-      onSend?.(newMsg);
-    }
   };
 
   useEffect(() => {
@@ -248,33 +310,36 @@ const ChatRoom = ({
                         </div>
                       )}
                       
-                      <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
-                        isSelf 
-                          ? 'bg-yellow-100/90 border-yellow-400' 
-                          : 'bg-gray-200 border-black/70'
-                      }`}>
-                        <div 
-                          className="whitespace-pre-wrap break-words text-sm text-gray-800 text-left"
-                          style={
-                            shouldClampMessage(m.text) && !expandedMessageIds[m.id]
-                              ? {
-                                  maxHeight: '22.5rem',
-                                  overflow: 'hidden',
-                                }
-                              : {}
-                          }
-                        >
-                          {m.text}
-                        </div>
-                        {shouldClampMessage(m.text) && (
-                          <button
-                            onClick={() => toggleExpand(m.id)}
-                            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      {/* Only show text bubble if it's not an image file (images are shown separately) */}
+                      {!(m.isFile && m.isImage) && (
+                        <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
+                          isSelf 
+                            ? 'bg-yellow-100/90 border-yellow-400' 
+                            : 'bg-gray-200 border-black/70'
+                        }`}>
+                          <div 
+                            className="whitespace-pre-wrap break-words text-sm text-gray-800 text-left"
+                            style={
+                              shouldClampMessage(m.text) && !expandedMessageIds[m.id]
+                                ? {
+                                    maxHeight: '22.5rem',
+                                    overflow: 'hidden',
+                                  }
+                                : {}
+                            }
                           >
-                            {expandedMessageIds[m.id] ? 'Show less' : 'Show more'}
-                          </button>
-                        )}
-                      </div>
+                            {m.text}
+                          </div>
+                          {shouldClampMessage(m.text) && (
+                            <button
+                              onClick={() => toggleExpand(m.id)}
+                              className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {expandedMessageIds[m.id] ? 'Show less' : 'Show more'}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       
                       {/* Images */}
                       {Array.isArray(m.images) && m.images.length > 0 && (
@@ -284,6 +349,24 @@ const ChatRoom = ({
                               <img src={img} alt="attachment" className="w-full h-auto object-cover" />
                             </div>
                           ))}
+                        </div>
+                      )}
+                      
+                      {/* File download link for non-image files */}
+                      {m.isFile && !m.isImage && m.fileUrl && (
+                        <div className="mt-2">
+                          <a
+                            href={m.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={m.fileName}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
+                          </a>
                         </div>
                       )}
                     </div>
@@ -313,9 +396,24 @@ const ChatRoom = ({
           <div className="mb-2 grid grid-cols-3 gap-2">
             {attachments.map((a, idx) => (
               <div key={idx} className="relative rounded-lg overflow-hidden bg-gray-600 border border-gray-500">
-                <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
+                {a.uploading ? (
+                  <div className="w-full h-20 flex items-center justify-center bg-gray-700">
+                    <div className="text-white text-xs">Uploading...</div>
+                  </div>
+                ) : (
+                  <img src={a.url} alt="preview" className="w-full h-20 object-cover" />
+                )}
                 <button
-                  onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                  onClick={() => {
+                    setAttachments((prev) => {
+                      const updated = prev.filter((_, i) => i !== idx);
+                      // Revoke object URL when removing
+                      try {
+                        URL.revokeObjectURL(a.url);
+                      } catch {}
+                      return updated;
+                    });
+                  }}
                   className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/80"
                   title="Remove"
                 >
@@ -370,7 +468,7 @@ const ChatRoom = ({
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!message.trim() && attachments.length === 0}
+            disabled={(!message.trim() && attachments.filter(att => !att.uploading && att.s3Url).length === 0) || attachments.some(att => att.uploading)}
             className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Send"
           >

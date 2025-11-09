@@ -122,6 +122,14 @@ export async function createCommunity({ name, description, createdByEmail, image
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -148,6 +156,14 @@ export async function createLocalGroup({ name, description, createdByEmail, imag
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -172,6 +188,14 @@ export async function getAllCommunities() {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -189,6 +213,14 @@ export async function getMyCommunities(requesterEmail) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -209,6 +241,14 @@ export async function getAllLocalGroups(requesterEmail) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -292,6 +332,14 @@ export async function deleteCommunity({ name, userEmail }) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -313,6 +361,14 @@ export async function leaveCommunity({ communityName, userEmail }) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -334,6 +390,14 @@ export async function createCommunityInvite({ communityId, inviterEmail, email }
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -356,6 +420,14 @@ export async function createLocalGroupInvite({ groupId, inviterEmail, maxUses = 
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -374,6 +446,14 @@ export async function getLocalGroupInvites(groupId) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -395,6 +475,14 @@ export async function acceptCommunityInvite({ communityId, inviteCode, acceptorE
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -419,6 +507,14 @@ export async function joinCommunity(communityName, userEmail) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -438,6 +534,14 @@ export async function getMyPendingRequests(requesterEmail) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -459,6 +563,14 @@ export async function acceptJoinRequest({ communityName, creatorEmail, userEmail
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -480,6 +592,14 @@ export async function rejectJoinRequest({ communityName, creatorEmail, userEmail
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -626,6 +746,25 @@ export async function uploadProfileImage({ imageFile, email }) {
   return handleJson(response);
 }
 
+// Upload file and get S3 URL
+export async function uploadFileAndGetUrl(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await authenticatedFetch(`${BASE_URL}files/upload-and-get-url`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  const data = await handleJson(response);
+  
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || 'Failed to upload file');
+  }
+  
+  return data?.data?.fileUrl || data?.fileUrl || null;
+}
+
 export async function deleteAccount({ email, currentPassword }) {
   const response = await authenticatedFetch(`${BASE_URL}profile/delete`, {
     method: 'DELETE',
@@ -641,6 +780,22 @@ export async function deleteAccount({ email, currentPassword }) {
 export async function getProfileSummary(email) {
   const response = await authenticatedFetch(`${BASE_URL}dashboard/profile-summary?email=${encodeURIComponent(email)}`, {
     method: 'GET'
+  });
+  return handleJson(response);
+}
+
+// Update profile (password and/or email)
+export async function updateProfile({ email, currentPassword, newPassword, newEmail }) {
+  const url = `${BASE_URL}profile/updateProfile?email=${encodeURIComponent(email)}`;
+  const payload = {
+    currentPassword,
+    newPassword,
+    ...(newEmail && newEmail.trim() ? { newEmail: newEmail.trim() } : {})
+  };
+  const response = await authenticatedFetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
   return handleJson(response);
 }
@@ -767,6 +922,14 @@ async function handleJson(response) {
     data = null;
   }
   if (!response.ok) {
+    // Handle 429 Too Many Requests
+    if (response.status === 429) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Wait for some time to reload', type: 'error' }
+      }));
+      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
+      throw new Error(message);
+    }
     const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -799,6 +962,13 @@ export const authenticatedFetch = async (url, options = {}) => {
     sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('userData');
     window.location.href = '/login';
+  }
+  
+  // Handle 429 Too Many Requests
+  if (response.status === 429) {
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { message: 'Wait for some time to reload', type: 'error' }
+    }));
   }
   
   return response;

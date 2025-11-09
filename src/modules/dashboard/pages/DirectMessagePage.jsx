@@ -43,6 +43,9 @@ const DirectMessagePage = () => {
   }, [dispatch]);
 
   const formatFriendName = (friend) => {
+    if (friend.username) {
+      return friend.username;
+    }
     if (friend.firstName && friend.lastName) {
       return `${friend.firstName} ${friend.lastName}`;
     }
@@ -51,9 +54,6 @@ const DirectMessagePage = () => {
     }
     if (friend.name) {
       return friend.name;
-    }
-    if (friend.username) {
-      return friend.username;
     }
     return 'Unknown';
   };
