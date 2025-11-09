@@ -147,7 +147,7 @@ const ChatRoom = ({
   const wsStatusDisplay = getWsStatusDisplay();
 
   return (
-    <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
+    <div className="flex-1 min-w-0 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {/* Header - Mobile Design */}
       <div className="h-14 md:h-12 border-b border-gray-300 flex items-center justify-between px-4 bg-white">
         <div className="flex items-center gap-3 flex-1 min-w-0">

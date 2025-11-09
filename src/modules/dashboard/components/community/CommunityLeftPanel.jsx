@@ -938,6 +938,35 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           const members = data?.data?.members || data?.members || [];
           const me = members.find((m) => (m.email || m.username) && (m.email || m.username).toLowerCase() === userEmail.toLowerCase());
           setCurrentUserRole(((me?.role || '').toUpperCase()) || '');
+          
+          // Store avatar URLs and usernames in session storage for use in chat rooms and voice rooms
+          const avatarMap = {};
+          const usernameMap = {};
+          members.forEach((member) => {
+            const email = member?.email || member?.username || '';
+            if (email) {
+              if (member?.avatarPreviewUrl) {
+                avatarMap[email.toLowerCase()] = member.avatarPreviewUrl;
+              }
+              if (member?.username) {
+                usernameMap[email.toLowerCase()] = member.username;
+              }
+            }
+          });
+          
+          // Store avatars in session storage with community ID as key
+          if (Object.keys(avatarMap).length > 0) {
+            const storageKey = `community_avatars_${communityId}`;
+            const existingAvatars = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+            sessionStorage.setItem(storageKey, JSON.stringify({ ...existingAvatars, ...avatarMap }));
+          }
+          
+          // Store usernames in session storage with community ID as key
+          if (Object.keys(usernameMap).length > 0) {
+            const storageKey = `community_usernames_${communityId}`;
+            const existingUsernames = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+            sessionStorage.setItem(storageKey, JSON.stringify({ ...existingUsernames, ...usernameMap }));
+          }
         }
       } catch {}
     };

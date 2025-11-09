@@ -5,6 +5,7 @@ const VoiceRoom = ({
   localMuted = false,
   onToggleMute,
   onLeave,
+  onBack = null,
 }) => {
   const placeholderAvatar = '/avatars/avatar-1.png';
 
@@ -28,15 +29,15 @@ const VoiceRoom = ({
   }, [participants]);
 
   const Tile = ({ p }) => (
-    <div className="bg-gray-200 rounded-xl overflow-hidden flex flex-col items-center justify-center p-6 h-64">
-      <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-300">
+    <div className="bg-gray-200 rounded-xl overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 h-48 sm:h-64">
+      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-300">
         <img
           src={p?.avatarUrl || placeholderAvatar}
           alt={p?.name || 'user'}
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="mt-3 text-gray-800 font-medium truncate max-w-[12rem]" title={p?.name || ''}>
+      <div className="mt-2 sm:mt-3 text-gray-800 font-medium truncate max-w-[12rem] text-sm sm:text-base" title={p?.name || ''}>
         {p?.name || 'Member'}
       </div>
       <div className="mt-1 text-xs text-gray-600">
@@ -46,17 +47,32 @@ const VoiceRoom = ({
   );
 
   return (
-    <div className="flex-1 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500">
+    <div className="flex-1 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
       {/* Header */}
-      <div className="h-12 border-b border-gray-300 flex items-center gap-2 px-4">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-gray-700">
-          <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5c-.55 0-1-.45-1-1V9c0-3.87 3.13-7 7-7s7 3.13 7 7v2c0 .55-.45 1-1 1h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
-        </svg>
-        <div className="font-semibold text-gray-800 truncate">{title}</div>
+      <div className="h-12 md:h-12 border-b border-gray-300 flex items-center gap-2 px-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Back Button - Mobile only */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden p-1 -ml-1 text-gray-700 hover:text-gray-900"
+              title="Back"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-gray-700 flex-shrink-0">
+            <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5c-.55 0-1-.45-1-1V9c0-3.87 3.13-7 7-7s7 3.13 7 7v2c0 .55-.45 1-1 1h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+          </svg>
+          <div className="font-semibold text-gray-800 truncate">{title}</div>
+        </div>
       </div>
 
       {/* Body: horizontally scrollable pages with snap */}
-      <div className="flex-1 px-4 py-6">
+      <div className="flex-1 px-4 py-6 overflow-y-auto min-h-0">
         {/* Small screens (<= lg: hidden on lg) */}
         <div className="lg:hidden">
           <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2">
@@ -89,16 +105,16 @@ const VoiceRoom = ({
       </div>
 
       {/* Controls */}
-      <div className="px-4 pb-6">
-        <div className="mx-auto w-[min(360px,90%)] bg-black/80 rounded-2xl flex items-center justify-center gap-6 py-3">
+      <div className="px-4 pb-4 sm:pb-6 flex-shrink-0">
+        <div className="mx-auto w-full sm:w-[min(360px,90%)] bg-black/80 rounded-2xl flex items-center justify-center gap-4 sm:gap-6 py-3">
           <button
             onClick={onToggleMute}
-            className={`w-28 h-12 rounded-lg flex items-center justify-center text-white transition-colors ${
+            className={`w-24 sm:w-28 h-10 sm:h-12 rounded-lg flex items-center justify-center text-white transition-colors ${
               localMuted ? 'bg-gray-700' : 'bg-gray-600 hover:bg-gray-500'
             }`}
             title={localMuted ? 'Unmute' : 'Mute'}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[22px] sm:h-[22px]">
               {localMuted ? (
                 <path d="M16.5 12c0-2.49-2.01-4.5-4.5-4.5v-3l-5 5h-3v6h3l5 5v-3c2.49 0 4.5-2.01 4.5-4.5zM19 12c0 3.87-3.13 7-7 7v3c5.52 0 10-4.48 10-10h-3zm-7-7v3c-3.87 0-7 3.13-7 7H2c0-5.52 4.48-10 10-10z" />
               ) : (
@@ -108,10 +124,10 @@ const VoiceRoom = ({
           </button>
           <button
             onClick={onLeave}
-            className="w-28 h-12 rounded-lg flex items-center justify-center text-white bg-red-600 hover:bg-red-700"
+            className="w-24 sm:w-28 h-10 sm:h-12 rounded-lg flex items-center justify-center text-white bg-red-600 hover:bg-red-700"
             title="Leave"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[22px] sm:h-[22px]">
               <path d="M12 7c-4.97 0-9 2.69-9 6v3h6v-3H5.08c.74-1.77 3.52-3 6.92-3s6.18 1.23 6.92 3H15v3h6v-3c0-3.31-4.03-6-9-6z" />
             </svg>
           </button>

@@ -13,6 +13,30 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   const storageKey = useMemo(() => (communityId ? `welcomeShown:community:${communityId}:channel:general` : ''), [communityId]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [messages, setMessages] = useState([]);
+  
+  // Helper function to get avatar from session storage
+  const getAvatarFromStorage = (email) => {
+    if (!email || !communityId) return null;
+    try {
+      const storageKey = `community_avatars_${communityId}`;
+      const avatars = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      return avatars[email.toLowerCase()] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper function to get username from session storage
+  const getUsernameFromStorage = (email) => {
+    if (!email || !communityId) return null;
+    try {
+      const storageKey = `community_usernames_${communityId}`;
+      const usernames = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      return usernames[email.toLowerCase()] || null;
+    } catch {
+      return null;
+    }
+  };
   const [currentRoomCode, setCurrentRoomCode] = useState(roomCode || null);
   const [currentMode, setCurrentMode] = useState('chat'); // 'chat' | 'voice'
   const [currentRoomTitle, setCurrentRoomTitle] = useState('#general');
@@ -168,15 +192,22 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                 const timestamp = msg?.timestamp || msg?.createdAt || msg?.sentAt || msg?.time || new Date().toISOString();
                 const content = msg?.content || msg?.message || msg?.text || '';
                 const senderName = msg?.senderName || msg?.author || msg?.username || '';
-                const fallbackAuthor = senderEmail ? senderEmail.split('@')[0] : 'Unknown';
+                
+                // Get username from session storage as fallback
+                const storedUsername = getUsernameFromStorage(senderEmail);
+                const displayName = senderName || storedUsername || (senderEmail ? senderEmail.split('@')[0] : 'Unknown');
+                
+                // Get avatar from session storage first, then fallback to message data
+                const storedAvatar = getAvatarFromStorage(senderEmail);
+                const avatar = storedAvatar || msg?.avatar || msg?.avatarUrl || msg?.avatarPreviewUrl || msg?.profileImage || '/avatars/avatar-1.png';
                 
                 return {
                   id: msg?.id || msg?.messageId || msg?._id || `history-${index}-${timestamp}`,
-                  author: senderName || fallbackAuthor,
+                  author: displayName,
                   email: senderEmail,
                   text: content,
                   createdAt: timestamp,
-                  avatar: msg?.avatar || msg?.avatarUrl || msg?.profileImage || '/avatars/avatar-1.png',
+                  avatar: avatar,
                   isSelf: senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase(),
                   images: Array.isArray(msg?.images) ? msg.images : (msg?.image ? [msg.image] : []),
                 };
@@ -201,13 +232,21 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           const text = isLegacy ? data.message : (data.text || data.content || '');
           const senderEmail = data.senderEmail || data.email || '';
           
+          // Get username from session storage as fallback
+          const storedUsername = getUsernameFromStorage(senderEmail);
+          const displayName = data.author || data.username || data.senderName || storedUsername || (senderEmail ? senderEmail.split('@')[0] : 'Unknown');
+          
+          // Get avatar from session storage first, then fallback to message data
+          const storedAvatar = getAvatarFromStorage(senderEmail);
+          const avatar = storedAvatar || data.avatar || data.avatarUrl || data.avatarPreviewUrl || '/avatars/avatar-1.png';
+          
           const receivedMsg = {
             id: data.id || `m-${Date.now()}-${Math.random()}`,
-            author: data.author || data.username || data.senderName || senderEmail || 'Unknown',
+            author: displayName,
             email: senderEmail,
             text,
             createdAt: data.timestamp || data.createdAt || new Date().toISOString(),
-            avatar: data.avatar || data.avatarUrl || '/avatars/avatar-1.png',
+            avatar: avatar,
             isSelf: senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase(),
             images: Array.isArray(data.images) ? data.images : [],
           };
@@ -228,10 +267,32 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
+      // Log error but don't show toast on mobile to avoid spam
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
+    ws.onclose = (event) => {
+      console.log('WebSocket disconnected', event.code, event.reason);
+      
+      // Attempt to reconnect if connection was lost unexpectedly
+      const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+      const activeRoomCode = currentRoomCode || roomCode;
+      const wsRoomCode = activeChatRoomCode || activeRoomCode;
+      
+      if (event.code !== 1000 && userEmail && wsRoomCode && currentMode === 'chat') {
+        console.log('Attempting to reconnect WebSocket for community chat...');
+        setTimeout(() => {
+          if (userEmail && wsRoomCode && currentMode === 'chat' && (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
+            try {
+              const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(wsRoomCode)}&email=${encodeURIComponent(userEmail)}`;
+              const newWs = new WebSocket(wsUrl);
+              wsRef.current = newWs;
+              setupWebSocket(newWs, wsRoomCode);
+            } catch (e) {
+              console.error('Failed to reconnect WebSocket:', e);
+            }
+          }
+        }, 3000); // Reconnect after 3 seconds
+      }
     };
   };
 
@@ -282,11 +343,13 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   };
 
   return (
-    <div className="flex-1 min-w-0 bg-white h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden">
+    <div className="flex-1 min-w-0 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {currentMode === 'voice' ? (
         <VoiceRoomWithWebRTC
           title={currentRoomTitle}
           voiceRoomData={voiceRoomData}
+          communityId={communityId}
+          onBack={onBack}
         />
       ) : (
         <ChatRoom
@@ -356,7 +419,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 };
 
 // Voice Room Component with WebRTC
-const VoiceRoomWithWebRTC = ({ title, voiceRoomData }) => {
+const VoiceRoomWithWebRTC = ({ title, voiceRoomData, communityId, onBack = null }) => {
   const enabled = voiceRoomData && voiceRoomData.janusRoomId && voiceRoomData.sessionId && voiceRoomData.handleId;
   
   const {
@@ -374,6 +437,46 @@ const VoiceRoomWithWebRTC = ({ title, voiceRoomData }) => {
     enabled
   );
 
+  // Helper function to get avatar from session storage
+  const getAvatarFromStorage = (email) => {
+    if (!email || !communityId) return null;
+    try {
+      const storageKey = `community_avatars_${communityId}`;
+      const avatars = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      return avatars[email.toLowerCase()] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper function to get username from session storage
+  const getUsernameFromStorage = (email) => {
+    if (!email || !communityId) return null;
+    try {
+      const storageKey = `community_usernames_${communityId}`;
+      const usernames = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      return usernames[email.toLowerCase()] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Enrich participants with avatar URLs and usernames from session storage
+  const enrichedParticipants = React.useMemo(() => {
+    return participants.map((p) => {
+      const userId = p.userId || p.email || '';
+      const storedAvatar = getAvatarFromStorage(userId);
+      const storedUsername = getUsernameFromStorage(userId);
+      const displayName = p.name || storedUsername || (userId ? userId.split('@')[0] : 'Member');
+      return {
+        ...p,
+        avatarUrl: storedAvatar || p.avatarUrl || '/avatars/avatar-1.png',
+        name: displayName,
+        email: userId
+      };
+    });
+  }, [participants, communityId]);
+
   React.useEffect(() => {
     if (error) {
       window.dispatchEvent(new CustomEvent('toast', {
@@ -385,10 +488,11 @@ const VoiceRoomWithWebRTC = ({ title, voiceRoomData }) => {
   return (
     <VoiceRoom
       title={title}
-      participants={participants}
+      participants={enrichedParticipants}
       localMuted={isMuted}
       onToggleMute={toggleMute}
       onLeave={leave}
+      onBack={onBack}
     />
   );
 };

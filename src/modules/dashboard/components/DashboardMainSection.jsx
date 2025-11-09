@@ -408,6 +408,154 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     };
   }, [friendEmail, userEmail, selectedFriend, user]);
 
+  // Helper function to set up WebSocket handlers
+  const setupWebSocketHandlers = useCallback((ws, friendName, friendAvatar, wsUrl) => {
+      ws.onopen = () => {
+        console.log('WebSocket connected for direct chat');
+        setWsConnected(true);
+      setWsStatus('connected');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+        console.log('WebSocket message received:', event.data);
+          const data = JSON.parse(event.data);
+        console.log('Parsed WebSocket data:', data);
+        
+          const mapMessage = (msg) => ({
+          id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
+            author: msg.senderEmail === userEmail 
+              ? (user?.username || userEmail) 
+              : friendName,
+          email: msg.senderEmail || msg.sender || '',
+          text: msg.content || msg.message || msg.text || '',
+          createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
+            avatar: msg.senderEmail === userEmail
+              ? (user?.avatarUrl || '/avatars/avatar-1.png')
+              : friendAvatar,
+          isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+            images: []
+          });
+
+          if (data?.type === 'history' && Array.isArray(data.messages)) {
+          console.log('Received history messages:', data.messages.length);
+            const sorted = [...data.messages].sort(
+            (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
+            );
+            const historyMessages = sorted
+            .filter((msg) => {
+              const sender = msg.senderEmail || msg.sender;
+              const receiver = msg.receiverEmail || msg.receiver;
+              return (
+                (sender === userEmail && receiver === friendEmail) ||
+                (sender === friendEmail && receiver === userEmail)
+              );
+            })
+              .map(mapMessage);
+          console.log('Mapped history messages:', historyMessages);
+            setMessages(historyMessages);
+            return;
+          }
+          
+        // Handle single message
+        const sender = data.senderEmail || data.sender;
+        const receiver = data.receiverEmail || data.receiver;
+          const isForCurrentChat = 
+          (sender === userEmail && receiver === friendEmail) ||
+          (sender === friendEmail && receiver === userEmail);
+
+        console.log('Message check:', { sender, receiver, userEmail, friendEmail, isForCurrentChat });
+
+        if (isForCurrentChat || !sender || !receiver) {
+            const receivedMsg = mapMessage(data);
+          console.log('Adding message to state:', receivedMsg);
+            setMessages((prev) => {
+            // Check if message already exists to avoid duplicates
+            const existingIndex = prev.findIndex(m => {
+              if (m.id === receivedMsg.id) return true;
+              if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
+                const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
+                if (timeDiff < 3000) return true; // Within 3 seconds
+              }
+              return false;
+            });
+            
+            if (existingIndex !== -1) {
+              const existing = prev[existingIndex];
+              if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
+                console.log('Replacing optimistic message with server message');
+                const updated = [...prev];
+                updated[existingIndex] = receivedMsg;
+                const sorted = updated.sort(
+                  (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                );
+                return sorted;
+              }
+              console.log('Message already exists, skipping duplicate');
+              return prev;
+            }
+            
+              const next = [...prev, receivedMsg];
+            const sorted = next.sort(
+                (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+              );
+            console.log('Updated messages array length:', sorted.length);
+            return sorted;
+            });
+        } else {
+          console.log('Message not for current chat, ignoring:', { sender, receiver, userEmail, friendEmail });
+          }
+        } catch (e) {
+        console.error('Failed to parse WebSocket message:', e, event.data);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setWsConnected(false);
+      setWsStatus('not-connected');
+      // Only show error toast on desktop to avoid spam on mobile
+      if (window.innerWidth >= 768) {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Connection error. Please try again.', type: 'error' }
+        }));
+      }
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket disconnected', event.code, event.reason);
+        setWsConnected(false);
+      setWsStatus('not-connected');
+      
+      // Attempt to reconnect on mobile if connection was lost unexpectedly
+      // Only reconnect if we still have a friend selected and it wasn't a clean close
+      if (event.code !== 1000 && event.code !== 1001 && friendEmail && userEmail) {
+        // Only show toast on desktop
+        if (window.innerWidth >= 768) {
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Connection closed. Reconnecting...', type: 'warning' }
+          }));
+        }
+        
+        // Attempt to reconnect after a delay
+        setTimeout(() => {
+          if (friendEmail && userEmail && (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
+            try {
+              console.log('Attempting to reconnect WebSocket for direct chat...');
+              setWsStatus('connecting');
+              const newWs = new WebSocket(wsUrl);
+              wsRef.current = newWs;
+              setupWebSocketHandlers(newWs, friendName, friendAvatar, wsUrl);
+            } catch (e) {
+              console.error('Failed to reconnect WebSocket:', e);
+              setWsStatus('not-connected');
+            }
+          }
+        }, 3000); // Reconnect after 3 seconds
+      }
+    };
+  }, [friendEmail, userEmail, user, selectedFriend]);
+
   useEffect(() => {
     if (!friendEmail || !userEmail) {
       if (wsRef.current) {
@@ -434,129 +582,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       setWsStatus('connecting');
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+      setupWebSocketHandlers(ws, friendName, friendAvatar, wsUrl);
 
-      ws.onopen = () => {
-        console.log('WebSocket connected for direct chat');
-        setWsConnected(true);
-        setWsStatus('connected');
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          console.log('WebSocket message received:', event.data);
-          const data = JSON.parse(event.data);
-          console.log('Parsed WebSocket data:', data);
-          
-          const mapMessage = (msg) => ({
-            id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
-            author: msg.senderEmail === userEmail 
-              ? (user?.username || userEmail) 
-              : friendName,
-            email: msg.senderEmail || msg.sender || '',
-            text: msg.content || msg.message || msg.text || '',
-            createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
-            avatar: msg.senderEmail === userEmail
-              ? (user?.avatarUrl || '/avatars/avatar-1.png')
-              : friendAvatar,
-            isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
-            images: []
-          });
-
-          if (data?.type === 'history' && Array.isArray(data.messages)) {
-            console.log('Received history messages:', data.messages.length);
-            const sorted = [...data.messages].sort(
-              (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
-            );
-            const historyMessages = sorted
-              .filter((msg) => {
-                const sender = msg.senderEmail || msg.sender;
-                const receiver = msg.receiverEmail || msg.receiver;
-                return (
-                  (sender === userEmail && receiver === friendEmail) ||
-                  (sender === friendEmail && receiver === userEmail)
-                );
-              })
-              .map(mapMessage);
-            console.log('Mapped history messages:', historyMessages);
-            setMessages(historyMessages);
-            return;
-          }
-          
-          // Handle single message
-          const sender = data.senderEmail || data.sender;
-          const receiver = data.receiverEmail || data.receiver;
-          const isForCurrentChat = 
-            (sender === userEmail && receiver === friendEmail) ||
-            (sender === friendEmail && receiver === userEmail);
-
-          console.log('Message check:', { sender, receiver, userEmail, friendEmail, isForCurrentChat });
-
-          if (isForCurrentChat || !sender || !receiver) {
-            const receivedMsg = mapMessage(data);
-            console.log('Adding message to state:', receivedMsg);
-            setMessages((prev) => {
-              // Check if message already exists to avoid duplicates
-              // Check by ID, or by text + sender + timestamp (within 3 seconds)
-              const existingIndex = prev.findIndex(m => {
-                if (m.id === receivedMsg.id) return true;
-                if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
-                  const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
-                  if (timeDiff < 3000) return true; // Within 3 seconds
-                }
-                return false;
-              });
-              
-              if (existingIndex !== -1) {
-                const existing = prev[existingIndex];
-                if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
-                  console.log('Replacing optimistic message with server message');
-                  const updated = [...prev];
-                  updated[existingIndex] = receivedMsg;
-                  const sorted = updated.sort(
-                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                  );
-                  return sorted;
-                }
-                console.log('Message already exists, skipping duplicate');
-                return prev;
-              }
-              
-              const next = [...prev, receivedMsg];
-              const sorted = next.sort(
-                (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-              );
-              console.log('Updated messages array length:', sorted.length);
-              return sorted;
-            });
-          } else {
-            console.log('Message not for current chat, ignoring:', { sender, receiver, userEmail, friendEmail });
-          }
-        } catch (e) {
-          console.error('Failed to parse WebSocket message:', e, event.data);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setWsConnected(false);
-        setWsStatus('not-connected');
-        // Show error toast
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'Connection error. Please try again.', type: 'error' }
-        }));
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket disconnected', event.code, event.reason);
-        setWsConnected(false);
-        setWsStatus('not-connected');
-        
-        if (event.code !== 1000 && event.code !== 1001) {
-          window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: 'Connection closed. Reconnecting...', type: 'warning' }
-          }));
-        }
-      };
 
       return () => {
         if (wsRef.current) {
@@ -574,7 +601,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         detail: { message: e.message || 'Failed to connect to chat', type: 'error' }
       }));
     }
-  }, [friendEmail, userEmail, selectedFriend, user]);
+  }, [friendEmail, userEmail, selectedFriend, user, setupWebSocketHandlers]);
     
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -781,13 +808,13 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         <div className="flex items-center gap-2 mb-3">
           <svg className="w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
             <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>
-          </svg>
+                </svg>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         </div>
-        
+
         {/* Tabs */}
         <div className="flex gap-2">
-          <button
+                    <button
             onClick={() => dispatch(setActiveTab('Community'))}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'Community'
@@ -796,7 +823,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             }`}
           >
             Community
-          </button>
+                    </button>
           <button
             onClick={() => dispatch(setActiveTab('Local-Groups'))}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -806,7 +833,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             }`}
           >
             Group
-          </button>
+                    </button>
         </div>
       </div>
 
@@ -869,5 +896,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 };
 
 export default DashboardMainSection;
+
+
+
+
 
 

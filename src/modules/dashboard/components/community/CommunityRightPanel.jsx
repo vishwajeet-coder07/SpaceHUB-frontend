@@ -26,6 +26,36 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
         const data = await getCommunityMembers(communityId);
         list = data?.data?.members || data?.members || [];
       }
+      
+      // Store avatar URLs and usernames in session storage for use in chat rooms and voice rooms
+      const avatarMap = {};
+      const usernameMap = {};
+      list.forEach((member) => {
+        const email = member?.email || member?.username || '';
+        if (email) {
+          if (member?.avatarPreviewUrl) {
+            avatarMap[email.toLowerCase()] = member.avatarPreviewUrl;
+          }
+          if (member?.username) {
+            usernameMap[email.toLowerCase()] = member.username;
+          }
+        }
+      });
+      
+      // Store avatars in session storage with community ID as key
+      if (Object.keys(avatarMap).length > 0) {
+        const storageKey = `community_avatars_${communityId}`;
+        const existingAvatars = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+        sessionStorage.setItem(storageKey, JSON.stringify({ ...existingAvatars, ...avatarMap }));
+      }
+      
+      // Store usernames in session storage with community ID as key
+      if (Object.keys(usernameMap).length > 0) {
+        const storageKey = `community_usernames_${communityId}`;
+        const existingUsernames = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+        sessionStorage.setItem(storageKey, JSON.stringify({ ...existingUsernames, ...usernameMap }));
+      }
+      
       setMembers(list);
 
       // Find current user's role
@@ -170,7 +200,8 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
             const displayName = m.username || m.name || m.email || `member-${idx+1}`;
             const role = (m.role || '').toString();
             const memberRole = (m.role || '').toUpperCase();
-            const avatarUrl = m.avatarUrl || m.avatar || '/avatars/avatar-1.png';
+            // Use avatarPreviewUrl from API response, fallback to other fields
+            const avatarUrl = m.avatarPreviewUrl || m.avatarUrl || m.avatar || '/avatars/avatar-1.png';
             const memberEmail = m.email || m.username || '';
             const isCurrentUser = memberEmail && currentUserEmail && memberEmail.toLowerCase() === currentUserEmail.toLowerCase();
             const isMemberAdmin = memberRole === 'ADMIN';

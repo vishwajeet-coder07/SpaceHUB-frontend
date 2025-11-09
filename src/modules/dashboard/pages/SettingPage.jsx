@@ -173,9 +173,9 @@ const SettingPage = () => {
         } catch (profileError) {
           console.error('Failed to fetch profile summary:', profileError);
          
-          const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
-          const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
-          if (newUrl) nextUser.avatarUrl = newUrl;
+        const imgRes = results.find((r) => r && (r.data?.imageUrl || r.imageUrl || r.url));
+        const newUrl = imgRes?.data?.imageUrl || imgRes?.imageUrl || imgRes?.url;
+        if (newUrl) nextUser.avatarUrl = newUrl;
         }
       }
       sessionStorage.setItem('userData', JSON.stringify(nextUser));
@@ -468,9 +468,9 @@ const SettingPage = () => {
                 </button>
               }
             />
-          </div>
         </div>
       </div>
+    </div>
 
       {/* Delete Account Modal */}
       {showDeleteModal && (

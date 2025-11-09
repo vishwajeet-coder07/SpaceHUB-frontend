@@ -189,7 +189,7 @@ const CommunityPage = () => {
                 className="fixed inset-0 bg-black/50 z-30 md:hidden"
                 onClick={() => setShowCenterPanel(false)}
               />
-              <div className="fixed inset-0 z-40 md:hidden">
+              <div className="fixed inset-0 z-40 md:hidden flex flex-col">
                 <CommunityCenterPanel 
                   community={community} 
                   onToggleRightPanel={() => setShowRightPanel(true)}
