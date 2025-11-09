@@ -192,21 +192,21 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                 const timestamp = msg?.timestamp || msg?.createdAt || msg?.sentAt || msg?.time || new Date().toISOString();
                 const senderName = msg?.senderName || msg?.author || msg?.username || '';
                 
-                // Get username from session storage as fallback
+           
                 const storedUsername = getUsernameFromStorage(senderEmail);
                 const displayName = senderName || storedUsername || (senderEmail ? senderEmail.split('@')[0] : 'Unknown');
                 
-                // Get avatar from session storage first, then fallback to message data
+               
                 const storedAvatar = getAvatarFromStorage(senderEmail);
                 const avatar = storedAvatar || msg?.avatar || msg?.avatarUrl || msg?.avatarPreviewUrl || msg?.profileImage || '/avatars/avatar-1.png';
                 
-                // Handle FILE type messages
+          
                 if (msg?.type === 'FILE' || msg?.fileUrl || msg?.file_url) {
                   const fileUrl = msg?.fileUrl || msg?.file_url || '';
                   const fileName = msg?.fileName || msg?.file_name || msg?.text || 'file';
                   const contentType = msg?.contentType || msg?.content_type || '';
                   
-                  // Helper function to check if file is an image
+          
                   const isImageFile = (contentType, fileName) => {
                     if (contentType) {
                       return contentType.startsWith('image/');
@@ -306,13 +306,13 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      // Log error but don't show toast on mobile to avoid spam
+      
     };
 
     ws.onclose = (event) => {
       console.log('WebSocket disconnected', event.code, event.reason);
       
-      // Attempt to reconnect if connection was lost unexpectedly
+     
       const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
       const activeRoomCode = currentRoomCode || roomCode;
       const wsRoomCode = activeChatRoomCode || activeRoomCode;
@@ -330,7 +330,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
               console.error('Failed to reconnect WebSocket:', e);
             }
           }
-        }, 3000); // Reconnect after 3 seconds
+        }, 3000);
       }
     };
   };

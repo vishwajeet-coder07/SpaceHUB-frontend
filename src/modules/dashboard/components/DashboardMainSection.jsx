@@ -165,6 +165,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const members = item.totalMembers || item.members || 0;
     const online = item.onlineMembers || item.online || 0;
     const [imageError, setImageError] = useState(false);
+    const isCommunity = activeTab === 'Community';
+    const isLocalGroup = activeTab === 'Local-Groups';
     
     useEffect(() => {
       setImageError(false);
@@ -200,13 +202,13 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           </div>
           
           {/* Right - Members and Online Status */}
-          <div className="flex-shrink-0 text-right">
-            <div className="text-xs text-gray-600 mb-1">members: {members || 0}</div>
-            <div className="text-xs text-green-600 flex items-center justify-end gap-1">
-              <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
-              {online || 0} Online
+          {!isCommunity && (
+            <div className="flex-shrink-0 text-right">
+              {isLocalGroup && (
+                <div className="text-xs text-gray-600 mb-1">members: {members || 0}</div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         <div className="hidden md:flex items-stretch rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] w-full">
@@ -231,13 +233,16 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           {/* Right Section - Content */}
           <div className="flex-1 min-w-0 bg-[#282828] text-white rounded-r-xl p-3 sm:p-4 relative">
             {/* Member Status - Top Right */}
-            <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right text-xs sm:text-sm">
-              <div className="text-gray-300">members: {members || 0}</div>
-              <div className="text-green-400">• {online || 0} Online</div>
-            </div>
+            {!isCommunity && (
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right text-xs sm:text-sm">
+                {isLocalGroup && (
+                  <div className="text-gray-300">members: {members || 0}</div>
+                )}
+              </div>
+            )}
             
             {/* Title and Description */}
-            <div className="pr-16 sm:pr-20 md:pr-24 lg:pr-32">
+            <div className={isCommunity ? "" : "pr-16 sm:pr-20 md:pr-24 lg:pr-32"}>
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1 sm:mb-2">{title}</h3>
               <p className="text-xs sm:text-sm text-gray-300 leading-relaxed line-clamp-1">{description}</p>
           </div>
@@ -440,18 +445,22 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   }, [friendEmail, userEmail, selectedFriend, user]);
 
   // Helper function to set up WebSocket handlers
-  const setupWebSocketHandlers = useCallback((ws, friendName, friendAvatar, wsUrl) => {
-      ws.onopen = () => {
-        console.log('WebSocket connected for direct chat');
+  const setupWebSocketHandlers = useCallback((ws, friendName, friendAvatar, wsUrl, currentFriendEmail, currentUserEmail, onOpenCallback) => {
+      ws.onopen = (event) => {
+        console.log('WebSocket connected for direct chat', { currentFriendEmail, currentUserEmail });
         setWsConnected(true);
-      setWsStatus('connected');
+        setWsStatus('connected');
+        // Call additional callback if provided (e.g., to clear timeout)
+        if (onOpenCallback) {
+          onOpenCallback();
+        }
       };
 
       ws.onmessage = (event) => {
         try {
-        console.log('WebSocket message received:', event.data);
+          console.log('WebSocket message received:', event.data);
           const data = JSON.parse(event.data);
-        console.log('Parsed WebSocket data:', data);
+          console.log('Parsed WebSocket data:', data);
         
           const mapMessage = (msg) => {
             // Handle FILE type messages
@@ -463,16 +472,16 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               
               return {
                 id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
-                author: msg.senderEmail === userEmail 
-                  ? (user?.username || userEmail) 
+                author: msg.senderEmail === currentUserEmail 
+                  ? (user?.username || currentUserEmail) 
                   : friendName,
                 email: msg.senderEmail || msg.sender || '',
                 text: msg.fileName || 'file',
                 createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
-                avatar: msg.senderEmail === userEmail
+                avatar: msg.senderEmail === currentUserEmail
                   ? (user?.avatarUrl || '/avatars/avatar-1.png')
                   : friendAvatar,
-                isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+                isSelf: msg.senderEmail === currentUserEmail || (msg.sender && msg.sender === currentUserEmail),
                 images: isImage ? [msg.fileUrl] : [],
                 fileUrl: msg.fileUrl,
                 fileName: msg.fileName,
@@ -485,34 +494,34 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             // Regular text message
             return {
               id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
-              author: msg.senderEmail === userEmail 
-                ? (user?.username || userEmail) 
+              author: msg.senderEmail === currentUserEmail 
+                ? (user?.username || currentUserEmail) 
                 : friendName,
               email: msg.senderEmail || msg.sender || '',
               text: msg.content || msg.message || msg.text || '',
               createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
-              avatar: msg.senderEmail === userEmail
+              avatar: msg.senderEmail === currentUserEmail
                 ? (user?.avatarUrl || '/avatars/avatar-1.png')
                 : friendAvatar,
-              isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+              isSelf: msg.senderEmail === currentUserEmail || (msg.sender && msg.sender === currentUserEmail),
               images: []
             };
           };
 
           if (data?.type === 'history' && Array.isArray(data.messages)) {
-          console.log('Received history messages:', data.messages.length);
+            console.log('Received history messages:', data.messages.length);
             const sorted = [...data.messages].sort(
-            (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
+              (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
             );
             const historyMessages = sorted
-            .filter((msg) => {
-              const sender = msg.senderEmail || msg.sender;
-              const receiver = msg.receiverEmail || msg.receiver;
-              return (
-                (sender === userEmail && receiver === friendEmail) ||
-                (sender === friendEmail && receiver === userEmail)
-              );
-            })
+              .filter((msg) => {
+                const sender = msg.senderEmail || msg.sender;
+                const receiver = msg.receiverEmail || msg.receiver;
+                return (
+                  (sender === currentUserEmail && receiver === currentFriendEmail) ||
+                  (sender === currentFriendEmail && receiver === currentUserEmail)
+                );
+              })
               .map((msg) => {
                 // Handle FILE type messages in history
                 if (msg.type === 'FILE' || msg.fileUrl) {
@@ -523,16 +532,16 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   
                   return {
                     id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
-                    author: msg.senderEmail === userEmail 
-                      ? (user?.username || userEmail) 
+                    author: msg.senderEmail === currentUserEmail 
+                      ? (user?.username || currentUserEmail) 
                       : friendName,
                     email: msg.senderEmail || msg.sender || '',
                     text: msg.fileName || 'file',
                     createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
-                    avatar: msg.senderEmail === userEmail
+                    avatar: msg.senderEmail === currentUserEmail
                       ? (user?.avatarUrl || '/avatars/avatar-1.png')
                       : friendAvatar,
-                    isSelf: msg.senderEmail === userEmail || (msg.sender && msg.sender === userEmail),
+                    isSelf: msg.senderEmail === currentUserEmail || (msg.sender && msg.sender === currentUserEmail),
                     images: isImage ? [msg.fileUrl] : [],
                     fileUrl: msg.fileUrl,
                     fileName: msg.fileName,
@@ -543,114 +552,118 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                 }
                 return mapMessage(msg);
               });
-          console.log('Mapped history messages:', historyMessages);
+            console.log('Mapped history messages:', historyMessages);
             setMessages(historyMessages);
             return;
           }
           
-        // Handle single message
-        const sender = data.senderEmail || data.sender;
-        const receiver = data.receiverEmail || data.receiver;
+          // Handle single message
+          const sender = data.senderEmail || data.sender;
+          const receiver = data.receiverEmail || data.receiver;
           const isForCurrentChat = 
-          (sender === userEmail && receiver === friendEmail) ||
-          (sender === friendEmail && receiver === userEmail);
+            (sender === currentUserEmail && receiver === currentFriendEmail) ||
+            (sender === currentFriendEmail && receiver === currentUserEmail);
 
-        console.log('Message check:', { sender, receiver, userEmail, friendEmail, isForCurrentChat });
+          console.log('Message check:', { sender, receiver, currentUserEmail, currentFriendEmail, isForCurrentChat });
 
-        if (isForCurrentChat || !sender || !receiver) {
+          if (isForCurrentChat || !sender || !receiver) {
             const receivedMsg = mapMessage(data);
-          console.log('Adding message to state:', receivedMsg);
+            console.log('Adding message to state:', receivedMsg);
             setMessages((prev) => {
-            // Check if message already exists to avoid duplicates
-            const existingIndex = prev.findIndex(m => {
-              if (m.id === receivedMsg.id) return true;
-              if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
-                const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
-                if (timeDiff < 3000) return true; // Within 3 seconds
-              }
-              return false;
-            });
+              // Check if message already exists to avoid duplicates
+              const existingIndex = prev.findIndex(m => {
+                if (m.id === receivedMsg.id) return true;
+                if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
+                  const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
+                  if (timeDiff < 3000) return true; // Within 3 seconds
+                }
+                return false;
+              });
             
-            if (existingIndex !== -1) {
-              const existing = prev[existingIndex];
-              if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
-                console.log('Replacing optimistic message with server message');
-                const updated = [...prev];
-                updated[existingIndex] = receivedMsg;
-                const sorted = updated.sort(
-                  (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                );
-                return sorted;
+              if (existingIndex !== -1) {
+                const existing = prev[existingIndex];
+                if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
+                  console.log('Replacing optimistic message with server message');
+                  const updated = [...prev];
+                  updated[existingIndex] = receivedMsg;
+                  const sorted = updated.sort(
+                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                  );
+                  return sorted;
+                }
+                console.log('Message already exists, skipping duplicate');
+                return prev;
               }
-              console.log('Message already exists, skipping duplicate');
-              return prev;
-            }
             
               const next = [...prev, receivedMsg];
-            const sorted = next.sort(
+              const sorted = next.sort(
                 (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
               );
-            console.log('Updated messages array length:', sorted.length);
-            return sorted;
+              console.log('Updated messages array length:', sorted.length);
+              return sorted;
             });
-        } else {
-          console.log('Message not for current chat, ignoring:', { sender, receiver, userEmail, friendEmail });
+          } else {
+            console.log('Message not for current chat, ignoring:', { sender, receiver, currentUserEmail, currentFriendEmail });
           }
         } catch (e) {
-        console.error('Failed to parse WebSocket message:', e, event.data);
+          console.error('Failed to parse WebSocket message:', e, event.data);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket error:', error, 'URL:', wsUrl);
         setWsConnected(false);
-      setWsStatus('not-connected');
-      // Only show error toast on desktop to avoid spam on mobile
-      if (window.innerWidth >= 768) {
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'Connection error. Please try again.', type: 'error' }
-        }));
-      }
+        setWsStatus('not-connected');
+        // Only show error toast on desktop to avoid spam on mobile
+        if (window.innerWidth >= 768) {
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Connection error. Please try again.', type: 'error' }
+          }));
+        }
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected', event.code, event.reason);
+        console.log('WebSocket disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean, currentFriendEmail, currentUserEmail });
         setWsConnected(false);
-      setWsStatus('not-connected');
+        setWsStatus('not-connected');
       
-      // Attempt to reconnect on mobile if connection was lost unexpectedly
-      // Only reconnect if we still have a friend selected and it wasn't a clean close
-      if (event.code !== 1000 && event.code !== 1001 && friendEmail && userEmail) {
-        // Only show toast on desktop
-        if (window.innerWidth >= 768) {
-          window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: 'Connection closed. Reconnecting...', type: 'warning' }
-          }));
-        }
-        
-        // Attempt to reconnect after a delay
-        setTimeout(() => {
-          if (friendEmail && userEmail && (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
-            try {
-              console.log('Attempting to reconnect WebSocket for direct chat...');
-              setWsStatus('connecting');
-              const newWs = new WebSocket(wsUrl);
-              wsRef.current = newWs;
-              setupWebSocketHandlers(newWs, friendName, friendAvatar, wsUrl);
-            } catch (e) {
-              console.error('Failed to reconnect WebSocket:', e);
-              setWsStatus('not-connected');
-            }
+        // Attempt to reconnect if connection was lost unexpectedly
+        // Only reconnect if we still have a friend selected and it wasn't a clean close
+        if (event.code !== 1000 && event.code !== 1001 && currentFriendEmail && currentUserEmail) {
+          // Only show toast on desktop
+          if (window.innerWidth >= 768) {
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: 'Connection closed. Reconnecting...', type: 'warning' }
+            }));
           }
-        }, 3000); // Reconnect after 3 seconds
-      }
-    };
-  }, [friendEmail, userEmail, user, selectedFriend]);
+        
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            // Check if friend/email still matches and no connection exists
+            if (currentFriendEmail && currentUserEmail && 
+                (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
+              try {
+                console.log('Attempting to reconnect WebSocket for direct chat...');
+                setWsStatus('connecting');
+                const reconnectUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(currentUserEmail)}&receiverEmail=${encodeURIComponent(currentFriendEmail)}`;
+                const newWs = new WebSocket(reconnectUrl);
+                wsRef.current = newWs;
+                setupWebSocketHandlers(newWs, friendName, friendAvatar, reconnectUrl, currentFriendEmail, currentUserEmail, null);
+              } catch (e) {
+                console.error('Failed to reconnect WebSocket:', e);
+                setWsStatus('not-connected');
+              }
+            }
+          }, 3000); // Reconnect after 3 seconds
+        }
+      };
+  }, [user]);
 
   useEffect(() => {
     if (!friendEmail || !userEmail) {
       if (wsRef.current) {
-        wsRef.current.close();
+        console.log('Closing WebSocket: no friend or user email');
+        wsRef.current.close(1000, 'No friend selected');
         wsRef.current = null;
         setWsConnected(false);
         setWsStatus('not-connected');
@@ -661,30 +674,74 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const friendName = formatFriendName(selectedFriend);
     const friendAvatar = selectedFriend?.avatar || selectedFriend?.avatarUrl || selectedFriend?.profileImage || '/avatars/avatar-1.png';
 
-    // Close existing connection if any
+    // Always close existing connection when friend changes to ensure clean state
     if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+      const currentState = wsRef.current.readyState;
+      console.log('Existing WebSocket state:', currentState, 'for friend:', friendEmail);
+      
+      // Close existing connection if it's open/connecting/closing
+      if (currentState === WebSocket.CONNECTING || currentState === WebSocket.OPEN || currentState === WebSocket.CLOSING) {
+        console.log('Closing existing WebSocket connection');
+        wsRef.current.close(1000, 'Switching friend');
+        wsRef.current = null;
+        setWsConnected(false);
+        setWsStatus('not-connected');
+      }
+      // If already closed, just clear the reference
+      if (currentState === WebSocket.CLOSED) {
+        wsRef.current = null;
+      }
     }
 
     const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
+    console.log('Creating new WebSocket connection:', wsUrl);
+    
+    let connectionTimeout = null;
     
     try {
       setWsStatus('connecting');
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
-      setupWebSocketHandlers(ws, friendName, friendAvatar, wsUrl);
 
+      // Add connection timeout that will close if connection doesn't open in time
+      connectionTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CLOSED) {
+          console.error('WebSocket connection timeout');
+          ws.close();
+          setWsStatus('not-connected');
+          setWsConnected(false);
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Connection timeout. Please try again.', type: 'error' }
+          }));
+        }
+      }, 10000); // 10 second timeout
+
+      // Set up handlers with callback to clear timeout on open
+      setupWebSocketHandlers(ws, friendName, friendAvatar, wsUrl, friendEmail, userEmail, () => {
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+          connectionTimeout = null;
+        }
+      });
 
       return () => {
-        if (wsRef.current) {
-          wsRef.current.close();
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+        }
+        if (wsRef.current && wsRef.current === ws) {
+          console.log('Cleaning up WebSocket connection');
+          if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close(1000, 'Component unmounting');
+          }
           wsRef.current = null;
           setWsConnected(false);
           setWsStatus('not-connected');
         }
       };
     } catch (e) {
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
       console.error('Failed to create WebSocket:', e);
       setWsConnected(false);
       setWsStatus('not-connected');
@@ -692,7 +749,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         detail: { message: e.message || 'Failed to connect to chat', type: 'error' }
       }));
     }
-  }, [friendEmail, userEmail, selectedFriend, user, setupWebSocketHandlers]);
+  }, [friendEmail, userEmail, selectedFriend, setupWebSocketHandlers]);
     
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -829,23 +886,57 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           if (!text && (!attachments || attachments.length === 0)) return;
           if (!friendEmail || !userEmail) return;
 
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          // Check WebSocket connection state
+          if (!wsRef.current) {
+            console.error('WebSocket not initialized');
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: 'Connection not established. Please wait...', type: 'error' }
+            }));
+            return;
+          }
+
+          const wsState = wsRef.current.readyState;
+          
+          // If connecting, wait a bit and try again
+          if (wsState === WebSocket.CONNECTING) {
+            console.log('WebSocket is connecting, waiting...');
+            setTimeout(() => {
+              // Retry sending after a short delay
+              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                // Re-call sendMessage with same parameters (this will be handled by the outer function)
+                // For now, just show a message
+                window.dispatchEvent(new CustomEvent('toast', {
+                  detail: { message: 'Please wait for connection to establish...', type: 'info' }
+                }));
+              }
+            }, 1000);
+            return;
+          }
+
+          if (wsState === WebSocket.OPEN) {
             try {
               // Send file messages first if attachments have S3 URLs
               const readyAttachments = attachments ? attachments.filter(att => att.s3Url && !att.uploading) : [];
               
               if (readyAttachments.length > 0) {
                 readyAttachments.forEach((attachment) => {
-                  const fileMessage = {
-                    type: 'FILE',
-                    fileName: attachment.fileName || attachment.file?.name || 'file',
-                    fileUrl: attachment.s3Url,
-                    contentType: attachment.contentType || attachment.file?.type || 'application/octet-stream',
-                    senderEmail: userEmail,
-                    receiverEmail: friendEmail
-                  };
-                  console.log('Sending FILE message via WebSocket:', fileMessage);
-                  wsRef.current.send(JSON.stringify(fileMessage));
+                  try {
+                    const fileMessage = {
+                      type: 'FILE',
+                      fileName: attachment.fileName || attachment.file?.name || 'file',
+                      fileUrl: attachment.s3Url,
+                      contentType: attachment.contentType || attachment.file?.type || 'application/octet-stream',
+                      senderEmail: userEmail,
+                      receiverEmail: friendEmail
+                    };
+                    console.log('Sending FILE message via WebSocket:', fileMessage);
+                    
+                    // Double-check connection is still open before sending
+                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                      wsRef.current.send(JSON.stringify(fileMessage));
+                    } else {
+                      throw new Error('WebSocket connection lost while sending file');
+                    }
                   
                   // Optimistically add file message to UI
                   const isImage = fileMessage.contentType?.startsWith('image/') || 
@@ -875,18 +966,31 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                       (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
                     );
                   });
+                  } catch (fileError) {
+                    console.error('Failed to send file via WebSocket:', fileError);
+                    window.dispatchEvent(new CustomEvent('toast', {
+                      detail: { message: `Failed to send file: ${attachment.fileName}`, type: 'error' }
+                    }));
+                  }
                 });
               }
               
               // Send text message if there's text
               if (text && text.trim()) {
-                const payload = { 
-                  content: text || '',
-                  senderEmail: userEmail,
-                  receiverEmail: friendEmail
-                };
-                console.log('Sending message via WebSocket (from ChatRoom):', payload);
-                wsRef.current.send(JSON.stringify(payload));
+                try {
+                  const payload = { 
+                    content: text || '',
+                    senderEmail: userEmail,
+                    receiverEmail: friendEmail
+                  };
+                  console.log('Sending message via WebSocket (from ChatRoom):', payload);
+                  
+                  // Double-check connection is still open before sending
+                  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify(payload));
+                  } else {
+                    throw new Error('WebSocket connection lost while sending message');
+                  }
                 
                 // Optimistically add message to UI immediately
                 const friendName = formatFriendName(selectedFriend);
@@ -924,6 +1028,12 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   console.log('Updated messages array length (from ChatRoom):', sorted.length);
                   return sorted;
                 });
+                } catch (textError) {
+                  console.error('Failed to send text message via WebSocket:', textError);
+                  window.dispatchEvent(new CustomEvent('toast', {
+                    detail: { message: 'Failed to send message. Please try again.', type: 'error' }
+                  }));
+                }
               }
             } catch (e) {
               console.error('Failed to send message via WebSocket (from ChatRoom):', e);
@@ -932,9 +1042,14 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               }));
             }
           } else {
-            console.log('WebSocket not ready (from ChatRoom). State:', wsRef.current?.readyState);
+            console.log('WebSocket not ready (from ChatRoom). State:', wsState);
+            const stateMessages = {
+              [WebSocket.CONNECTING]: 'Connecting...',
+              [WebSocket.CLOSING]: 'Connection closing...',
+              [WebSocket.CLOSED]: 'Connection closed. Please refresh.',
+            };
             window.dispatchEvent(new CustomEvent('toast', {
-              detail: { message: 'Not connected. Please wait...', type: 'error' }
+              detail: { message: stateMessages[wsState] || 'Not connected. Please wait...', type: 'error' }
             }));
           }
         }}

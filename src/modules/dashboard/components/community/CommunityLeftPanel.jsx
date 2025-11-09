@@ -1233,7 +1233,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     if (action === 'invite') {
       setShowInviteModal(true);
     } else if (action === 'create-group') {
-      if (!isLocalGroup) setShowCreateGroupModal(true);
+      // Only allow workspace owners and admins to create groups
+      const isAuthorized = currentUserRole === 'ADMIN' || 
+                          currentUserRole === 'OWNER' || 
+                          currentUserRole === 'WORKSPACE_OWNER';
+      if (!isLocalGroup && isAuthorized) {
+        setShowCreateGroupModal(true);
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Only workspace owners and admins can create groups', type: 'error' }
+        }));
+      }
     } else if (action === 'settings') {
       // Navigate to settings page
       if (communityId) {
@@ -1346,7 +1356,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             >
               Invite people
             </button>
-            {!isLocalGroup && (
+            {!isLocalGroup && (currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
               <button
                 onClick={() => handleDropdownAction('create-group')}
                 className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
