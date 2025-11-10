@@ -251,7 +251,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                   images: Array.isArray(msg?.images) ? msg.images : (msg?.image ? [msg.image] : []),
                 };
               })
-              .filter(msg => msg.text || (msg.images && msg.images.length > 0) || msg.isFile) // Filter out empty messages, but allow file messages
+              .filter(msg => msg.text || (msg.images && msg.images.length > 0) || msg.isFile)
               .sort((a, b) => {
                 const timeA = new Date(a.createdAt).getTime();
                 const timeB = new Date(b.createdAt).getTime();
@@ -263,19 +263,15 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
             return;
           }
         }
-        
-        // Handle regular incoming messages
-        const isLegacy = typeof data?.message === 'string';
+                const isLegacy = typeof data?.message === 'string';
         const isTyped = data?.type === 'message' || data?.type === 'chat';
         if (isLegacy || isTyped) {
           const text = isLegacy ? data.message : (data.text || data.content || '');
           const senderEmail = data.senderEmail || data.email || '';
           
-          // Get username from session storage as fallback
           const storedUsername = getUsernameFromStorage(senderEmail);
           const displayName = data.author || data.username || data.senderName || storedUsername || (senderEmail ? senderEmail.split('@')[0] : 'Unknown');
           
-          // Get avatar from session storage first, then fallback to message data
           const storedAvatar = getAvatarFromStorage(senderEmail);
           const avatar = storedAvatar || data.avatar || data.avatarUrl || data.avatarPreviewUrl || '/avatars/avatar-1.png';
           
@@ -402,7 +398,6 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           onSend={async (msg) => {
             try {
               if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                // Send file messages if attachments have S3 URLs
                 if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
                   const fileMessages = msg.attachments
                     .filter(att => att.s3Url && !att.uploading)
@@ -419,10 +414,8 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                   }
                 }
                 
-                // Send text message if there's text
                 if (msg.text && msg.text.trim()) {
                   const payload = { message: msg.text };
-                  // Handle images in text message (legacy support)
                   if (Array.isArray(msg.images) && msg.images.length > 0) {
                     const out = [];
                     for (const url of msg.images) {
@@ -436,14 +429,18 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                           reader.readAsDataURL(blob);
                         });
                         out.push(dataUrl);
-                      } catch {}
+                      } catch (err) {
+                        console.error('Failed to process image:', err);
+                      }
                     }
                     if (out.length > 0) payload.images = out;
                   }
                   wsRef.current.send(JSON.stringify(payload));
                 }
               }
-            } catch {}
+            } catch (err) {
+              console.error('Failed to send message:', err);
+            }
 
           }}
         />
@@ -479,16 +476,11 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 };
 
 // Voice Room Component with WebRTC
-const VoiceRoomWithWebRTC = ({ title, voiceRoomData, communityId, onBack = null }) => {
+function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null }) {
   const enabled = voiceRoomData && voiceRoomData.janusRoomId && voiceRoomData.sessionId && voiceRoomData.handleId;
-  
+
   const {
-    isConnected,
-    participants,
-    isMuted,
-    error,
-    toggleMute,
-    leave
+    isConnected, participants, isMuted, error, toggleMute, leave
   } = useVoiceRoom(
     voiceRoomData?.janusRoomId,
     voiceRoomData?.sessionId,
@@ -509,7 +501,6 @@ const VoiceRoomWithWebRTC = ({ title, voiceRoomData, communityId, onBack = null 
     }
   };
 
-  // Helper function to get username from session storage
   const getUsernameFromStorage = (email) => {
     if (!email || !communityId) return null;
     try {
@@ -521,7 +512,6 @@ const VoiceRoomWithWebRTC = ({ title, voiceRoomData, communityId, onBack = null 
     }
   };
 
-  // Enrich participants with avatar URLs and usernames from session storage
   const enrichedParticipants = React.useMemo(() => {
     return participants.map((p) => {
       const userId = p.userId || p.email || '';
@@ -552,9 +542,8 @@ const VoiceRoomWithWebRTC = ({ title, voiceRoomData, communityId, onBack = null 
       localMuted={isMuted}
       onToggleMute={toggleMute}
       onLeave={leave}
-      onBack={onBack}
-    />
+      onBack={onBack} />
   );
-};
+}
 
 export default CommunityCenterPanel;

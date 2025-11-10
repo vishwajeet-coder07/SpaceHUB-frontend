@@ -8,16 +8,16 @@ const ChatRoom = ({
   messages = [],
   onSend,
   onMessage,
-  chatUser = null, // { name, avatar, status } for direct chat or group chat
+  chatUser = null, 
   isGroupChat = false,
   onBack = null,
-  sendMessage = null, // Optional custom send handler (for WebSocket, etc.)
-  onToggleRightPanel = null, // Callback to toggle right panel on small/medium screens
+  sendMessage = null,
+  onToggleRightPanel = null,
 }) => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
-  const [attachments, setAttachments] = useState([]); // [{file, url, s3Url, uploading, fileName, contentType}]
+  const [attachments, setAttachments] = useState([]); 
   const [expandedMessageIds, setExpandedMessageIds] = useState({});
 
   const fileInputRef = useRef(null);
@@ -48,16 +48,14 @@ const ChatRoom = ({
       contentType: file.type || 'application/octet-stream'
     }));
     
-    // Add to attachments immediately with uploading state
     setAttachments((prev) => [...prev, ...newAttachments]);
     e.target.value = '';
     
-    // Upload each file and get S3 URL
     newAttachments.forEach(async (attachment, index) => {
       try {
         const s3Url = await uploadFileAndGetUrl(attachment.file);
         
-        // Update attachment with S3 URL
+        // Update attachment with S3 URL and mark as not uploading
         setAttachments((prev) => {
           const updated = [...prev];
           const attachmentIndex = prev.findIndex(
@@ -139,9 +137,8 @@ const ChatRoom = ({
     const selfAvatar = currentUser?.avatarUrl || '/avatars/avatar-1.png';
     const selfName = currentUser?.username || currentUser?.email || 'You';
     
-    // If custom send handler provided, use it; otherwise use default onSend
     if (sendMessage) {
-      // For WebSocket-based direct chat, pass text and attachments with S3 URLs
+      // For WebSocket-based direct chat, pass text and attachments with S3 URL
       sendMessage(trimmed, readyAttachments);
     } else {
       // For regular chat (community), send FILE type messages for files and regular message for text
@@ -209,7 +206,7 @@ const ChatRoom = ({
   const wsStatusDisplay = getWsStatusDisplay();
 
   return (
-    <div className="flex-1 min-w-0 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
+    <div className="flex-1 md:max-w-[710px] bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {/* Header - Mobile Design */}
       <div className="h-14 md:h-12 border-b border-gray-300 flex items-center justify-between px-4 bg-white">
         <div className="flex items-center gap-3 flex-1 min-w-0">

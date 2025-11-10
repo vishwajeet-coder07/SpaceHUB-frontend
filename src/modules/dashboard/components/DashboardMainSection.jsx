@@ -67,6 +67,17 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   
   const friendEmail = selectedFriend?.email;
 
+  
+  const sortMessagesByTime = useCallback((messages) => {
+    return [...messages].sort(
+      (a, b) => {
+        const timeA = new Date(a.createdAt || a.timestamp || 0).getTime();
+        const timeB = new Date(b.createdAt || b.timestamp || 0).getTime();
+        return timeA - timeB;
+      }
+    );
+  }, []);
+
 
   const safeUrl = (rawUrl) => {
     if (!rawUrl) return '';
@@ -421,7 +432,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             })
           : [];
 
-        setMessages(normalized);
+        // Sort messages by time (chronological order - oldest first)
+        const sortedNormalized = sortMessagesByTime(normalized);
+        setMessages(sortedNormalized);
       } catch (historyError) {
         console.error('Failed to load chat history:', historyError);
         if (!cancelled) {
@@ -510,9 +523,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
           if (data?.type === 'history' && Array.isArray(data.messages)) {
             console.log('Received history messages:', data.messages.length);
-            const sorted = [...data.messages].sort(
-              (a, b) => new Date(a.timestamp || a.createdAt || 0).getTime() - new Date(b.timestamp || b.createdAt || 0).getTime()
-            );
+            // Sort raw messages first
+            const sorted = sortMessagesByTime(data.messages);
             const historyMessages = sorted
               .filter((msg) => {
                 const sender = msg.senderEmail || msg.sender;
@@ -553,7 +565,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                 return mapMessage(msg);
               });
             console.log('Mapped history messages:', historyMessages);
-            setMessages(historyMessages);
+            // Ensure final messages are sorted chronologically
+            const sortedHistoryMessages = sortMessagesByTime(historyMessages);
+            setMessages(sortedHistoryMessages);
             return;
           }
           
@@ -586,19 +600,14 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   console.log('Replacing optimistic message with server message');
                   const updated = [...prev];
                   updated[existingIndex] = receivedMsg;
-                  const sorted = updated.sort(
-                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                  );
-                  return sorted;
+                  return sortMessagesByTime(updated);
                 }
                 console.log('Message already exists, skipping duplicate');
                 return prev;
               }
             
               const next = [...prev, receivedMsg];
-              const sorted = next.sort(
-                (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-              );
+              const sorted = sortMessagesByTime(next);
               console.log('Updated messages array length:', sorted.length);
               return sorted;
             });
@@ -837,9 +846,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             return prev;
           }
           const next = [...prev, optimisticMessage];
-          const sorted = next.sort(
-            (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-          );
+          const sorted = sortMessagesByTime(next);
           console.log('Updated messages array length:', sorted.length);
           return sorted;
         });
@@ -962,9 +969,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   
                   setMessages((prev) => {
                     const next = [...prev, fileOptimisticMessage];
-                    return next.sort(
-                      (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                    );
+                    return sortMessagesByTime(next);
                   });
                   } catch (fileError) {
                     console.error('Failed to send file via WebSocket:', fileError);
@@ -1022,9 +1027,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                     return prev;
                   }
                   const next = [...prev, optimisticMessage];
-                  const sorted = next.sort(
-                    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-                  );
+                  const sorted = sortMessagesByTime(next);
                   console.log('Updated messages array length (from ChatRoom):', sorted.length);
                   return sorted;
                 });
