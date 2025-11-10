@@ -114,7 +114,7 @@ const DashboardRightSidebar = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full lg:w-90 bg-white h-full lg:h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 relative lg:rounded-xl p-4 lg:border lg:border-gray-500">
+    <div className="w-full h-full overflow-y-auto flex-shrink-0 relative rounded-xl p-4 border border-gray-500 bg-white">
       {/* Close Button */}
       <button
         onClick={onClose}

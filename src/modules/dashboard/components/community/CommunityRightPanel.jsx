@@ -277,7 +277,7 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
       )}
 
       {/* Desktop: In normal layout (1024px and above) */}
-      <div className="hidden lg:block w-90 bg-white h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
+      <div className="hidden lg:block w-80 bg-white h-full overflow-y-auto flex-shrink-0 rounded-xl p-6 border border-gray-500">
         <PanelContent />
       </div>
 

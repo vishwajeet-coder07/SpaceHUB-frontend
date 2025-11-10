@@ -53,18 +53,10 @@ const InboxModal = ({ isOpen, onClose }) => {
         const friendRequests = friendResponse?.data || friendResponse?.friends || friendResponse || [];
         
         const transformedFriendRequests = Array.isArray(friendRequests) ? friendRequests.map((req, idx) => {
-          // Format name using firstName and lastName if available
+          // Prefer username for DM display; fall back to name, then first/last, then email prefix
           let displayName = 'Unknown User';
-          if (req.firstName && req.lastName) {
-            displayName = `${req.firstName} ${req.lastName}`;
-          } else if (req.firstName) {
-            displayName = req.firstName;
-          } else if (req.username) {
+          if (req.username) {
             displayName = req.username;
-          } else if (req.name) {
-            displayName = req.name;
-          } else if (req.email || req.requesterEmail) {
-            displayName = (req.email || req.requesterEmail).split('@')[0];
           }
           
           return {
@@ -79,8 +71,6 @@ const InboxModal = ({ isOpen, onClose }) => {
             avatar: req.avatar || req.avatarUrl || req.profileImage || null
           };
         }) : [];
-
-        // Also fetch community join requests (keep existing functionality)
         let communityRequests = [];
         try {
           const communityResponse = await getMyPendingRequests(userEmail);

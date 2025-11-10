@@ -239,7 +239,7 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
   };
 
   return (
-    <div className="hidden md:block w-80 bg-gray-200 h-[calc(100vh-56px)] overflow-y-auto flex-shrink-0 rounded-r-xl">
+    <div className="hidden md:block w-80 bg-gray-200 h-full overflow-y-auto flex-shrink-0 rounded-r-xl">
       <div className="space-y-2  mt-[1px] mb-6">
         <button
           onClick={() => {

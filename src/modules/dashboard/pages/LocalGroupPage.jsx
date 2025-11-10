@@ -18,8 +18,15 @@ const LocalGroupPage = () => {
   const [localGroup, setLocalGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const getIsMobileView = () => (typeof window !== 'undefined' ? window.innerWidth <= 640 : false);
+  const getIsTabletOrAbove = () => (typeof window !== 'undefined' ? window.innerWidth >= 641 : false);
+  const getIsLargeOrAbove = () => (typeof window !== 'undefined' ? window.innerWidth >= 1025 : false);
+
   const [showRightPanel, setShowRightPanel] = useState(false);
-  const [showCenterPanel, setShowCenterPanel] = useState(false);
+  const [hasSelectedChannel, setHasSelectedChannel] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(getIsMobileView);
+  const [showCenterPanel, setShowCenterPanel] = useState(getIsTabletOrAbove);
+  const [layoutStyle, setLayoutStyle] = useState({ minHeight: 'auto' });
   const showInbox = useSelector(selectShowInbox);
 
   useEffect(() => {
@@ -78,14 +85,51 @@ const LocalGroupPage = () => {
   };
 
   useEffect(() => {
+    const handleResize = () => {
+      const mobile = getIsMobileView();
+      const large = getIsLargeOrAbove();
+      setIsMobileView(mobile);
+      if (mobile) {
+        setShowCenterPanel(hasSelectedChannel);
+        setLayoutStyle({ minHeight: 'auto' });
+      } else {
+        setShowCenterPanel(true);
+        const root = document.documentElement;
+        const viewportHeight = window.innerHeight;
+        const rootStyle = getComputedStyle(root);
+        const rootFontSize = parseFloat(rootStyle.fontSize) || 16;
+        const rem24 = 24 * rootFontSize;
+        const minHeight = Math.max(viewportHeight - rem24, 400);
+        setLayoutStyle({ minHeight: `${minHeight}px` });
+      }
+      if (large) {
+        setShowRightPanel(false);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [hasSelectedChannel]);
+
+  useEffect(() => {
     const handleChannelSelect = () => {
-      setShowCenterPanel(true);
+      if (getIsMobileView()) {
+        setHasSelectedChannel(true);
+        setShowCenterPanel(true);
+      } else {
+        setShowCenterPanel(true);
+      }
     };
     window.addEventListener('community:channel-selected', handleChannelSelect);
     return () => {
       window.removeEventListener('community:channel-selected', handleChannelSelect);
     };
   }, []);
+
+  const handleCloseCenterPanel = () => {
+    setShowCenterPanel(false);
+    setHasSelectedChannel(false);
+  };
 
   if (loading) {
     return (
@@ -184,9 +228,9 @@ const LocalGroupPage = () => {
       </div>
 
       {/* Main 3-column layout */}
-      <div className="flex flex-1 gap-2 p-2 md:p-2 relative min-h-0 overflow-hidden">
+      <div className="flex flex-1 gap-2 p-2 md:p-2 relative min-h-0 overflow-hidden" style={layoutStyle}>
         {/* Narrow Left Sidebar + Left Panel Group (no gap between them) */}
-        <div className={`flex border border-gray-500 rounded-xl h-full ${showCenterPanel ? 'hidden md:flex' : 'flex'}`}>
+        <div className={`flex flex-shrink-0 border border-gray-500 rounded-xl h-full ${isMobileView && showCenterPanel ? 'hidden sm:flex' : 'flex sm:flex'} w-full sm:w-auto max-w-full sm:max-w-sm`}>
           {/* Narrow Left Sidebar */}
           <div className="w-16 bg-white flex flex-col items-center py-4 space-y-4 rounded-l-xl h-full">
             {/* Profile Picture */}
@@ -244,23 +288,23 @@ const LocalGroupPage = () => {
           <CommunityLeftPanel community={localGroup} onBack={handleBack} isLocalGroup={true} />
         </div>
         <>
-          {showCenterPanel && (
+          {showCenterPanel && isMobileView && (
             <>
               <div 
-                className="fixed inset-0 bg-black/50 z-30 md:hidden"
-                onClick={() => setShowCenterPanel(false)}
+                className="fixed inset-0 bg-black/50 z-30 sm:hidden"
+                onClick={handleCloseCenterPanel}
               />
-              <div className="fixed inset-0 z-40 md:hidden">
+              <div className="fixed inset-0 z-40 sm:hidden flex flex-col">
                 <CommunityCenterPanel 
                   community={localGroup} 
                   onToggleRightPanel={() => setShowRightPanel(true)}
-                  onBack={() => setShowCenterPanel(false)}
+                  onBack={handleCloseCenterPanel}
                 />
               </div>
             </>
           )}
-          {/* Desktop: Always show center panel */}
-          <div className="hidden md:block md:flex-1">
+          {/* Tablet & Desktop: Always show center panel */}
+          <div className="hidden sm:flex flex-1 min-w-0">
             <CommunityCenterPanel 
               community={localGroup} 
               onToggleRightPanel={() => setShowRightPanel(true)}
@@ -269,7 +313,7 @@ const LocalGroupPage = () => {
         </>
 
         {/* Local-Group Right Panel - Desktop only */}
-        <div className="hidden md:block">
+        <div className="hidden lg:flex w-full max-w-xs">
           <CommunityRightPanel 
             community={localGroup} 
             isLocalGroup={true}
@@ -277,6 +321,21 @@ const LocalGroupPage = () => {
           />
         </div>
       </div>
+      {showRightPanel && (
+        <div className="fixed inset-0 z-40 flex lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowRightPanel(false)}
+          />
+          <div className="relative ml-auto w-[calc(100%-1rem)] sm:max-w-xs md:max-w-sm h-[calc(100%-1rem)] my-2 mr-2 bg-white rounded-xl shadow-2xl overflow-hidden">
+            <CommunityRightPanel 
+              community={localGroup} 
+              isLocalGroup={true}
+              onClose={() => setShowRightPanel(false)}
+            />
+          </div>
+        </div>
+      )}
       <InboxModal isOpen={showInbox} onClose={() => dispatch(setShowInbox(false))} />
     </div>
   );

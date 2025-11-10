@@ -1061,7 +1061,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   }
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col h-[calc(100vh-56px)] overflow-hidden bg-[#E6E6E6] md:bg-gray-100 md:border md:border-gray-500 md:rounded-xl">
+    <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-[#E6E6E6] md:bg-gray-100 md:border md:border-gray-500 md:rounded-xl">
       {/* Mobile Header - Dashboard Title with Icon */}
       <div className="md:hidden px-4 pt-4 pb-2">
         <div className="flex items-center gap-2 mb-3">

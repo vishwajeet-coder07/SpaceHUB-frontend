@@ -54,14 +54,16 @@ const ProfileSetupPage = () => {
   const fileInputRef = useRef(null);
   const [username, setUsername] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [uploadPreview, setUploadPreview] = useState('');
+  const defaultAvatarUrl = presetAvatarUrls[0];
+  const [uploadPreview, setUploadPreview] = useState(defaultAvatarUrl);
   const [uploadFile, setUploadFile] = useState(null);
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(defaultAvatarUrl);
   // interests removed per design
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [dateOfBirthError, setDateOfBirthError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     
@@ -103,6 +105,32 @@ const ProfileSetupPage = () => {
     setUploadPreview(url);
   };
 
+
+
+  const containsEmoji = (value) => {
+    if (!value) return false;
+    const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{27BF}]/u;
+    return emojiRegex.test(value);
+  };
+
+  const validateUsername = (value) => {
+    const val = (value || '').trim();
+    if (!val) {
+      setUsernameError('');
+      return true;
+    }
+    if (val.length > 30) {
+      setUsernameError('Username cannot exceed 30 characters');
+      return false;
+    }
+    if (containsEmoji(val)) {
+      setUsernameError('Username cannot contain emoji');
+      return false;
+    }
+    setUsernameError('');
+    return true;
+  };
+
   const validateDateOfBirth = (dateValue) => {
     if (!dateValue) {
       setDateOfBirthError('');
@@ -112,12 +140,15 @@ const ProfileSetupPage = () => {
     const selectedDate = new Date(dateValue);
     const today = new Date();
     const twoYearsAgo = new Date();
+    const hundredYearsAgo = new Date();
     twoYearsAgo.setFullYear(today.getFullYear() - 2);
+    hundredYearsAgo.setFullYear(today.getFullYear() - 100);
     
     // Reset time to compare only dates
     selectedDate.setHours(0, 0, 0, 0);
     twoYearsAgo.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
+    hundredYearsAgo.setHours(0, 0, 0, 0);
     
     if (selectedDate > today) {
       setDateOfBirthError('Date of birth cannot be in the future');
@@ -126,6 +157,11 @@ const ProfileSetupPage = () => {
     
     if (selectedDate > twoYearsAgo) {
       setDateOfBirthError('Date of birth must be at least 2 years ago');
+      return false;
+    }
+
+    if (selectedDate < hundredYearsAgo) {
+      setDateOfBirthError('Invalid date');
       return false;
     }
     
@@ -219,6 +255,11 @@ const ProfileSetupPage = () => {
   const handleConfirm = async () => {
     if (!username.trim()) {
       setError('Username is required');
+      return;
+    }
+
+    if (!validateUsername(username)) {
+      setError(usernameError || 'Invalid username');
       return;
     }
     
@@ -342,10 +383,15 @@ const ProfileSetupPage = () => {
                 <label className="text-base font-semibold text-gray-800">Username</label>
                 <input
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    validateUsername(e.target.value);
+                  }}
                   placeholder="Enter username"
-                  className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-base placeholder:text-gray-400"
+                  maxLength={30}
+                  className={`h-12 w-full rounded-2xl border bg-white px-4 text-base placeholder:text-gray-400 ${usernameError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                {usernameError && <p className="text-sm text-red-600">{usernameError}</p>}
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-base font-semibold text-gray-800">Date of birth</label>
@@ -357,6 +403,11 @@ const ProfileSetupPage = () => {
                     const twoYearsAgo = new Date();
                     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
                     return twoYearsAgo.toISOString().split('T')[0];
+                  })()}
+                  min={(() => {
+                    const hundredYearsAgo = new Date();
+                    hundredYearsAgo.setFullYear(hundredYearsAgo.getFullYear() - 100);
+                    return hundredYearsAgo.toISOString().split('T')[0];
                   })()}
                   className={`h-12 w-full rounded-2xl border bg-white px-4 text-base ${
                     dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'
@@ -424,7 +475,8 @@ const ProfileSetupPage = () => {
             <div className="space-y-4 max-w-xl">
               <div>
                 <label className="block text-sm font-medium mb-1">Username</label>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" className="w-full h-10 rounded-md border border-gray-300 px-3 bg-white" />
+                <input value={username} onChange={(e) => { setUsername(e.target.value); validateUsername(e.target.value); }} placeholder="Enter username" maxLength={30} className={`w-full h-10 rounded-md border px-3 bg-white ${usernameError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {usernameError && <p className="mt-1 text-sm text-red-600">{usernameError}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Date of birth</label>
@@ -436,6 +488,11 @@ const ProfileSetupPage = () => {
                     const twoYearsAgo = new Date();
                     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
                     return twoYearsAgo.toISOString().split('T')[0];
+                  })()}
+                  min={(() => {
+                    const hundredYearsAgo = new Date();
+                    hundredYearsAgo.setFullYear(hundredYearsAgo.getFullYear() - 100);
+                    return hundredYearsAgo.toISOString().split('T')[0];
                   })()}
                   className={`w-full h-10 rounded-md border px-3 bg-white ${
                     dateOfBirthError ? 'border-red-500 bg-red-50' : 'border-gray-300'

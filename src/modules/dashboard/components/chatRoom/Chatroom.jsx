@@ -205,8 +205,24 @@ const ChatRoom = ({
   
   const wsStatusDisplay = getWsStatusDisplay();
 
+  const downloadFile = (url, filename) => {
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename || 'download';
+      anchor.target = '_blank';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (e) {
+      try {
+        window.open(url, '_blank');
+      } catch {}
+    }
+  };
+
   return (
-    <div className="flex-1 md:max-w-[710px] bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
+    <div className="flex-1 min-w-0 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {/* Header - Mobile Design */}
       <div className="h-14 md:h-12 border-b border-gray-300 flex items-center justify-between px-4 bg-white">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -285,35 +301,29 @@ const ChatRoom = ({
                     </div>
                   )}
                   <div className="flex gap-3 justify-start items-start">
-                    {/* Avatar - show for all messages when author changes */}
-                    <div className={`w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
-                      <img 
-                        src={m.avatar || '/avatars/avatar-1.png'} 
-                        alt={m.author} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = '/avatars/avatar-1.png';
-                        }}
-                      />
-                    </div>
+                    {/* Hide external avatar; we render avatar inside the message bubble */}
+                    <div className="hidden" />
                     
                     {/* Message Bubble */}
                     <div className="flex flex-col items-start flex-1 min-w-0">
-                      {/* Username and timestamp on same line */}
-                      {showAvatar && (
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
-                          <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
-                        </div>
-                      )}
-                      
                       {/* Only show text bubble if it's not an image file (images are shown separately) */}
                       {!(m.isFile && m.isImage) && (
                         <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
                           isSelf 
-                            ? 'bg-yellow-100/90 border-yellow-400' 
-                            : 'bg-gray-200 border-black/70'
+                            ? 'bg-yellow-100/90 border border-yellow-300' 
+                            : 'bg-zinc-200 border border-gray-500'
                         }`}>
+                          {/* Inline header with avatar, name and time inside the bubble */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <img
+                              src={m.avatar || '/avatars/avatar-1.png'}
+                              alt={m.author}
+                              className="w-5 h-5 rounded-full object-cover"
+                              onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
+                            />
+                            <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
+                            <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
+                          </div>
                           <div 
                             className="whitespace-pre-wrap break-words text-sm text-gray-800 text-left"
                             style={
@@ -338,32 +348,73 @@ const ChatRoom = ({
                         </div>
                       )}
                       
-                      {/* Images */}
+                      {/* Images with inline header */}
                       {Array.isArray(m.images) && m.images.length > 0 && (
-                        <div className="mt-2 grid grid-cols-2 gap-2 max-w-full">
-                          {m.images.map((img, i) => (
-                            <div key={i} className="rounded-lg overflow-hidden bg-gray-200">
-                              <img src={img} alt="attachment" className="w-full h-auto object-cover" />
+                        <div className="mt-2 w-full">
+                          <div className={`rounded-sm border-l-4 px-4 py-2 w-full ${
+                            isSelf
+                              ? 'bg-yellow-50 border-yellow-400 border border-yellow-300'
+                              : 'bg-gray-100 border-black/70 border border-gray-300'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <img
+                                src={m.avatar || '/avatars/avatar-1.png'}
+                                alt={m.author}
+                                className="w-5 h-5 rounded-full object-cover"
+                                onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
+                              />
+                              <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
+                              <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
                             </div>
-                          ))}
+                            <div className="grid grid-cols-2 gap-2 max-w-full">
+                              {m.images.map((img, i) => (
+                                <div key={i} className="rounded-lg overflow-hidden bg-gray-200 relative group">
+                                  <img src={img} alt="attachment" className="w-full h-auto object-cover" />
+                                  <button
+                                    onClick={() => downloadFile(img, `image-${i + 1}`)}
+                                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Download"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-1M7 20a2 2 0 01-2-2v-1" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       )}
                       
-                      {/* File download link for non-image files */}
+                      {/* File download link for non-image files with inline header */}
                       {m.isFile && !m.isImage && m.fileUrl && (
-                        <div className="mt-2">
-                          <a
-                            href={m.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={m.fileName}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
-                          </a>
+                        <div className="mt-2 w-full">
+                          <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
+                            isSelf 
+                              ? 'bg-yellow-100/90 border-yellow-400 border border-yellow-300' 
+                              : 'bg-gray-200 border-black/70 border border-gray-300'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <img
+                                src={m.avatar || '/avatars/avatar-1.png'}
+                                alt={m.author}
+                                className="w-5 h-5 rounded-full object-cover"
+                                onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
+                              />
+                              <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
+                              <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
+                            </div>
+                            <button
+                              onClick={() => downloadFile(m.fileUrl, m.fileName || 'file')}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
+                              title="Download"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -42,6 +42,7 @@ const CommunitySettingsPage = () => {
   const deleteModalRef = useRef(null);
   const leaveModalRef = useRef(null);
   const deleteGroupModalRef = useRef(null);
+  const [communityNameError, setCommunityNameError] = useState('');
   
   // Roles section state
   const [members, setMembers] = useState([]);
@@ -211,6 +212,22 @@ const CommunitySettingsPage = () => {
     navigate(`/dashboard/community/${id}`);
   };
 
+  const containsEmoji = (value) => {
+    if (!value) return false;
+    const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{27BF}]/u;
+    return emojiRegex.test(value);
+  };
+
+  const handleCommunityNameChange = (value) => {
+    if (value.length > 30) return;
+    if (containsEmoji(value)) {
+      setCommunityNameError('Emojis are not allowed.');
+      return;
+    }
+    setCommunityNameError('');
+    setCommunityName(value);
+  };
+
   const handleSave = async () => {
     if (!id) return;
 
@@ -219,6 +236,19 @@ const CommunitySettingsPage = () => {
 
     if (!userEmail) {
       alert('User email not found');
+      return;
+    }
+
+    if (!communityName.trim()) {
+      setCommunityNameError('Community name is required.');
+      return;
+    }
+    if (communityName.length > 30) {
+      setCommunityNameError('Community name cannot exceed 30 characters.');
+      return;
+    }
+    if (containsEmoji(communityName)) {
+      setCommunityNameError('Emojis are not allowed.');
       return;
     }
 
@@ -408,10 +438,9 @@ const CommunitySettingsPage = () => {
   };
 
   const handleGroupChange = (index, value) => {
-    // Limit to 20 characters
-    if (value.length > 20) {
-      return;
-    }
+    // Limit to 30 characters and block emojis
+    if (value.length > 30) return;
+    if (containsEmoji(value)) return;
     const newGroups = [...groups];
     newGroups[index] = { ...newGroups[index], name: value };
     setGroups(newGroups);
@@ -933,10 +962,10 @@ const CommunitySettingsPage = () => {
                         <input
                           type="text"
                           value={communityName}
-                          onChange={(e) => setCommunityName(e.target.value)}
-                          className="w-full bg-gray-700 text-white px-4 py-2.5 rounded-md outline-none placeholder:text-gray-400 pr-10"
+                          onChange={(e) => handleCommunityNameChange(e.target.value)}
+                          className={`w-full bg-gray-700 text-white px-4 py-2.5 rounded-md outline-none placeholder:text-gray-400 pr-10 ${communityNameError ? 'ring-1 ring-red-500' : ''}`}
                           placeholder="Enter community name"
-                          maxLength={14}
+                          maxLength={30}
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
@@ -944,6 +973,11 @@ const CommunitySettingsPage = () => {
                           </svg>
                         </div>
                       </div>
+                      {communityNameError ? (
+                        <p className="text-red-400 text-sm mt-1">{communityNameError}</p>
+                      ) : (
+                        <p className="text-gray-400 text-xs mt-1">{communityName.length}/30 characters</p>
+                      )}
                     </div>
 
                     {/* Banner Section */}
@@ -1054,7 +1088,7 @@ const CommunitySettingsPage = () => {
                                       className="w-full bg-gray-700 text-white px-4 py-3 rounded-md outline-none placeholder:text-gray-400"
                                       placeholder="Group name"
                                       autoFocus={editingGroupId === index}
-                                      maxLength={20}
+                                      maxLength={30}
                                     />
                                   </div>
                                   <button
@@ -1077,7 +1111,7 @@ const CommunitySettingsPage = () => {
                                   </button>
                                 </div>
                                 <div className="flex items-center justify-end pr-12">
-                                  <p className="text-sm text-gray-400">{charCount}/20 characters</p>
+                                  <p className="text-sm text-gray-400">{charCount}/30 characters</p>
                                 </div>
                               </div>
                             );

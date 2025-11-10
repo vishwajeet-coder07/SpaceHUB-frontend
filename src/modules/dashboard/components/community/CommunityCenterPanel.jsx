@@ -48,6 +48,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   useEffect(() => {
     const handleChannelSelect = (event) => {
       const { channelId, roomCode: newRoomCode, chatRoomCode, janusRoomId } = event.detail || {};
+
       if (newRoomCode) setCurrentRoomCode(newRoomCode);
       if (chatRoomCode) setActiveChatRoomCode(chatRoomCode);
       else setActiveChatRoomCode(null);
@@ -378,7 +379,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   };
 
   return (
-    <div className="flex-1 min-w-0 bg-white h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
+    <div className="flex-1 min-w-0 bg-white h-full flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {currentMode === 'voice' ? (
         <VoiceRoomWithWebRTC
           title={currentRoomTitle}

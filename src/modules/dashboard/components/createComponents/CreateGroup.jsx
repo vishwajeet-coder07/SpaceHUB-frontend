@@ -35,11 +35,21 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
     return text.length;
   };
 
+  const containsEmoji = (value) => {
+    if (!value) return false;
+    const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{27BF}]/u;
+    return emojiRegex.test(value);
+  };
+
   const handleNameChange = (e) => {
     const value = e.target.value;
     
-    // Limit to 14 characters
-    if (value.length > 14) {
+    // Limit to 30 characters
+    if (value.length > 30) {
+      return;
+    }
+    // Block emojis
+    if (containsEmoji(value)) {
       return;
     }
     
@@ -48,7 +58,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
   };
 
   const handleConfirm = () => {
-    const isNameValid = !!groupName.trim();
+    const isNameValid = !!groupName.trim() && groupName.length <= 30 && !containsEmoji(groupName);
     const isImageValid = !!imageFile;
     setTouchedName(true);
     setTouchedImage(true);
@@ -58,7 +68,8 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
 
   const characterCount = getCharacterCount(groupName);
   const showNameError = touchedName && !groupName.trim();
-  const showCharacterLimitError = characterCount > 14;
+  const showCharacterLimitError = characterCount > 30;
+  const showEmojiError = touchedName && containsEmoji(groupName);
   const showImageError = touchedImage && !imageFile;
 
   return (
@@ -112,10 +123,13 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                   <p className="text-sm text-red-400">{nameLabel} is required.</p>
                 )}
                 {showCharacterLimitError && (
-                  <p className="text-sm text-red-400 ml-auto">Maximum 14 characters allowed.</p>
+                  <p className="text-sm text-red-400 ml-auto">Maximum 30 characters allowed.</p>
                 )}
-                {!showNameError && !showCharacterLimitError && (
-                  <p className="text-sm text-gray-400 ml-auto">{characterCount}/14 characters</p>
+                {showEmojiError && !showCharacterLimitError && (
+                  <p className="text-sm text-red-400 ml-auto">Emojis are not allowed.</p>
+                )}
+                {!showNameError && !showCharacterLimitError && !showEmojiError && (
+                  <p className="text-sm text-gray-400 ml-auto">{characterCount}/30 characters</p>
                 )}
               </div>
           </div>

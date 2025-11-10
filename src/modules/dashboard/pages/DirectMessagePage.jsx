@@ -195,9 +195,9 @@ const DirectMessagePage = () => {
   };
 
   return (
-    <div className="min-h-screen md:hidden bg-[#E6E6E6]">
+    <div className="h-screen md:hidden bg-[#E6E6E6] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsMenuOpen(true)}
@@ -237,7 +237,7 @@ const DirectMessagePage = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="px-4 py-3 bg-white border-b border-gray-200">
+      <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-gray-200">
         <div className="relative">
           <svg
             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-500"
@@ -258,40 +258,44 @@ const DirectMessagePage = () => {
         </div>
       </div>
 
-      {/* Recent Conversations */}
-      <div className="px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Recent search</h2>
+      {/* All Friends List */}
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <h2 className="text-sm font-medium text-gray-700 mb-3">All Friends</h2>
         
         {loading ? (
           <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, idx) => (
+            {Array.from({ length: 5 }).map((_, idx) => (
               <div key={idx} className="flex items-center gap-3 animate-pulse">
                 <div className="w-12 h-12 rounded-full bg-gray-200" />
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-48" />
+                  <div className="h-3 bg-gray-200 rounded w-32" />
                 </div>
               </div>
             ))}
           </div>
-        ) : recentConversations.length > 0 ? (
+        ) : filteredFriends.length > 0 ? (
           <div className="space-y-2">
-            {recentConversations.map((conversation) => {
-              const displayName = formatFriendName(conversation);
-              const lastMessage = conversation.lastMessage || 'No messages yet';
+            {filteredFriends.map((friend) => {
+              const displayName = formatFriendName(friend);
+              // Find if this friend has a recent conversation
+              const conversation = recentConversations.find(conv => 
+                conv.email === friend.email || conv.id === friend.id
+              );
+              const lastMessage = conversation?.lastMessage || '';
               const truncatedMessage = lastMessage.length > 40 
                 ? lastMessage.substring(0, 40) + '...' 
                 : lastMessage;
               
               return (
                 <button
-                  key={conversation.id || conversation.email}
-                  onClick={() => handleFriendClick(conversation)}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  key={friend.id || friend.email}
+                  onClick={() => handleFriendClick(friend)}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors bg-white border border-gray-200"
                 >
                   <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     <img
-                      src={conversation.avatar}
+                      src={friend.avatar}
                       alt={displayName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -302,16 +306,20 @@ const DirectMessagePage = () => {
                   
                   <div className="flex-1 min-w-0 text-left">
                     <div className="font-semibold text-gray-800 truncate">{displayName}</div>
-                    <div className="text-sm text-gray-500 truncate">{truncatedMessage}</div>
+                    {truncatedMessage ? (
+                      <div className="text-sm text-gray-500 truncate">{truncatedMessage}</div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">No messages yet</div>
+                    )}
                   </div>
                   
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    {conversation.lastMessageTime && (
+                    {conversation?.lastMessageTime && (
                       <span className="text-xs text-gray-400 whitespace-nowrap">
                         {formatTime(conversation.lastMessageTime)}
                       </span>
                     )}
-                    {conversation.unreadCount > 0 && (
+                    {conversation?.unreadCount > 0 && (
                       <div className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
                         {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
                       </div>
@@ -323,8 +331,10 @@ const DirectMessagePage = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>No recent conversations</p>
-            <p className="text-sm mt-2">Start a conversation with a friend!</p>
+            <p>No friends found</p>
+            <p className="text-sm mt-2">
+              {searchQuery.trim() ? 'Try a different search' : 'Add friends to start chatting!'}
+            </p>
           </div>
         )}
       </div>

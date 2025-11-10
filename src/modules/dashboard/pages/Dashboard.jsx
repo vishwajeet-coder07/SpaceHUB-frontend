@@ -116,10 +116,10 @@ const Dashboard = () => {
         </div>
 
         {/* Main 3-column layout */}
-        <div className="flex flex-1 gap-2 p-2">
-        <div className="hidden md:flex border border-gray-500 rounded-xl">
+        <div className="flex flex-1 gap-2 p-2 relative min-h-0 overflow-hidden">
+        <div className="hidden md:flex border border-gray-500 rounded-xl h-full flex-shrink-0">
           {/* Narrow Left Sidebar */}
-          <div className="w-16 bg-white border-l-b-ts border-gray-400 flex flex-col items-center py-4 space-y-4 rounded-l-xl">
+          <div className="w-16 bg-white border-l-b-ts border-gray-400 flex flex-col items-center py-4 space-y-4 rounded-l-xl h-full">
             {/* Profile Picture */}
             <button 
               onClick={() => navigate('/dashboard/settings')}
@@ -181,13 +181,13 @@ const Dashboard = () => {
         </div>
 
         {/* Conditional Rendering: Discover or Main + Right Sidebar */}
-        <div className="flex-1 flex gap-2">
+        <div className="flex-1 flex gap-2 min-w-0">
         {selectedView === 'discover' ? (
             <Discover onOpenMenu={() => setIsMobileMenuOpen(true)} />
         ) : (
           <>
               {/* Dashboard Main Section - Show on both mobile and desktop */}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0 h-full">
             <DashboardMainSection 
               selectedFriend={selectedFriend} 
               onOpenAddFriends={() => dispatch(setShowRightSidebar(true))}
@@ -205,14 +205,16 @@ const Dashboard = () => {
                     onClick={() => dispatch(setShowRightSidebar(false))}
                   />
                   
-                  {/* Slide-in Panel from Right */}
-                  <div className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white z-50 flex flex-col shadow-2xl">
-                    <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
+                  {/* Slide-in Panel from Right with proper spacing */}
+                  <div className="fixed right-0 top-0 bottom-0 z-50 flex items-center justify-end p-2">
+                    <div className="w-[calc(100%-1rem)] sm:max-w-xs md:max-w-sm h-[calc(100%-1rem)] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+                      <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
+                    </div>
                   </div>
                 </div>
 
                 {/* Desktop: In normal layout (1024px and above) */}
-                <div className="hidden lg:block">
+                <div className="hidden lg:flex w-full max-w-xs flex-shrink-0 h-full">
                   <DashboardRightSidebar onClose={() => dispatch(setShowRightSidebar(false))} />
                 </div>
               </>
