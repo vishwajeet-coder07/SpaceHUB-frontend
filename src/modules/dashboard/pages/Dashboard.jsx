@@ -98,7 +98,9 @@ const Dashboard = () => {
           </button>
 
           <div className="hidden md:flex items-center gap-2">
-            <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+            <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+              <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+            </button>
           </div>
           <div className="flex-1 text-center">
             <h1 className="text-lg font-semibold text-gray-800">

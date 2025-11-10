@@ -42,7 +42,9 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
         {/* Header with Logo and App Name */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="SpaceHub" className="w-8 h-8" />
+            <button onClick={() => { navigate('/'); onClose(); }} className="cursor-pointer hover:opacity-80 transition-opacity">
+              <img src={logo} alt="SpaceHub" className="w-8 h-8" />
+            </button>
             <span className="text-lg font-semibold text-gray-800">SPACEHUB</span>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../../../shared/services/API';
 
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import bgPattern from '../../../assets/landing/bg 1.svg';
@@ -51,21 +52,95 @@ const LandingPage = () => {
       {/* HEADER */}
       <header id="Home" className="w-full sticky top-0 left-0 px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm z-50">
         <div className="flex items-center gap-2 sm:gap-3">
-          <img src={logo} alt="SpaceHUB logo" className="w-8 h-8 sm:w-10 sm:h-10" />
+          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+            <img src={logo} alt="SpaceHUB logo" className="w-8 h-8 sm:w-10 sm:h-10" />
+          </button>
           <span className="text-lg sm:text-xl font-bold text-gray-800">SPACEHUB</span>
         </div>
+        
+        {/* Mobile Hamburger Menu Button */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden p-2 text-gray-700 hover:text-gray-900 transition-colors"
+          aria-label="Menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-10">
           <Link to="/" className="text-gray-700 hover:text-gray-900 transition-colors">Features</Link>
           <a href="#Contact" className="text-gray-700 hover:text-gray-900 transition-colors">Contact</a>
           <a href="#About" className="text-gray-700 hover:text-gray-900 transition-colors">About</a>
         </nav>
-        <Link to="/login" className="bg-gradient-to-r from-red-500 to-blue-600 text-white px-4 sm:px-6 py-2 rounded-sm font-medium transition-all text-sm sm:text-base">
+        <Link to="/login" className="hidden md:block bg-gradient-to-r from-red-500 to-blue-600 text-white px-4 sm:px-6 py-2 rounded-sm font-medium transition-all text-sm sm:text-base">
           Login
         </Link>
       </header>
 
-      {/* HERO SECTION */}
+      {/* Mobile Hamburger Menu */}
+      {isMenuOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          <div className="fixed left-0 top-0 bottom-0 w-[70%] max-w-sm bg-white z-50 md:hidden flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src={logo} alt="SpaceHub" className="w-8 h-8" />
+                  <span className="text-lg font-semibold text-gray-800">SPACEHUB</span>
+                </div>
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 text-gray-600 hover:text-gray-900"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <nav className="flex-1 p-4 space-y-4">
+              <button
+                onClick={() => handleMenuClick('features')}
+                className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
+              >
+                Features
+              </button>
+              <button
+                onClick={() => handleMenuClick('About')}
+                className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
+              >
+                About
+              </button>
+              <button
+                onClick={() => handleMenuClick('Contact')}
+                className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
+              >
+                Contact
+              </button>
+              <button
+                onClick={() => handleMenuClick('login')}
+                className="w-full text-left px-4 py-3 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+              >
+                Login
+              </button>
+            </nav>
+          </div>
+        </>
+      )}
+
+      {/* HERO SECTION / FEATURES */}
       <section
+        id="Features"
         className="w-full  min-h-[37rem] sm:min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
         style={{
           backgroundImage: `url(${bgPattern})`,
@@ -205,16 +280,31 @@ const LandingPage = () => {
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
               </p>
-              <div id="Contact" className="flex flex-col sm:flex-row gap-2">
+              <form id="Contact" onSubmit={sendWelcomeEmail} className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="email"
                   placeholder="Email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailMessage('');
+                  }}
                   className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base placeholder:text-zinc-800"
+                  disabled={emailLoading}
                 />
-                <button className="bg-gray-800 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-gray-700 transition-colors text-sm sm:text-base">
-                  →
+                <button 
+                  type="submit"
+                  disabled={emailLoading}
+                  className="bg-gray-800 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-gray-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {emailLoading ? '...' : '→'}
                 </button>
-              </div>
+              </form>
+              {emailMessage && (
+                <p className={`mt-2 text-sm ${emailMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                  {emailMessage}
+                </p>
+              )}
             </RevealOnScroll>
 
             <RevealOnScroll className="lg:absolute right-30">

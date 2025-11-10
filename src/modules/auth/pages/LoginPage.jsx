@@ -127,7 +127,9 @@ const LoginPage = () => {
         <div className="w-full max-w-[31rem] pb-5 mb-5">
           <div className="text-center mb-6 lg:mb-8">
             <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
-              <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
+              <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
+              </button>
             </div>
               <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Login to your account</h3>
             <p className="text-muted text-sm lg:text-[1.25rem] font-normal">

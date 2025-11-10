@@ -309,7 +309,9 @@ const SignupPage = () => {
           <div className="w-full max-w-[32rem] mb-8 lg:mb-5">
             <div className="text-center mb-8 lg:mb-17">
                <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-25 ">
-                 <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-17 lg:w-24" />
+                 <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                   <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-17 lg:w-24" />
+                 </button>
                </div>
         
                 {step === 3 ? (

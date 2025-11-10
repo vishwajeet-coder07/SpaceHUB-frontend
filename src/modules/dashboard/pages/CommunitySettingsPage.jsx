@@ -786,7 +786,9 @@ const CommunitySettingsPage = () => {
       {/* Top Navbar */}
       <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-20 flex items-center px-4 rounded-b-xl">
         <div className="flex items-center gap-2">
-          <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+            <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+          </button>
         </div>
          <div className="flex-1 text-center">
            <h1 className="text-lg font-semibold text-gray-800">Settings</h1>
