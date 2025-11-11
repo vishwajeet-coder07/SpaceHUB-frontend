@@ -11,11 +11,13 @@ const SignupPage = () => {
     firstName: '',
     lastName: '',
     email: '',
+    mobile: '',
     password: '',
     confirmPassword: ''
   });
   const [step, setStep] = useState(1);
   const [emailError, setEmailError] = useState(false);
+  const [mobileError, setMobileError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [firstNameError, setFirstNameError] = useState(false);
   const [lastNameError, setLastNameError] = useState(false);
@@ -26,6 +28,13 @@ const SignupPage = () => {
   const [registrationToken, setRegistrationToken] = useState('');
   const [error, setError] = useState('');
 
+  const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
+  const formatAndValidateMobile = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+    const isValid = digits.length === 10 && /^[6-9]/.test(digits);
+    return { digits, isValid, e164: isValid ? `+91${digits}` : '' };
+  };
 
   const validateName = (name, trimmedValue) => {
     if (name && trimmedValue.length === 0) {
@@ -71,17 +80,23 @@ const SignupPage = () => {
     });
     
     if (name === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (value && !emailRegex.test(value)) {
+      if (value && !isValidEmail(value)) {
         setEmailError(true);
       } else {
         setEmailError(false);
       }
     }
+
+    if (name === 'mobile') {
+      const { digits, isValid } = formatAndValidateMobile(value);
+      setFormData((prev) => ({ ...prev, mobile: digits }));
+      setMobileError(!!digits && !isValid);
+      return;
+    }
     
     if (name === 'password') {
       const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
-      if (value && !passwordRegex.test(value)) {
+      if ((value && !passwordRegex.test(value)) || hasEmoji(value)) {
         setPasswordError(true);
       } else {
         setPasswordError(false);
@@ -129,13 +144,15 @@ const SignupPage = () => {
 
   const handleRequestOtpAndNext = (e) => {
     e.preventDefault();
-    if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch) {
+    if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch || hasEmoji(formData.email) || hasEmoji(formData.password)) {
       return;
     }
     setLoading(true);
     setError('');
-    const { firstName, lastName, email, password } = formData;
-    registerUser({ firstName, lastName, email, password })
+    const { firstName, lastName, email, password, mobile } = formData;
+    const { e164 } = formatAndValidateMobile(mobile || '');
+    const payload = { firstName, lastName, email, password, ...(e164 ? { phoneNumber: e164 } : {}) };
+    registerUser(payload)
       .then((res) => {
         const token = (res && res.data) ? res.data : '';
         setRegistrationToken(token);
@@ -178,7 +195,7 @@ const SignupPage = () => {
     setInvalidOtp(false);
     try {
       const data = await validateRegisterOtp({ 
-        email: formData.email, 
+        identifier: formData.email, 
         otp: onlyDigits, 
         type: 'REGISTRATION',
         sessionToken: registrationToken || sessionStorage.getItem('registrationToken') || ''
@@ -225,6 +242,13 @@ const SignupPage = () => {
           
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }        
+        try {
+          // Persist identifiers for later use
+          sessionStorage.setItem('lastIdentifier', formData.email);
+          sessionStorage.setItem('lastEmail', formData.email);
+          const { e164 } = formatAndValidateMobile(formData.mobile || '');
+          if (e164) sessionStorage.setItem('lastPhone', e164);
+        } catch {}
         checkAuthStatus();
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Account created successfully!', type: 'success' }
@@ -335,7 +359,7 @@ const SignupPage = () => {
               <form className="space-y-4 lg:space-y-6" onSubmit={handleStepOneSubmit}>
                 <div className="m-0 p-0">
                   <label htmlFor="firstName" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    First name
+                    First name <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="firstName"
@@ -373,7 +397,7 @@ const SignupPage = () => {
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    Last name
+                    Last name <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="lastName"
@@ -429,7 +453,7 @@ const SignupPage = () => {
               <form className="space-y-4 lg:space-y-6" onSubmit={handleRequestOtpAndNext}>
                 <div>
                   <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    Enter email
+                    Enter email <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -465,7 +489,7 @@ const SignupPage = () => {
 
                 <div>
                   <label htmlFor="password" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    Enter Password
+                    Enter Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -512,8 +536,34 @@ const SignupPage = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="mobile" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
+                    Mobile number
+                  </label>
+                  <div className="relative flex">
+                    <span className="inline-flex items-center px-3 border-2 border-r-0 rounded-l-md text-gray-600 bg-gray-50 h-[2.2rem] lg:h-[2.75rem]">
+                      +91
+                    </span>
+                    <input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
+                      inputMode="numeric"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      className={`w-full pl-3 pr-3 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-r-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${mobileError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      placeholder="10-digit number"
+                    />
+                  </div>
+                  {mobileError && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                      <p className="text-xs text-blue-600 font-medium">Enter a valid 10-digit Indian mobile number starting with 6-9.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <label htmlFor="confirmPassword" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    Confirm Password
+                    Confirm Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

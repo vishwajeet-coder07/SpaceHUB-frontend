@@ -28,6 +28,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
   };
 
   if (!isOpen) return null;
+  const email = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
 
   return (
     <>
@@ -43,7 +44,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <button onClick={() => { navigate('/'); onClose(); }} className="cursor-pointer hover:opacity-80 transition-opacity">
-              <img src={logo} alt="SpaceHub" className="w-8 h-8" />
+            <img src={logo} alt="SpaceHub" className="w-8 h-8" />
             </button>
             <span className="text-lg font-semibold text-gray-800">SPACEHUB</span>
           </div>
@@ -64,7 +65,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-800 truncate">{username}</div>
-              <div className="text-sm text-gray-500">Hello!</div>
+              <div className="text-sm text-gray-500">{email}</div>
             </div>
           </div>
         </div>
@@ -74,7 +75,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
           <div className="space-y-1 px-2">
             <button
               onClick={() => handleNavigation('dashboard')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-black hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
@@ -91,7 +92,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
                 }
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-black hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -101,7 +102,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
 
             <button
               onClick={() => handleNavigation('discover')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-black hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -111,7 +112,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
 
             <button
               onClick={() => handleNavigation('direct-message')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-gray-700 hover:bg-black hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -139,7 +140,7 @@ const MobileHamburgerMenu = ({ isOpen, onClose, onNavigate }) => {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-red-500 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-red-500 hover:bg-red-200 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

@@ -30,7 +30,7 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
         className="rounded-lg overflow-hidden shadow-sm bg-transparent cursor-pointer aspect-square"
       >
         {/* Top section - Image */}
-        <div className="h-[66%] bg-gray-200 relative">
+        <div className="h-[66%] bg-gray-400 relative">
           {bannerImg && !bannerError ? (
             <img 
               src={safeUrl(bannerImg)} 
@@ -70,8 +70,6 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
       </div>
     );
   }
-
-  // Desktop design - matching image
   return (
     <div
       key={community.id || community.communityId || title}
@@ -79,7 +77,7 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
       className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] bg-transparent cursor-pointer"
     >
       {/* Top banner area */}
-      <div className="h-40 sm:h-44 bg-gray-200">
+      <div className="h-40 sm:h-44 bg-gray-400">
         {bannerImg && !bannerError ? (
           <img 
             src={safeUrl(bannerImg)} 
@@ -113,8 +111,8 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
           </div>
         </div>
         <div>
-          <h3 className="text-2xl font-bold mb-2">{title}</h3>
-          <p className="text-sm text-gray-300 leading-relaxed line-clamp-8">{desc}</p>
+          <h3 className="text-2xl font-bold mb-2 line-clamp-1">{title}</h3>
+          <p className="text-sm text-gray-300 leading-relaxed line-clamp-2">{desc}</p>
         </div>
       </div>
     </div>
@@ -187,11 +185,17 @@ const Discover = ({ onOpenMenu }) => {
     setLoading(true);
     setError('');
     try {
-      const url = `${BASE_URL}community/discover?page=${page}&size=${size}`;
+      const userDataRaw = sessionStorage.getItem('userData');
+      const userEmail = userDataRaw ? (JSON.parse(userDataRaw)?.email || JSON.parse(userDataRaw)?.userEmail) : (sessionStorage.getItem('lastEmail') || sessionStorage.getItem('lastIdentifier') || '');
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('size', String(size));
+      if (userEmail) params.set('currentUserEmail', userEmail);
+      const url = `${BASE_URL}community/discover?${params.toString()}`;
       const res = await authenticatedFetch(url, { method: 'GET' });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data && (data.message || data.error)) || `HTTP ${res.status}`);
-      const list = data?.data?.communities || data?.communities || data?.data || [];
+      const list = data?.data?.communities || [];
       setCommunities(list);
     } catch (e) {
       const errorMsg = e.message || 'Failed to fetch communities';

@@ -8,42 +8,72 @@ import AuthSlides from '../components/AuthSlides';
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState(false);
+  const [identifierError, setIdentifierError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [invalidCredentials, setInvalidCredentials] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
+  const normalizePhone = (value) => {
+    const digits = (value || '').replace(/\D/g, '');
+    if (digits.length === 10 && /^[6-9]/.test(digits)) return `+91${digits}`;
+    if (/^\+91[6-9]\d{9}$/.test(value || '')) return value;
+    return null;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setInvalidCredentials(false);
     setError('');
     setLoading(true);
-    loginUser({ email, password })
+    const emailLike = isValidEmail(identifier);
+    const phoneLike = normalizePhone(identifier);
+    if (!emailLike && !phoneLike) {
+      setIdentifierError(true);
+      setLoading(false);
+      return;
+    }
+    const identifierToSend = emailLike ? identifier.trim() : phoneLike;
+    loginUser({ identifier: identifierToSend, password })
       .then(async (data) => {
         console.log('Login successful');
-        const userWithEmail = { ...(data?.user || data?.data?.user || {}), email };
+        const resolvedUser = data?.user || data?.data?.user || {};
+        const effectiveEmail = resolvedUser?.email || (emailLike ? identifierToSend : undefined);
+        const userWithId = { ...resolvedUser, ...(effectiveEmail ? { email: effectiveEmail } : {}) };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
         
         // Fetch profile summary to get profile image
         try {
-          const profileData = await getProfileSummary(email);
-          if (profileData?.data?.profileImage) {
-            userWithEmail.profileImage = profileData.data.profileImage;
-            userWithEmail.avatarUrl = profileData.data.profileImage;
-          }
-          if (profileData?.data?.username) {
-            userWithEmail.username = profileData.data.username;
+          if (effectiveEmail) {
+            const profileData = await getProfileSummary(effectiveEmail);
+            if (profileData?.data?.profileImage) {
+              userWithId.profileImage = profileData.data.profileImage;
+              userWithId.avatarUrl = profileData.data.profileImage;
+            }
+            if (profileData?.data?.username) {
+              userWithId.username = profileData.data.username;
+            }
           }
         } catch (error) {
           console.error('Failed to fetch profile summary:', error);
           // Continue with login even if profile fetch fails
         }
         
-        login(userWithEmail, token);
+        login(userWithId, token);
+        try {
+          // Persist identifiers for later use
+          sessionStorage.setItem('lastIdentifier', identifierToSend);
+          if (emailLike) {
+            sessionStorage.setItem('lastEmail', identifierToSend);
+          } else if (phoneLike) {
+            sessionStorage.setItem('lastPhone', phoneLike);
+          }
+        } catch {}
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'Login successful!', type: 'success' }
         }));
@@ -62,26 +92,27 @@ const LoginPage = () => {
       .finally(() => setLoading(false));
   };
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateIdentifier = (value) => {
+    if (!value) return false;
+    if (isValidEmail(value)) return true;
+    return !!normalizePhone(value);
   };
 
-  const handleEmailChange = (e) => {
+  const handleIdentifierChange = (e) => {
     const value = e.target.value;
-    setEmail(value);
+    setIdentifier(value);
     setInvalidCredentials(false);
     setError('');
-    if (value && !validateEmail(value)) {
-      setEmailError(true);
+    if (value && !validateIdentifier(value)) {
+      setIdentifierError(true);
     } else {
-      setEmailError(false);
+      setIdentifierError(false);
     }
   };
 
   const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
-    return passwordRegex.test(password);
+    return passwordRegex.test(password) && !hasEmoji(password);
   };
 
   const handlePasswordChange = (e) => {
@@ -139,8 +170,8 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
             <div>
-              <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                Enter email <p className='text-red-500 text-sm lg:text-md font-thin'>{invalidCredentials && '(Invalid credential)'}</p>
+              <label htmlFor="identifier" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
+                Email or Mobile <p className='text-red-500 text-sm lg:text-md font-thin'>{invalidCredentials && '(Invalid credential)'}</p>
               </label>
               <div className="relative">
                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -150,23 +181,21 @@ const LoginPage = () => {
                    </svg>
                  </div>
                  <input
-                   id="email"
-                   name="email"
-                   type="email"
-                   autoComplete="email"
+                   id="identifier"
+                   name="identifier"
+                   type="text"
+                   autoComplete="username"
                    required
-                   value={email}
-                   onChange={handleEmailChange}
-                   className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary  transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
-                   placeholder="Enter your email"
-                 />
+                   value={identifier}
+                   onChange={handleIdentifierChange}
+                   className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary  transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${identifierError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                   placeholder="Enter email or +91XXXXXXXXXX"
+                   />
               </div>
-              {emailError && (
+              {identifierError && (
                 <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                  <p className="text-xs text-blue-600 font-medium mb-1">Email Requirements :
-                    <span className="text-xs text-blue-500 space-y-0.5">
-                      Must be a valid email address, must contain @ symbol and a domain name.
-                    </span>
+                  <p className="text-xs text-blue-600 font-medium mb-1">
+                    Enter a valid email or Indian mobile number (+91XXXXXXXXXX).
                   </p>
                 </div>
               )}

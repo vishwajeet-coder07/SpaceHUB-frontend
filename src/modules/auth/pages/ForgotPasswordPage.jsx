@@ -5,9 +5,9 @@ import AuthSlides from '../components/AuthSlides';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState('');
-  const [emailError, setEmailError] = useState(false);
+  const [identifierError, setIdentifierError] = useState(false);
   const [otpError, setOtpError] = useState(false);
   const [invalidOtp, setInvalidOtp] = useState(false);
   const [step, setStep] = useState('email');
@@ -15,17 +15,38 @@ const ForgotPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
+  const normalizePhone = (value) => {
+    const digits = (value || '').replace(/\D/g, '');
+    if (digits.length === 10 && /^[6-9]/.test(digits)) return `+91${digits}`;
+    if (/^\+91[6-9]\d{9}$/.test(value || '')) return value;
+    return null;
+  };
+  const validateIdentifier = (value) => {
+    if (!value) return false;
+    if (isValidEmail(value)) return true;
+    return !!normalizePhone(value);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     if (step === 'email') {
+      const emailLike = isValidEmail(identifier);
+      const phoneLike = normalizePhone(identifier);
+      if (!emailLike && !phoneLike) {
+        setIdentifierError(true);
+        return;
+      }
+      const identifierToSend = emailLike ? identifier.trim() : phoneLike;
       setLoading(true);
-      requestForgotPassword(email)
+      requestForgotPassword(identifierToSend)
         .then((res) => {
           const token = (res && res.data) ? res.data : '';
           setForgotToken(token);
           window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: 'OTP sent to your email!', type: 'success' }
+            detail: { message: 'OTP sent!', type: 'success' }
           }));
           setStep('otp');
         })
@@ -44,10 +65,10 @@ const ForgotPasswordPage = () => {
       }
       setOtpError(false);
       setLoading(true);
-      validateOtp({ email, otp })
+      validateOtp({ identifier, otp })
         .then((res) => {
           try {
-            sessionStorage.setItem('resetEmail', email);
+            sessionStorage.setItem('resetIdentifier', identifier);
             const token = (res && res.data && res.data.accessToken) ? res.data.accessToken : (res && res.accessToken);
             if (token) sessionStorage.setItem('resetAccessToken', token);
           } catch {
@@ -108,11 +129,11 @@ const ForgotPasswordPage = () => {
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
-    setEmail(value);
-    if (value && !validateEmail(value)) {
-      setEmailError(true);
+    setIdentifier(value);
+    if (value && !validateIdentifier(value)) {
+      setIdentifierError(true);
     } else {
-      setEmailError(false);
+      setIdentifierError(false);
     }
   };
 
@@ -130,13 +151,13 @@ const ForgotPasswordPage = () => {
              </div>
             {step === 'email' ? (
               <>
-                <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Verify your email</h3>
-                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Verify your email to reset your password</p>
+                <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Verify your account</h3>
+                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Enter your email or mobile to receive OTP</p>
               </>
             ) : (
               <>
                 <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Enter otp</h3>
-                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Verify your email to reset your password</p>
+                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Verify to reset your password</p>
               </>
             )}
           </div>
@@ -145,7 +166,7 @@ const ForgotPasswordPage = () => {
             {step === 'email' ? (
               <div>
                 <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                  Enter email <p className='text-red-500 text-sm lg:text-md font-thin'>{emailError && '(Invalid credential)'}</p>
+                  Email or Mobile <p className='text-red-500 text-sm lg:text-md font-thin'>{identifierError && '(Invalid credential)'}</p>
                 </label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -157,22 +178,18 @@ const ForgotPasswordPage = () => {
                   <input
                     id="email"
                     name="email"
-                    type="email"
-                    autoComplete="email"
+                    type="text"
+                    autoComplete="username"
                     required
-                    value={email}
+                    value={identifier}
                     onChange={handleEmailChange}
-                    className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
-                    placeholder="Enter your email"
+                    className={`w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[30.875rem] ${identifierError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                    placeholder="Enter email or +91XXXXXXXXXX"
                     />
                   </div>
-                  {emailError && (
+                  {identifierError && (
                     <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                      <p className="text-xs text-blue-600 font-medium mb-1">Email Requirements :
-                        <span className="text-xs text-blue-500 space-y-0.5">
-                          Must be a valid email address, must contain @ symbol and a domain name.
-                        </span>
-                      </p>
+                      <p className="text-xs text-blue-600 font-medium mb-1">Enter a valid email or Indian mobile number (+91XXXXXXXXXX).</p>
                     </div>
                   )}
                 </div>

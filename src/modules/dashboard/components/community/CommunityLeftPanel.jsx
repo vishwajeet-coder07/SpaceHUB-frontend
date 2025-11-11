@@ -162,12 +162,6 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       </div>
       {open && (
         <div className="mt-2 pl-5 space-y-1">
-          {loadingChatrooms && !isVoice && (
-            <div className="px-3 py-2 text-xs text-gray-500">Loading chatrooms...</div>
-          )}
-          {loadingVoiceRooms && isVoice && (
-            <div className="px-3 py-2 text-xs text-gray-500">Loading voice rooms...</div>
-          )}
           {!hasChannels && !loadingChatrooms && !loadingVoiceRooms && (
             <div className="px-3 py-3 text-xs text-gray-500 italic">
               No {isVoice ? 'voice' : 'chat'} rooms yet. Click + to create one!

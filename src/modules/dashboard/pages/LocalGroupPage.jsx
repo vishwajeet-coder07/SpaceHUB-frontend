@@ -125,7 +125,7 @@ const LocalGroupPage = () => {
         setHasSelectedChannel(true);
         setShowCenterPanel(true);
       } else {
-        setShowCenterPanel(true);
+      setShowCenterPanel(true);
       }
     };
     window.addEventListener('community:channel-selected', handleChannelSelect);
@@ -221,7 +221,7 @@ const LocalGroupPage = () => {
       <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-14 flex items-center px-4 rounded-b-xl">
         <div className="flex items-center gap-2">
           <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
-            <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+          <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
           </button>
         </div>
         <div className="flex-1 text-center">

@@ -18,7 +18,8 @@ const ResetPasswordPage = () => {
 
   const validatePassword = (value) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
-    return passwordRegex.test(value);
+    const hasEmoji = /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
+    return passwordRegex.test(value) && !hasEmoji;
   };
 
   const onPasswordChange = (e) => {
@@ -39,13 +40,21 @@ const ResetPasswordPage = () => {
     if (!passwordError && !passwordMismatch && password && confirmPassword) {
       setLoading(true);
       setError('');
-      const email = sessionStorage.getItem('resetEmail') || '';
+      const identifier = sessionStorage.getItem('resetIdentifier') || sessionStorage.getItem('resetEmail') || '';
       const tempToken = sessionStorage.getItem('resetAccessToken') || '';
-      resetPassword({ email, newPassword: password, tempToken })
+      resetPassword({ identifier, newPassword: password, tempToken })
         .then((data) => {
           const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
-          const userObj = data?.user || data?.data?.user || { email };
+          const userObj = data?.user || data?.data?.user || { email: identifier };
           login(userObj, token);
+          try {
+            sessionStorage.setItem('lastIdentifier', identifier);
+            if (identifier?.startsWith('+91')) {
+              sessionStorage.setItem('lastPhone', identifier);
+            } else {
+              sessionStorage.setItem('lastEmail', identifier);
+            }
+          } catch {}
           window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: 'Password reset successfully!', type: 'success' }
           }));

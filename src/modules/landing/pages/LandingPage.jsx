@@ -10,6 +10,7 @@ import card3 from '../../../assets/landing/card3.svg';
 import line1 from '../../../assets/landing/line1.svg';
 import line2 from '../../../assets/landing/line2.svg';
 import line3 from '../../../assets/landing/line3.svg';
+import { sendWelcomeEmail } from '../../../shared/services/API';
 
 const RevealOnScroll = ({ children, className = '' }) => {
   const ref = useRef(null);
@@ -47,6 +48,8 @@ const RevealOnScroll = ({ children, className = '' }) => {
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [subscriberEmail, setSubscriberEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleMenuClick = (section) => {
     setIsMenuOpen(false);
@@ -59,6 +62,31 @@ const LandingPage = () => {
       } else if (section === 'features') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+    }
+  };
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    const email = (subscriberEmail || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Enter a valid email', type: 'error' } }));
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await sendWelcomeEmail({
+        to: email,
+        subject: 'Welcome to SpaceHub',
+        message: 'Hello! This is a test email from SpaceHub.'
+      });
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Email sent! Check your inbox.', type: 'success' } }));
+      setSubscriberEmail('');
+    } catch (err) {
+      const msg = err?.message || 'Failed to send email';
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'error' } }));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -288,7 +316,7 @@ const LandingPage = () => {
       </section>
                     <hr/>
       {/* FOOTER */}
-      <footer className="bg-gray-100 py-12 sm:py-16">
+      <footer id='contact' className="bg-gray-100 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <RevealOnScroll>
@@ -296,6 +324,23 @@ const LandingPage = () => {
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
               </p>
+              <form onSubmit={handleSubscribe} className="flex w-full max-w-xl items-center gap-2">
+                <input
+                  type="email"
+                  value={subscriberEmail}
+                  onChange={(e) => setSubscriberEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-3 rounded-md bg-gradient-to-r from-red-500 to-blue-600 text-white font-semibold disabled:opacity-60"
+                >
+                  {submitting ? 'Sending...' : 'Notify me'}
+                </button>
+              </form>
             </RevealOnScroll>
 
             <RevealOnScroll className="lg:absolute right-30">

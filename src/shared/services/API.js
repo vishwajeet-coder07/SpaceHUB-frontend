@@ -37,7 +37,7 @@ export async function requestForgotPassword(email) {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ identifier: email })
   });
   return handleJson(response);
 }
@@ -729,6 +729,15 @@ export async function setUsername({ email, username }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
+  });
+  return handleJson(response);
+}
+
+export async function sendWelcomeEmail({ to, subject, message }) {
+  const response = await authenticatedFetch(`${BASE_URL}dashboard/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to, subject, message })
   });
   return handleJson(response);
 }
