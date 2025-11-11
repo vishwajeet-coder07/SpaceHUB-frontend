@@ -12,8 +12,6 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
   const parseInviteLink = (link) => {
     try {
       const trimmedLink = link.trim();
-      
-      // Check for local group invite link: https://codewithketan.me.localgroup/invite/{groupId}/{inviteCode}
       const localGroupPattern = /localgroup\/invite\/([a-f0-9-]{36})\/([a-zA-Z0-9]+)/i;
       const localGroupMatch = trimmedLink.match(localGroupPattern);
       
@@ -21,8 +19,6 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
         const groupId = localGroupMatch[1];
         return { type: 'localGroup', groupId };
       }
-      
-      // Check for community invite link: /invite/{communityId}/{inviteCode}
       const invitePattern = /\/invite\/([a-f0-9-]{36})\/([a-zA-Z0-9]+)/i;
       const match = trimmedLink.match(invitePattern);
       
@@ -32,7 +28,6 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
         return { type: 'community', communityId, inviteCode };
       }
       
-      // Fallback: try to extract UUID (for community invites)
       const uuidPattern = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i;
       const uuidMatch = trimmedLink.match(uuidPattern);
       

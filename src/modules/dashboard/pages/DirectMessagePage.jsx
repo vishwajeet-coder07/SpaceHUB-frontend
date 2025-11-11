@@ -309,7 +309,7 @@ const DirectMessagePage = () => {
                     {truncatedMessage ? (
                       <div className="text-sm text-gray-500 truncate">{truncatedMessage}</div>
                     ) : (
-                      <div className="text-sm text-gray-400 italic">No messages yet</div>
+                      <div className="text-sm text-gray-400 italic">click to start</div>
                     )}
                   </div>
                   

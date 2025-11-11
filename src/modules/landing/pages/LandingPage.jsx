@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BASE_URL } from '../../../shared/services/API';
 
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import bgPattern from '../../../assets/landing/bg 1.svg';
@@ -46,6 +45,23 @@ const RevealOnScroll = ({ children, className = '' }) => {
 };
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleMenuClick = (section) => {
+    setIsMenuOpen(false);
+    if (section === 'login') {
+      navigate('/login');
+    } else {
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      } else if (section === 'features') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f3f3f3] text-gray-900">
 
@@ -280,31 +296,6 @@ const LandingPage = () => {
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
               </p>
-              <form id="Contact" onSubmit={sendWelcomeEmail} className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailMessage('');
-                  }}
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base placeholder:text-zinc-800"
-                  disabled={emailLoading}
-                />
-                <button 
-                  type="submit"
-                  disabled={emailLoading}
-                  className="bg-gray-800 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-gray-700 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {emailLoading ? '...' : '→'}
-                </button>
-              </form>
-              {emailMessage && (
-                <p className={`mt-2 text-sm ${emailMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
-                  {emailMessage}
-                </p>
-              )}
             </RevealOnScroll>
 
             <RevealOnScroll className="lg:absolute right-30">

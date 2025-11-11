@@ -973,5 +973,3 @@ export const authenticatedFetch = async (url, options = {}) => {
   
   return response;
 };
-
-

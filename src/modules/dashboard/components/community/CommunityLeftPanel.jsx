@@ -62,7 +62,7 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 };
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false }) => {
   const filteredChannels = (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
@@ -91,7 +91,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       };
       
       fetchChatrooms();
-    } else if (open && isVoice && roomId) {
+    } else if (open && isVoice && roomId && !isLocalGroup) {
       const fetchVoiceRooms = async () => {
         setLoadingVoiceRooms(true);
         try {
@@ -112,7 +112,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       setFetchedChatrooms([]);
       setFetchedVoiceRooms([]);
     }
-  }, [open, isVoice, roomCode, roomId]);
+  }, [open, isVoice, roomCode, roomId, isLocalGroup]);
   
   const allChannels = useMemo(() => {
     const merged = [...filteredChannels];
@@ -435,6 +435,7 @@ const CreateChannelModal = ({ isOpen, onClose, onSuccess }) => {
             onKeyPress={handleKeyPress}
             placeholder="#Channelname"
               className="flex-1 bg-white border border-gray-300 rounded px-4 py-2 text-gray-900 outline-purple-400 ring-2 ring-purple-600"
+              maxLength={30}
               autoFocus
           />
           <button
@@ -570,7 +571,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="Group name"
             className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg outline-none placeholder:text-gray-400"
-            maxLength={14}
+            maxLength={30}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !loading) {
@@ -592,11 +593,13 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
+  const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
+  const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
   
   // Fetch chatrooms when group dropdown opens
   useEffect(() => {
@@ -624,6 +627,59 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       setFetchedChatrooms([]);
     }
   }, [open, roomCode]);
+
+  // Fetch voice rooms when group dropdown opens
+  useEffect(() => {
+    if (open && roomId && !isLocalGroup) {
+      const fetchVoiceRooms = async () => {
+        setLoadingVoiceRooms(true);
+        try {
+          const response = await getVoiceRoomsList(roomId);
+          const voiceRoomsData = response?.voiceRooms || [];
+          const voiceRoomNames = voiceRoomsData.map((vr) => vr.name).filter(Boolean);
+          setFetchedVoiceRooms(voiceRoomNames);
+        } catch (error) {
+          console.error('Failed to fetch voice rooms:', error);
+          setFetchedVoiceRooms([]);
+        } finally {
+          setLoadingVoiceRooms(false);
+        }
+      };
+      
+      fetchVoiceRooms();
+    } else if (!open) {
+      // Clear fetched voice rooms when dropdown closes
+      setFetchedVoiceRooms([]);
+    }
+  }, [open, roomId, isLocalGroup]);
+
+  // Listen for voice room creation events to refresh the list
+  useEffect(() => {
+    if (!open || !roomId || isLocalGroup) return;
+
+    const handleVoiceRoomCreated = (event) => {
+      const { roomId: eventRoomId } = event.detail || {};
+      if (eventRoomId === roomId || eventRoomId === String(roomId)) {
+        // Refetch voice rooms when a new one is created
+        const fetchVoiceRooms = async () => {
+          try {
+            const response = await getVoiceRoomsList(roomId);
+            const voiceRoomsData = response?.voiceRooms || [];
+            const voiceRoomNames = voiceRoomsData.map((vr) => vr.name).filter(Boolean);
+            setFetchedVoiceRooms(voiceRoomNames);
+          } catch (error) {
+            console.error('Failed to fetch voice rooms after creation:', error);
+          }
+        };
+        fetchVoiceRooms();
+      }
+    };
+
+    window.addEventListener('voice-room:created', handleVoiceRoomCreated);
+    return () => {
+      window.removeEventListener('voice-room:created', handleVoiceRoomCreated);
+    };
+  }, [open, roomId, isLocalGroup]);
   
   // Filter out 'general' from both room types
   const filteredChatRooms = (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
@@ -640,7 +696,18 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     return merged;
   }, [filteredChatRooms, fetchedChatrooms]);
 
-  const hasNoRooms = allChatRooms.length === 0 && filteredVoiceRooms.length === 0;
+  // Merge fetched voice rooms with existing voice rooms, avoiding duplicates
+  const allVoiceRooms = useMemo(() => {
+    const merged = [...filteredVoiceRooms];
+    fetchedVoiceRooms.forEach((name) => {
+      if (!merged.includes(name)) {
+        merged.push(name);
+      }
+    });
+    return merged;
+  }, [filteredVoiceRooms, fetchedVoiceRooms]);
+
+  const hasNoRooms = allChatRooms.length === 0 && allVoiceRooms.length === 0;
   
   return (
     <div className="mb-3">
@@ -662,7 +729,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       </div>
       {open && (
         <div className="mt-2">
-          {loadingChatrooms ? (
+          {loadingChatrooms || loadingVoiceRooms ? (
             <div className="ml-4 space-y-2">
               {/* Shimmer for Chat Room section */}
               <div className="space-y-2">
@@ -717,19 +784,21 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 onSelectChannel={onSelectChannel}
                 groupName={groupName}
                 roomCode={roomCode}
+                isLocalGroup={isLocalGroup}
               />
               <RoomSection
                 title="Voice room"
                 open={voiceOpen}
                 onToggle={() => setVoiceOpen(!voiceOpen)}
                 onAdd={() => onAddVoiceRoom(groupName)}
-                channels={filteredVoiceRooms}
+                channels={allVoiceRooms}
                 isVoice={true}
                 selectedChannel={selectedChannel}
                 onSelectChannel={onSelectChannel}
                 groupName={groupName}
                 roomCode={roomCode}
                 roomId={roomId}
+                isLocalGroup={isLocalGroup}
               />
             </>
           )}
@@ -824,8 +893,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               }
             }
             
-            // If still not found, try fetching from API
-            if (!janusRoomId) {
+            // If still not found, try fetching from API (skip for local groups)
+            if (!janusRoomId && !isLocalGroup) {
               try {
                 const response = await getVoiceRoomsList(roomId);
                 const voiceRoomsData = response?.voiceRooms || [];
@@ -983,20 +1052,42 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     setError('');
     try {
       if (isLocalGroup) {
-        const data = await getLocalGroupById(communityId);
-        const lg = data?.data || data || {};
+        // First try to get from session storage (from getAllLocalGroups response)
+        let lg = null;
+        try {
+          const cached = sessionStorage.getItem(`localGroup:${communityId}`);
+          if (cached) {
+            lg = JSON.parse(cached);
+          }
+        } catch {}
+        
+        // If not in session storage, fetch from API
+        if (!lg) {
+          const data = await getLocalGroupById(communityId);
+          lg = data?.data || data || {};
+        }
 
         try {
           sessionStorage.setItem(`localGroupDetails:${communityId}`, JSON.stringify(lg));
         } catch {}
 
+        // Get chatRoomCode from the saved response
+        const chatRoomCode = lg.chatRoomCode || lg.roomCode || lg.code;
+        
+        // Save chatRoomCode separately for easy access
+        if (chatRoomCode) {
+          try {
+            sessionStorage.setItem(`localGroupChatRoomCode:${communityId}`, chatRoomCode);
+          } catch {}
+        }
+
         const transformedGroups = [
           {
             id: lg.id || lg.groupId || communityId,
             name: lg.name || lg.groupName || title || 'Local Group',
-            chatRooms: [],
-            voiceRooms: [],
-            roomCode: lg.roomCode || lg.code || undefined,
+            chatRooms: ['general'], // Default general channel
+            voiceRooms: ['general'], // Default general channel
+            roomCode: chatRoomCode, // Use chatRoomCode from response
           },
         ];
 
@@ -1085,7 +1176,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     if (roomType === 'chat') {
       // Find the group to get roomCode
       const targetGroup = groups.find((g) => g.name === groupName);
-      const roomCode = targetGroup?.roomCode;
+      let roomCode = targetGroup?.roomCode;
+      
+      // For local groups, try to get chatRoomCode from session storage
+      if (isLocalGroup && !roomCode) {
+        try {
+          roomCode = sessionStorage.getItem(`localGroupChatRoomCode:${communityId}`);
+        } catch {}
+      }
       
       if (roomCode) {
         try {
@@ -1140,9 +1238,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       );
     } else if (roomType === 'voice') {
       // Create voice room via API
-      if (roomId && userEmail) {
+      // For local groups, use the group's id as chatRoomId (same as communities)
+      let chatRoomId = roomId;
+      if (isLocalGroup && !chatRoomId) {
+        // Get the group's id from the groups array
+        const targetGroup = groups.find((g) => g.name === groupName);
+        chatRoomId = targetGroup?.id || communityId;
+      }
+      
+      if (chatRoomId && userEmail) {
         try {
-          const response = await createVoiceRoom(roomId, clean, userEmail);
+          const response = await createVoiceRoom(chatRoomId, clean, userEmail);
           
           // Save response to session storage
           const storageKey = `voiceRoom_${roomId}_${clean}`;
@@ -1184,6 +1290,11 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           // Show success toast
           window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: 'Voice room created successfully!', type: 'success' }
+          }));
+          
+          // Dispatch event to refresh voice rooms in GroupSection
+          window.dispatchEvent(new CustomEvent('voice-room:created', {
+            detail: { roomId, voiceRoomName: clean }
           }));
           
           // Refresh groups to get updated voice rooms list
@@ -1445,6 +1556,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             onSelectChannel={handleChannelSelect}
             roomCode={group.roomCode}
             roomId={group.id}
+            isLocalGroup={isLocalGroup}
           />
         ))}
             {/* Footer */}

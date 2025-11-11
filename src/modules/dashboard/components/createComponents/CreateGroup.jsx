@@ -116,6 +116,7 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                   onBlur={() => setTouchedName(true)}
               placeholder={placeholder}
                   className="flex-1 outline-none text-base sm:text-lg bg-transparent min-w-0"
+                  maxLength={30}
               />
               </div>
               <div className="flex items-center justify-between mt-1">

@@ -58,6 +58,14 @@ const LocalGroupPage = () => {
         );
         if (found) {
           setLocalGroup(found);
+          try {
+            sessionStorage.setItem(`localGroup:${found.id}`, JSON.stringify(found));
+            if (found.chatRoomCode) {
+              sessionStorage.setItem(`localGroupChatRoomCode:${found.id}`, found.chatRoomCode);
+            }
+          } catch (e) {
+            console.warn('Failed to save local group to sessionStorage:', e);
+          }
         } else {
           console.log('Looking for ID:', id);
           console.log('Available local groups:', list.map(g => ({ id: g.id, groupId: g.groupId, roomId: g.roomId })));
@@ -301,6 +309,7 @@ const LocalGroupPage = () => {
                   community={localGroup} 
                   onToggleRightPanel={() => setShowRightPanel(true)}
                   onBack={handleCloseCenterPanel}
+                  isLocalGroup={true}
                 />
               </div>
             </>
@@ -310,6 +319,7 @@ const LocalGroupPage = () => {
             <CommunityCenterPanel 
               community={localGroup} 
               onToggleRightPanel={() => setShowRightPanel(true)}
+              isLocalGroup={true}
             />
           </div>
         </>

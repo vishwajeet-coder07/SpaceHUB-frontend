@@ -5,7 +5,7 @@ import ChatRoom from '../chatRoom/Chatroom';
 import VoiceRoom from '../voiceRoom/VoiceRoom';
 import { useVoiceRoom } from '../../../../shared/hooks/useVoiceRoom';
 
-const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, onBack = null }) => {
+const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, onBack = null, isLocalGroup = false }) => {
   const { user } = useAuth();
   const wsRef = useRef(null);
 
@@ -37,13 +37,38 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       return null;
     }
   };
-  const [currentRoomCode, setCurrentRoomCode] = useState(roomCode || null);
-  const [currentMode, setCurrentMode] = useState('chat'); // 'chat' | 'voice'
-  const [currentRoomTitle, setCurrentRoomTitle] = useState('#general');
+  // Get stored channel selection from sessionStorage to persist across remounts
+  const getStoredChannel = () => {
+    if (!communityId) return null;
+    try {
+      const stored = sessionStorage.getItem(`community_selected_channel_${communityId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to parse stored channel:', e);
+    }
+    return null;
+  };
+
+  const storedChannel = getStoredChannel();
+  const [currentRoomCode, setCurrentRoomCode] = useState(roomCode || storedChannel?.roomCode || null);
+  const [currentMode, setCurrentMode] = useState(storedChannel?.mode || 'chat'); // 'chat' | 'voice'
+  const [currentRoomTitle, setCurrentRoomTitle] = useState(storedChannel?.title || '#general');
   const [localMuted, setLocalMuted] = useState(false);
 
-  const [activeChatRoomCode, setActiveChatRoomCode] = useState(null);
-  const [voiceRoomData, setVoiceRoomData] = useState(null); // { janusRoomId, sessionId, handleId, userId }
+  const [activeChatRoomCode, setActiveChatRoomCode] = useState(storedChannel?.chatRoomCode || null);
+  const [voiceRoomData, setVoiceRoomData] = useState(storedChannel?.voiceRoomData || null); // { janusRoomId, sessionId, handleId, userId }
+
+  // Store channel selection in sessionStorage
+  const storeChannelSelection = (channelData) => {
+    if (!communityId) return;
+    try {
+      sessionStorage.setItem(`community_selected_channel_${communityId}`, JSON.stringify(channelData));
+    } catch (e) {
+      console.error('Failed to store channel selection:', e);
+    }
+  };
 
   useEffect(() => {
     const handleChannelSelect = (event) => {
@@ -57,9 +82,11 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
         const parts = channelId.split(':');
         if (parts.length >= 3) {
           const kind = parts[1] === 'voice' ? 'voice' : 'chat';
+          const roomTitle = `# ${parts[2]}`;
           setCurrentMode(kind);
-          setCurrentRoomTitle(`# ${parts[2]}`);
+          setCurrentRoomTitle(roomTitle);
           
+          let voiceData = null;
           if (kind === 'voice' && janusRoomId) {
             const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
             const joinResponseKey = `voiceRoomJoin_${janusRoomId}`;
@@ -69,33 +96,52 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
               try {
                 const joinResponse = JSON.parse(joinResponseStr);
                 const data = joinResponse?.data || joinResponse;
-                setVoiceRoomData({
+                voiceData = {
                   janusRoomId,
                   sessionId: data?.sessionId,
                   handleId: data?.handleId,
                   userId: userEmail
-                });
+                };
               } catch (e) {
                 console.error('Failed to parse join response:', e);
-                setVoiceRoomData(null);
+                voiceData = null;
               }
             } else {
               const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
-              setVoiceRoomData({
+              voiceData = {
                 janusRoomId,
                 sessionId: null,
                 handleId: null,
                 userId: userEmail
-              });
+              };
             }
-          } else {
-            setVoiceRoomData(null);
           }
+          setVoiceRoomData(voiceData);
+
+          // Store the channel selection
+          storeChannelSelection({
+            channelId,
+            roomCode: newRoomCode || currentRoomCode || roomCode,
+            chatRoomCode,
+            mode: kind,
+            title: roomTitle,
+            voiceRoomData: voiceData
+          });
         } else if (channelId.startsWith('announcement:')) {
           setCurrentMode('chat');
           setCurrentRoomTitle('# general');
           setActiveChatRoomCode(null);
           setVoiceRoomData(null);
+          
+          // Store the announcement selection
+          storeChannelSelection({
+            channelId,
+            roomCode: newRoomCode || currentRoomCode || roomCode,
+            chatRoomCode: null,
+            mode: 'chat',
+            title: '# general',
+            voiceRoomData: null
+          });
         }
       }
     };
@@ -103,14 +149,24 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
     return () => {
       window.removeEventListener('community:channel-selected', handleChannelSelect);
     };
-  }, [user?.email]);
+  }, [user?.email, communityId, currentRoomCode, roomCode]);
   
   // Listen for voice room join completion
   useEffect(() => {
     const handleVoiceRoomJoin = (event) => {
       const { janusRoomId, sessionId, handleId, userId } = event.detail || {};
       if (janusRoomId && sessionId && handleId && userId) {
-        setVoiceRoomData({ janusRoomId, sessionId, handleId, userId });
+        const voiceData = { janusRoomId, sessionId, handleId, userId };
+        setVoiceRoomData(voiceData);
+        
+        // Update stored channel selection with updated voice room data
+        const stored = getStoredChannel();
+        if (stored) {
+          storeChannelSelection({
+            ...stored,
+            voiceRoomData: voiceData
+          });
+        }
       }
     };
     
@@ -118,7 +174,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
     return () => {
       window.removeEventListener('voice-room:joined', handleVoiceRoomJoin);
     };
-  }, []);
+  }, [communityId]);
 
   useEffect(() => {
     if (currentMode !== 'chat') {
@@ -327,7 +383,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
               console.error('Failed to reconnect WebSocket:', e);
             }
           }
-        }, 3000);
+        }, 10000);
       }
     };
   };
@@ -335,6 +391,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   useEffect(() => {
     const checkAdminAndMaybeShow = async () => {
       if (!communityId || !user?.email) return;
+      if (isLocalGroup) return;
 
       try {
         const seen = localStorage.getItem(storageKey);
@@ -355,7 +412,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
     };
 
     checkAdminAndMaybeShow();
-  }, [communityId, user?.email, storageKey]);
+  }, [communityId, user?.email, storageKey, isLocalGroup]);
 
   const closeWelcomeModal = () => {
     setShowWelcomeModal(false);
@@ -536,13 +593,22 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
     }
   }, [error]);
 
+  const handleLeave = () => {
+    leave();
+    if (onBack && typeof window !== 'undefined' && window.innerWidth <= 640) {
+      setTimeout(() => {
+        onBack();
+      }, 100);
+    }
+  };
+
   return (
     <VoiceRoom
       title={title}
       participants={enrichedParticipants}
       localMuted={isMuted}
       onToggleMute={toggleMute}
-      onLeave={leave}
+      onLeave={handleLeave}
       onBack={onBack} />
   );
 }

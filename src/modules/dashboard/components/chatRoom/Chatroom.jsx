@@ -367,9 +367,9 @@ const ChatRoom = ({
                               <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 max-w-full">
-                              {m.images.map((img, i) => (
+                          {m.images.map((img, i) => (
                                 <div key={i} className="rounded-lg overflow-hidden bg-gray-200 relative group">
-                                  <img src={img} alt="attachment" className="w-full h-auto object-cover" />
+                              <img src={img} alt="attachment" className="w-full h-auto object-cover" />
                                   <button
                                     onClick={() => downloadFile(img, `image-${i + 1}`)}
                                     className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -379,8 +379,8 @@ const ChatRoom = ({
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-1M7 20a2 2 0 01-2-2v-1" />
                                     </svg>
                                   </button>
-                                </div>
-                              ))}
+                            </div>
+                          ))}
                             </div>
                           </div>
                         </div>
@@ -406,13 +406,13 @@ const ChatRoom = ({
                             </div>
                             <button
                               onClick={() => downloadFile(m.fileUrl, m.fileName || 'file')}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
                               title="Download"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
                             </button>
                           </div>
                         </div>
