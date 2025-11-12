@@ -31,6 +31,16 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
     onChange?.({ name: groupName, imageFile: f });
   };
 
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setImageFile(null);
+    setPreview('');
+    onChange?.({ name: groupName, imageFile: null });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const getCharacterCount = (text) => {
     return text.length;
   };
@@ -94,7 +104,19 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
                 </>
               )}
             </button>
-                <span className="absolute -right-0 -top-0 mt-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl">+</span>
+                <button
+                  onClick={preview ? handleRemoveImage : onPickFile}
+                  className="absolute -right-0 -top-0 mt-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl hover:bg-indigo-700 transition-colors cursor-pointer"
+                  type="button"
+                >
+                  {preview ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="sm:w-5 sm:h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    '+'
+                  )}
+                </button>
             <input ref={fileInputRef} onChange={onFileChange} type="file" accept="image/*" className="hidden" />
                 {showImageError && (
                   <p className="absolute left-1/2 -bottom-7 -translate-x-1/2 text-sm text-red-400 whitespace-nowrap">Image is required.</p>

@@ -2,7 +2,7 @@ import React from 'react';
 
 const CreateCongrats = ({ onDone, entityTitle = 'Group', subtitle }) => {
   return (
-    <div className="relative w-full max-w-[750px] h-full min-h-[550px] sm:h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
+    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full">
         <div className="bg-[#282828] text-white p-4 sm:p-10 flex flex-col justify-center items-center text-center h-full rounded-2xl">
           <div className="mb-6 sm:mb-8">

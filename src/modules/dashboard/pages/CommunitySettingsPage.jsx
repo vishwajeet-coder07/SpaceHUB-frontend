@@ -726,6 +726,17 @@ const CommunitySettingsPage = () => {
     }
   };
 
+  const handleRemoveProfileImage = () => {
+    if (profileImagePreview) {
+      URL.revokeObjectURL(profileImagePreview);
+    }
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleBannerChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -918,7 +929,7 @@ const CommunitySettingsPage = () => {
                     <div className="mb-4">
                       <h3 className="text-lg font-semibold text-white mb-2">Profile</h3>
                       <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-400 flex-shrink-0">
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-zinc-400 flex-shrink-0">
                           {profileImagePreview ? (
                             <img
                               src={profileImagePreview}
@@ -940,6 +951,21 @@ const CommunitySettingsPage = () => {
                               </div>
                             </div>
                           )}
+                          <button
+                            onClick={profileImagePreview ? handleRemoveProfileImage : handleImageUpload}
+                            className="absolute -right-1 -top-1 w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors cursor-pointer z-10"
+                            type="button"
+                          >
+                            {profileImagePreview ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                         <button
                           onClick={handleImageUpload}

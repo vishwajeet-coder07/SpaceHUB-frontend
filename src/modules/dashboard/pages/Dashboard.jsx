@@ -50,6 +50,17 @@ const Dashboard = () => {
     }
   }, [dispatch]);
 
+  // Close right sidebar by default on mobile screens
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 1024) {
+        dispatch(setShowRightSidebar(false));
+      } else {
+        dispatch(setShowRightSidebar(true));
+      }
+    }
+  }, [dispatch]);
+
  
   useEffect(() => {
     const handleOpenInbox = () => {

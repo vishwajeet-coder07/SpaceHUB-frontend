@@ -99,6 +99,20 @@ const ProfileSetupPage = () => {
     setError(''); // Clear any previous errors
   };
 
+  const handleRemoveUploadedImage = () => {
+    if (uploadPreview && uploadPreview.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(uploadPreview);
+      } catch {}
+    }
+    setUploadFile(null);
+    setUploadPreview(defaultAvatarUrl);
+    setSelectedAvatarUrl(defaultAvatarUrl);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const onSelectPresetAvatar = (url) => {
     setSelectedAvatarUrl(url);
     setUploadFile(null);
@@ -350,7 +364,31 @@ const ProfileSetupPage = () => {
 
           <div className="mt-8 flex flex-col flex-1">
             <div className="flex flex-col items-center gap-6">
-              <AvatarPlaceholder src={uploadPreview} size="md" />
+              <div className="relative">
+                <AvatarPlaceholder src={uploadPreview} size="md" />
+                {uploadFile && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveUploadedImage}
+                    className="absolute -right-1 -top-1 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer z-10"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+                {!uploadFile && (
+                  <button
+                    type="button"
+                    onClick={onPickFile}
+                    className="absolute -right-1 -top-1 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors cursor-pointer z-10"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-4 gap-4">
                 {presetAvatarUrls.map((url) => (
                   <button

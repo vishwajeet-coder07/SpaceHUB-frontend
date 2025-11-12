@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import { setUsername as apiSetUsername, uploadProfileImage, deleteAccount, getProfileSummary, updateProfile } from '../../../shared/services/API';
@@ -74,17 +74,41 @@ const SettingPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const usernameTooLong = (username || '').length > 15;
   const isUsernameChanged = (username || '') !== (initialUser.username || '');
   const isImageChanged = !!selectedImage;
 
   const handleImageChange = (e) => {
-    const file = e.target.files && e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+    }
+    if (e.target) {
+      try {
+        // Reset the value so selecting the same file again triggers change
+        e.target.value = '';
+      } catch {}
+    }
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch {}
+    }
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -260,6 +284,13 @@ const SettingPage = () => {
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageChange}
+      />
       {/* Mobile Header */}
       <div className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200 h-14 flex items-center px-4">
         <button 
@@ -289,26 +320,43 @@ const SettingPage = () => {
             {/* Profile Avatar and Upload Section */}
             <div className="flex flex-col items-center mb-4">
               <div className="relative mb-3">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                  <img 
-                    src={previewUrl || initialUser.avatarUrl || '/avatars/avatar-1.png'} 
-                    alt="avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {/* Edit icon overlay */}
-                <div className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </div>
-              </div>
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                <button className="bg-gray-700 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">
-                  Upload
+                <button
+                  type="button"
+                  onClick={openFilePicker}
+                  className="relative focus:outline-none"
+                >
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    <img 
+                      src={previewUrl || initialUser.avatarUrl || '/avatars/avatar-1.png'} 
+                      alt="avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </button>
-              </label>
+                {/* Plus/Cross icon overlay */}
+                <button
+                  type="button"
+                  onClick={previewUrl ? handleRemoveImage : openFilePicker}
+                  className="absolute -right-0 -top-0 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white hover:bg-blue-600 transition-colors cursor-pointer"
+                >
+                  {previewUrl ? (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={openFilePicker}
+                className="bg-gray-700 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                Upload
+              </button>
             </div>
 
             {/* Divider */}
@@ -460,14 +508,32 @@ const SettingPage = () => {
             {/* Profile section */}
             <div className="mb-4 text-gray-300">Profile</div>
             <div className="mb-6">
-              <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-600">
+              <div className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-600">
                 <img src={previewUrl || initialUser.avatarUrl || '/avatars/avatar-1.png'} alt="avatar" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={previewUrl ? handleRemoveImage : openFilePicker}
+                  className="absolute -right-1 -top-1 w-7 h-7 bg-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-700 transition-colors cursor-pointer z-10"
+                >
+                  {previewUrl ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
+                </button>
               </div>
               <div className="mt-3">
-                <label className="inline-block cursor-pointer bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm">
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                <button
+                  type="button"
+                  onClick={openFilePicker}
+                  className="inline-block cursor-pointer bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm"
+                >
                   Upload new photo
-                </label>
+                </button>
               </div>
             </div>
 

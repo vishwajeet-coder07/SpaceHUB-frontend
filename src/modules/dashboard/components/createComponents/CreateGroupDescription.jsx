@@ -51,7 +51,7 @@ const CreateGroupDescription = ({ onBack, onConfirm, entityLabel = 'group', init
                 onChange={handleChange}
                 onBlur={() => setTouched(true)}
                 placeholder="Add description"
-                rows={1}
+                rows={5}
                 className="w-full bg-white text-gray-900 rounded-xl px-4 py-4 text-lg outline-none resize-none"
               />
               <div className="flex items-center justify-between mt-2">

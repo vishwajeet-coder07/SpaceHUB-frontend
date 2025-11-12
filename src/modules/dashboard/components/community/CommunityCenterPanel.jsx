@@ -595,6 +595,11 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
 
   const handleLeave = () => {
     leave();
+    try {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Call has ended', type: 'info' }
+      }));
+    } catch {}
     if (onBack && typeof window !== 'undefined' && window.innerWidth <= 640) {
       setTimeout(() => {
         onBack();

@@ -62,7 +62,7 @@ const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectC
 };
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false }) => {
   const filteredChannels = (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
@@ -156,9 +156,11 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
           </svg>
           <span className="text-gray-800">{title}</span>
         </button>
-        <button onClick={onAdd} className="text-gray-500 hover:text-gray-700" title={`Create ${title}`}>
-          +
-        </button>
+        {canCreate && (
+          <button onClick={onAdd} className="text-gray-500 hover:text-gray-700" title={`Create ${title}`}>
+            +
+          </button>
+        )}
       </div>
       {open && (
         <div className="mt-2 pl-5 space-y-1">
@@ -587,7 +589,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false, canCreate = false }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
@@ -750,20 +752,22 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
           ) : hasNoRooms ? (
             <div className="ml-4 px-3 py-4 text-xs text-gray-500 italic bg-gray-50 rounded-md border border-gray-200">
               <p className="mb-2">No channels yet. Create a channel to get started!</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onAddChatRoom(groupName)}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors"
-                >
-                  Create Chat Room
-                </button>
-                <button
-                  onClick={() => onAddVoiceRoom(groupName)}
-                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-xs font-medium transition-colors"
-                >
-                  Create Voice Room
-                </button>
-              </div>
+              {canCreate && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onAddChatRoom(groupName)}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors"
+                  >
+                    Create Chat Room
+                  </button>
+                  <button
+                    onClick={() => onAddVoiceRoom(groupName)}
+                    className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-xs font-medium transition-colors"
+                  >
+                    Create Voice Room
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -779,6 +783,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 groupName={groupName}
                 roomCode={roomCode}
                 isLocalGroup={isLocalGroup}
+                canCreate={canCreate}
               />
               <RoomSection
                 title="Voice room"
@@ -793,6 +798,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 roomCode={roomCode}
                 roomId={roomId}
                 isLocalGroup={isLocalGroup}
+                canCreate={canCreate}
               />
             </>
           )}
@@ -1147,11 +1153,31 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   }, [communityId, fetchGroups]);
 
   const handleAddChatRoom = (groupName) => {
+    // Only allow workspace owners and admins to create chatrooms
+    const isAuthorized = currentUserRole === 'ADMIN' || 
+                        currentUserRole === 'OWNER' || 
+                        currentUserRole === 'WORKSPACE_OWNER';
+    if (!isLocalGroup && !isAuthorized) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Only workspace owners and admins can create chatrooms', type: 'error' }
+      }));
+      return;
+    }
     setChannelModalContext({ groupName, roomType: 'chat' });
     setShowCreateChannelModal(true);
   };
 
   const handleAddVoiceRoom = (groupName) => {
+    // Only allow workspace owners and admins to create voice rooms
+    const isAuthorized = currentUserRole === 'ADMIN' || 
+                        currentUserRole === 'OWNER' || 
+                        currentUserRole === 'WORKSPACE_OWNER';
+    if (!isLocalGroup && !isAuthorized) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Only workspace owners and admins can create voice rooms', type: 'error' }
+      }));
+      return;
+    }
     // Find the group to get roomId
     const targetGroup = groups.find((g) => g.name === groupName);
     const roomId = targetGroup?.id;
@@ -1162,6 +1188,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const handleChannelCreated = async (channelName) => {
     const { groupName, roomType, roomId } = channelModalContext;
     if (!groupName || !channelName) return;
+
+    // Only allow workspace owners and admins to create rooms
+    const isAuthorized = currentUserRole === 'ADMIN' || 
+                        currentUserRole === 'OWNER' || 
+                        currentUserRole === 'WORKSPACE_OWNER';
+    if (!isLocalGroup && !isAuthorized) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Only workspace owners and admins can create rooms', type: 'error' }
+      }));
+      return;
+    }
 
     const clean = channelName.trim();
     const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
@@ -1342,7 +1379,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       const isAuthorized = currentUserRole === 'ADMIN' || 
                           currentUserRole === 'OWNER' || 
                           currentUserRole === 'WORKSPACE_OWNER';
-      if (!isLocalGroup && isAuthorized) {
+      if (isAuthorized) {
         setShowCreateGroupModal(true);
       } else {
         window.dispatchEvent(new CustomEvent('toast', {
@@ -1461,7 +1498,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             >
               Invite people
             </button>
-            {!isLocalGroup && (currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
+            {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
               <button
                 onClick={() => handleDropdownAction('create-group')}
                 className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
@@ -1536,23 +1573,30 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           <div className="text-gray-600 text-sm mt-4">No groups yet. Create a group to get started!</div>
         )}
         
-        {!loading && groups.map((group) => (
-          <GroupSection
-            key={group.id || group.name}
-            groupName={group.name}
-            open={openGroups[group.name] || false}
-            onToggle={() => toggleGroup(group.name)}
-            chatRooms={group.chatRooms || ['general']}
-            voiceRooms={group.voiceRooms || ['general']}
-            onAddChatRoom={handleAddChatRoom}
-            onAddVoiceRoom={handleAddVoiceRoom}
-            selectedChannel={selectedChannel}
-            onSelectChannel={handleChannelSelect}
-            roomCode={group.roomCode}
-            roomId={group.id}
-            isLocalGroup={isLocalGroup}
-          />
-        ))}
+        {!loading && groups.map((group) => {
+          const isAuthorized = currentUserRole === 'ADMIN' || 
+                              currentUserRole === 'OWNER' || 
+                              currentUserRole === 'WORKSPACE_OWNER';
+          const canCreate = isLocalGroup || isAuthorized;
+          return (
+            <GroupSection
+              key={group.id || group.name}
+              groupName={group.name}
+              open={openGroups[group.name] || false}
+              onToggle={() => toggleGroup(group.name)}
+              chatRooms={group.chatRooms || ['general']}
+              voiceRooms={group.voiceRooms || ['general']}
+              onAddChatRoom={handleAddChatRoom}
+              onAddVoiceRoom={handleAddVoiceRoom}
+              selectedChannel={selectedChannel}
+              onSelectChannel={handleChannelSelect}
+              roomCode={group.roomCode}
+              roomId={group.id}
+              isLocalGroup={isLocalGroup}
+              canCreate={canCreate}
+            />
+          );
+        })}
             {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 bg-gray-200 px-4 pb-3 pt-2 border-t border-gray-300 rounded-b-xl">
         <button onClick={onBack} className="w-full text-center text-sm bg-zinc-900 text-white rounded-xl py-3 font-medium">

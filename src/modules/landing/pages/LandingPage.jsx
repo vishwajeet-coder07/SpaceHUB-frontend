@@ -51,19 +51,69 @@ const LandingPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
 
+  const scrollToSection = (sectionId) => {
+    // Map 'features' to 'Features' to match the actual ID
+    const id = sectionId === 'features' ? 'Features' : sectionId;
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const handleMenuClick = (section) => {
     setIsMenuOpen(false);
     if (section === 'login') {
       navigate('/login');
     } else {
-      const element = document.getElementById(section);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      } else if (section === 'features') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      scrollToSection(section);
     }
   };
+
+  // Handle hash links on page load and when hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // Remove the # symbol
+      if (hash) {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          scrollToSection(hash);
+        }, 100);
+      }
+    };
+
+    // Handle initial hash on page load
+    handleHashChange();
+
+    // Handle hash changes (when user clicks hash links)
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  // Handle all anchor link clicks for smooth scrolling
+  useEffect(() => {
+    const handleAnchorClick = (e) => {
+      const anchor = e.target.closest('a[href^="#"]');
+      if (anchor && anchor.getAttribute('href') !== '#') {
+        const href = anchor.getAttribute('href');
+        const hash = href.slice(1); // Remove the # symbol
+        if (hash) {
+          e.preventDefault();
+          scrollToSection(hash);
+          // Update URL without triggering scroll
+          window.history.pushState(null, '', href);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+
+    return () => {
+      document.removeEventListener('click', handleAnchorClick);
+    };
+  }, []);
 
   const isValidEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -147,7 +197,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-10">
-          <Link to="/" className="text-gray-700 hover:text-gray-900 transition-colors">Features</Link>
+          <a href="#Features" className="text-gray-700 hover:text-gray-900 transition-colors">Features</a>
           <a href="#Contact" className="text-gray-700 hover:text-gray-900 transition-colors">Contact</a>
           <a href="#About" className="text-gray-700 hover:text-gray-900 transition-colors">About</a>
         </nav>
@@ -182,7 +232,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
             </div>
             <nav className="flex-1 p-4 space-y-4">
               <button
-                onClick={() => handleMenuClick('features')}
+                onClick={() => handleMenuClick('Features')}
                 className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
               >
                 Features
@@ -344,7 +394,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
       </section>
                     <hr/>
       {/* FOOTER */}
-      <footer className="bg-gray-100 py-12 sm:py-16">
+      <footer id="Contact" className="bg-gray-100 py-12 sm:py-16">
         <div className="max-w-[86rem] mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <RevealOnScroll>
@@ -352,19 +402,19 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
               </p>
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3">
+              <form onSubmit={handleEmailSubmit} className="relative">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 sm:py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                  className="w-full px-4 py-2 sm:py-3 pr-28 sm:pr-32 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                   disabled={isSubmitting}
                 />
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-gray-600 text-white px-6 py-2 sm:py-3 rounded-md font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="absolute right-1 top-1 bottom-1 bg-gray-600 text-white px-4 sm:px-6 py-1 sm:py-2 rounded-md font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm sm:text-base"
                 >
                   {isSubmitting ? 'Sending...' : 'Subscribe'}
                 </button>
@@ -381,7 +431,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
               <div className="space-y-2">
                 <a href="#Home" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Home</a>
                 <a href="#About" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">About</a>
-                <Link to="/" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Features</Link>
+                <a href="#Features" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Features</a>
                 <a href="#Contact" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Contact</a>
               </div>
             </RevealOnScroll>
