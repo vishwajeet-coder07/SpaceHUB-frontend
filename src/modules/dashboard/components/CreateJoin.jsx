@@ -118,7 +118,7 @@ const CreateJoin = ({ onBack, onSend, onSuccess }) => {
   };
 
   return (
-    <div className="relative w-full max-w-[750px] h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
+    <div className="relative w-full max-w-[750px] h-full min-h-[550px] sm:h-[680px] rounded-2xl overflow-hidden mx-auto my-0">
       <div className="bg-white py-3 px-2 sm:px-5 h-full flex items-center justify-center">
         <div className="relative bg-[#282828] text-white h-[70%] w-full rounded-2xl flex flex-col p-3 sm:p-8">
           {/* Back button absolutely top left */}

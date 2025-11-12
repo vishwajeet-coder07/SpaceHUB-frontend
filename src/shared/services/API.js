@@ -43,11 +43,25 @@ export async function requestForgotPassword(email) {
 }
 
 export async function validateOtp(payload) {
+  let normalizedPayload = { ...payload };
+  if (payload.identifier) {
+    const identifier = payload.identifier.trim();
+    const digitsOnly = identifier.replace(/\D/g, '');
+    if (digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly)) {
+      normalizedPayload.identifier = `+91${digitsOnly}`;
+    } else if (!identifier.includes('@') && !identifier.startsWith('+91')) {
+      const phoneMatch = identifier.match(/^(\+91)?([6-9]\d{9})$/);
+      if (phoneMatch) {
+        normalizedPayload.identifier = `+91${phoneMatch[2]}`;
+      }
+    }
+  }
+  
   const response = await fetch(`${BASE_URL}validateforgototp`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(normalizedPayload)
   });
   return handleJson(response);
 }
@@ -78,7 +92,7 @@ export async function resendRegisterOtp(email, registrationToken) {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email, sessionToken: registrationToken }),
+    body: JSON.stringify({ identifier: email, sessionToken: registrationToken }),
   });
   return handleJson(response);
 }

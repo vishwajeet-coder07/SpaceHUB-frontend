@@ -241,7 +241,7 @@ const ChatRoom = ({
           {/* User Info */}
           {chatUser ? (
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
                 <img
                   src={displayAvatar}
                   alt={displayName}
@@ -318,7 +318,7 @@ const ChatRoom = ({
                             <img
                               src={m.avatar || '/avatars/avatar-1.png'}
                               alt={m.author}
-                              className="w-5 h-5 rounded-full object-cover"
+                              className="w-7 h-7 rounded-full object-cover"
                               onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
                             />
                             <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
@@ -360,7 +360,7 @@ const ChatRoom = ({
                               <img
                                 src={m.avatar || '/avatars/avatar-1.png'}
                                 alt={m.author}
-                                className="w-5 h-5 rounded-full object-cover"
+                                className="w-7 h-7 rounded-full object-cover"
                                 onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
                               />
                               <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
@@ -398,7 +398,7 @@ const ChatRoom = ({
                               <img
                                 src={m.avatar || '/avatars/avatar-1.png'}
                                 alt={m.author}
-                                className="w-5 h-5 rounded-full object-cover"
+                                className="w-7 h-7 rounded-full object-cover"
                                 onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
                               />
                               <span className="font-semibold text-gray-800 text-sm">{m.author}</span>

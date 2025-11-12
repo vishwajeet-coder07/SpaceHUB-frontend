@@ -10,7 +10,6 @@ import card3 from '../../../assets/landing/card3.svg';
 import line1 from '../../../assets/landing/line1.svg';
 import line2 from '../../../assets/landing/line2.svg';
 import line3 from '../../../assets/landing/line3.svg';
-import { sendWelcomeEmail } from '../../../shared/services/API';
 
 const RevealOnScroll = ({ children, className = '' }) => {
   const ref = useRef(null);
@@ -48,8 +47,9 @@ const RevealOnScroll = ({ children, className = '' }) => {
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [subscriberEmail, setSubscriberEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   const handleMenuClick = (section) => {
     setIsMenuOpen(false);
@@ -65,28 +65,56 @@ const LandingPage = () => {
     }
   };
 
-  const handleSubscribe = async (e) => {
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    const email = (subscriberEmail || '').trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Enter a valid email', type: 'error' } }));
+    setSubmitMessage('');
+
+    if (!email.trim()) {
+      setSubmitMessage('Please enter your email address');
       return;
     }
+
+    if (!isValidEmail(email.trim())) {
+      setSubmitMessage('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      setSubmitting(true);
-      await sendWelcomeEmail({
-        to: email,
-        subject: 'Welcome to SpaceHub',
-        message: 'Hello! This is a test email from SpaceHub.'
+      const response = await fetch('https://codewithketan.me/api/v1/dashboard/send-email', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: email.trim(),
+          subject: 'Welcome to SpaceHub',
+          message: `Hey ${email.split('@')[0].trim},
+
+ Welcome to Spacehub! 🌌 We’re stoked to have you join our growing community of explorers, creators, and curious minds.
+
+Spacehub is all about connecting people who love to share ideas, build cool things, and hang out in a chill, positive space. Whether you’re here to chat, collaborate, or just vibe with others who get you — you’re in the right place.`
+        })
       });
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Email sent! Check your inbox.', type: 'success' } }));
-      setSubscriberEmail('');
-    } catch (err) {
-      const msg = err?.message || 'Failed to send email';
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'error' } }));
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitMessage('Thank you! We\'ve sent you a welcome email.');
+        setEmail('');
+      } else {
+        setSubmitMessage(data?.message || data?.error || 'Failed to send email. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setSubmitMessage('Something went wrong. Please try again later.');
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -316,31 +344,36 @@ const LandingPage = () => {
       </section>
                     <hr/>
       {/* FOOTER */}
-      <footer id='contact' className="bg-gray-100 py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <footer className="bg-gray-100 py-12 sm:py-16">
+        <div className="max-w-[86rem] mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <RevealOnScroll>
               <h3 className="sm:text-2xl text-5xl font-bold text-zinc-800 mb-3 sm:mb-4">Get the latest buzz!</h3>
               <p className="text-zinc-800 mb-4 sm:mb-6 sm:text-md text-lg">
                 Stay updated with community stories, new features, and product updates.
               </p>
-              <form onSubmit={handleSubscribe} className="flex w-full max-w-xl items-center gap-2">
+              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"
-                  value={subscriberEmail}
-                  onChange={(e) => setSubscriberEmail(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-                  required
+                  className="flex-1 px-4 py-2 sm:py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                  disabled={isSubmitting}
                 />
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-5 py-3 rounded-md bg-gradient-to-r from-red-500 to-blue-600 text-white font-semibold disabled:opacity-60"
+                  disabled={isSubmitting}
+                  className="bg-gray-600 text-white px-6 py-2 sm:py-3 rounded-md font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {submitting ? 'Sending...' : 'Notify me'}
+                  {isSubmitting ? 'Sending...' : 'Subscribe'}
                 </button>
               </form>
+              {submitMessage && (
+                <p className={`mt-3 text-sm ${submitMessage.includes('Thank you') ? 'text-green-600' : 'text-red-600'}`}>
+                  {submitMessage}
+                </p>
+              )}
             </RevealOnScroll>
 
             <RevealOnScroll className="lg:absolute right-30">

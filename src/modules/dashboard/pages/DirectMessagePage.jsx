@@ -266,7 +266,7 @@ const DirectMessagePage = () => {
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, idx) => (
               <div key={idx} className="flex items-center gap-3 animate-pulse">
-                <div className="w-12 h-12 rounded-full bg-gray-200" />
+                <div className="w-14 h-14 rounded-full bg-gray-200" />
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
                   <div className="h-3 bg-gray-200 rounded w-32" />
@@ -293,7 +293,7 @@ const DirectMessagePage = () => {
                   onClick={() => handleFriendClick(friend)}
                   className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors bg-white border border-gray-200"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     <img
                       src={friend.avatar}
                       alt={displayName}

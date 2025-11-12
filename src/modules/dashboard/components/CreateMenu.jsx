@@ -2,7 +2,7 @@ import React from 'react';
 
 const CreateMenu = ({ onBack, onFriends, onClubs, onJoin }) => {
   return (
-  <div className="relative w-full max-w-full sm:max-w-[750px] rounded-2xl overflow-hidden min-h-[550px] sm:h-[680px] mx-auto">
+  <div className="relative w-full max-w-full sm:max-w-[750px] rounded-2xl overflow-hidden h-full min-h-[550px] sm:h-[680px] mx-auto">
       {/* Top panel */}
       <div className="bg-white px-2 py-2 sm:p-4 rounded-t-2xl">
         <div className="bg-[#282828] text-white px-2 py-3 sm:p-5 mt-4 rounded-2xl">

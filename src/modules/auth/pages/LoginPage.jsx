@@ -262,7 +262,7 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !identifier || !password || identifierError || passwordError}
               className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
             >
               {loading ? 'Logging in...' : 'Login'}
