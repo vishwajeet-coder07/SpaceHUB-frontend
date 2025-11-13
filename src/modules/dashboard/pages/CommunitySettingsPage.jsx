@@ -1213,18 +1213,27 @@ const CommunitySettingsPage = () => {
                       </div>
                       {showOwnerSection && (
                         <div className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
-                            {communityOwner.avatarUrl || communityOwner.profileImage ? (
+                          <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {communityOwner.avatarPreviewUrl ? (
                               <img 
-                                src={communityOwner.avatarUrl || communityOwner.profileImage} 
+                                src={communityOwner.avatarPreviewUrl} 
                                 alt={communityOwner.username || communityOwner.email}
                                 className="w-full h-full rounded-full object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextSibling) {
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }
+                                }}
                               />
-                            ) : (
-                              <span className="text-gray-800 font-semibold text-sm">
-                                {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
-                              </span>
-                            )}
+                            ) : null}
+                            <span 
+                              className="text-gray-800 font-semibold text-sm"
+                              style={{ display: communityOwner.avatarPreviewUrl ? 'none' : 'flex' }}
+                            >
+                              {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
+                            </span>
                           </div>
                           <div className="flex-1">
                             <div className="text-white font-medium">
@@ -1232,7 +1241,9 @@ const CommunitySettingsPage = () => {
                               {communityOwner.role && (
                                 <span className="ml-2 text-gray-300 text-sm">
                                   {communityOwner.role === 'OWNER' || communityOwner.role === 'WORKSPACE_OWNER' 
-                                    ? 'Admin' 
+                                    ? 'Workspace Owner' 
+                                    : communityOwner.role === 'ADMIN'
+                                    ? 'Admin'
                                     : communityOwner.role}
                                 </span>
                               )}
@@ -1302,18 +1313,27 @@ const CommunitySettingsPage = () => {
                                   key={memberId}
                                   className="bg-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 relative"
                                 >
-                                  <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0">
-                                    {member.avatarUrl || member.profileImage ? (
+                                  <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    {member.avatarPreviewUrl ? (
                                       <img 
-                                        src={member.avatarUrl || member.profileImage} 
+                                        src={member.avatarPreviewUrl} 
                                         alt={member.username || member.email}
                                         className="w-full h-full rounded-full object-cover"
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          if (e.target.nextSibling) {
+                                            e.target.nextSibling.style.display = 'flex';
+                                          }
+                                        }}
                                       />
-                                    ) : (
-                                      <span className="text-gray-800 font-semibold text-sm">
-                                        {(member.username || member.email || 'U').charAt(0).toUpperCase()}
-                                      </span>
-                                    )}
+                                    ) : null}
+                                    <span 
+                                      className="text-gray-800 font-semibold text-sm"
+                                      style={{ display: member.avatarPreviewUrl ? 'none' : 'flex' }}
+                                    >
+                                      {(member.username || member.email || 'U').charAt(0).toUpperCase()}
+                                    </span>
                                   </div>
                                   <div className="flex-1">
                                     <div className="text-white font-medium">
@@ -1324,7 +1344,9 @@ const CommunitySettingsPage = () => {
                                             ? 'Admin' 
                                             : roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER'
                                             ? 'Workspace Owner'
-                                            : 'Member'}
+                                            : roleUpper === 'MEMBER'
+                                            ? 'Member'
+                                            : roleUpper}
                                         </span>
                                       )}
                                     </div>

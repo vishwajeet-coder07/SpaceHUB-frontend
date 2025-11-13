@@ -187,11 +187,12 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const title = item.name || 'Untitled';
     const description = item.description || '';
     const imgSrc = safeUrl(rawUrl);
-    const members = item.totalMembers || item.members || 0;
+    const members = item.memberCount ?? item.totalMembers ?? item.members ?? 0;
     const online = item.onlineMembers || item.online || 0;
     const [imageError, setImageError] = useState(false);
     const isCommunity = activeTab === 'Community';
     const isLocalGroup = activeTab === 'Local-Groups';
+    const showMembers = members !== null && members !== undefined;
     
     useEffect(() => {
       setImageError(false);
@@ -227,11 +228,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           </div>
           
           {/* Right - Members and Online Status */}
-          {!isCommunity && (
+          {showMembers && (
             <div className="flex-shrink-0 text-right">
-              {isLocalGroup && (
-                <div className="text-xs text-gray-600 mb-1">members: {members || 0}</div>
-              )}
+              <div className="text-xs text-gray-600 mb-1">Members: {members}</div>
             </div>
           )}
         </div>
@@ -258,11 +257,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           {/* Right Section - Content */}
           <div className="flex-1 min-w-0 bg-[#282828] text-white rounded-r-xl p-3 sm:p-4 relative">
             {/* Member Status - Top Right */}
-            {!isCommunity && (
+            {showMembers && (
               <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right text-xs sm:text-sm">
-                {isLocalGroup && (
-                  <div className="text-gray-300">members: {members || 0}</div>
-                )}
+                <div className="text-gray-300">Members: {members}</div>
               </div>
             )}
             

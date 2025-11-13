@@ -68,6 +68,22 @@ function App() {
                 } 
               />
               <Route 
+                path="/dashboard/discover" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/chat/:friendId" 
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/dashboard/settings" 
                 element={
                   <ProtectedRoute>

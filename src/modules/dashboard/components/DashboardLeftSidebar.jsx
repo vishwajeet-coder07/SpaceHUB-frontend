@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getFriendsList, removeFriend } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 
@@ -52,6 +53,7 @@ const FriendAvatar = ({ avatar, username, firstName, isSelected }) => {
 
 const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, setSelectedFriend }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isDirectMessageOpen, setIsDirectMessageOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [friends, setFriends] = useState([]);
@@ -163,6 +165,17 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
   const handleFriendClick = (friend) => {
     setSelectedFriend(friend);
     setSelectedView('dashboard');
+    try {
+      sessionStorage.setItem('activeChatFriend', JSON.stringify(friend));
+    } catch (error) {
+      console.warn('Failed to persist active chat friend:', error);
+    }
+    const identifier = friend?.username || friend?.email || friend?.id || friend?.friendId;
+    if (identifier) {
+      navigate(`/dashboard/chat/${encodeURIComponent(identifier)}`);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const handleRemoveFriendClick = (e, friend) => {
@@ -202,7 +215,20 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
         return fId !== friendId;
       }));
 
-      if (selectedFriend && (selectedFriend.id === friendId || selectedFriend.userId === friendId || selectedFriend.friendId === friendId)) {
+      const activeChatRaw = sessionStorage.getItem('activeChatFriend');
+      if (activeChatRaw) {
+        try {
+          const activeChat = JSON.parse(activeChatRaw);
+          if (activeChat?.email && activeChat.email.toLowerCase() === friendEmail.toLowerCase()) {
+            sessionStorage.removeItem('activeChatFriend');
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse active chat friend from session storage:', parseError);
+          sessionStorage.removeItem('activeChatFriend');
+        }
+      }
+
+      if (selectedFriend && (selectedFriend.id === friendId || selectedFriend.userId === friendId || selectedFriend.friendId === friendId || (selectedFriend.email && selectedFriend.email.toLowerCase() === friendEmail.toLowerCase()))) {
         setSelectedFriend(null);
       }
 
@@ -245,6 +271,8 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
           onClick={() => {
             setSelectedView('dashboard');
             setSelectedFriend(null);
+            sessionStorage.removeItem('activeChatFriend');
+            navigate('/dashboard');
           }}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
             selectedView === 'dashboard' && !selectedFriend
@@ -263,6 +291,8 @@ const DashboardLeftSidebar = ({ selectedView, setSelectedView, selectedFriend, s
             onClick={() => {
               setSelectedView('discover');
               setSelectedFriend(null);
+              sessionStorage.removeItem('activeChatFriend');
+              navigate('/dashboard/discover');
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
               selectedView === 'discover'

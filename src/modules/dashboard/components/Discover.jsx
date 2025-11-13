@@ -10,10 +10,11 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
   const desc = community.description || '';
   const bannerImg = community.bannerUrl || '';
   const profileImg = community.imageUrl || community.imageURL || '';
-  const members = community.totalMembers || community.members || 0;
+  const members = community.memberCount ?? community.totalMembers ?? community.members ?? 0;
   const online = community.onlineMembers || community.online || 0;
   const [bannerError, setBannerError] = useState(false);
   const [profileError, setProfileError] = useState(false);
+  const showMembers = members !== null && members !== undefined && members !== '';
 
   const safeUrl = (rawUrl) => {
     if (!rawUrl) return '';
@@ -66,6 +67,11 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-white truncate">{title}</h3>
           </div>
+          {showMembers && (
+            <div className="text-[11px] text-gray-300 whitespace-nowrap">
+              Members: {members}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -90,6 +96,11 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
       </div>
       {/* Bottom dark card */}
       <div className="bg-[#282828] text-white px-4 py-4 min-h-[170px] relative">
+        {showMembers && (
+          <div className="absolute top-4 right-4 text-sm text-gray-300">
+            Members: {members}
+          </div>
+        )}
         {/* Profile image above community name */}
         <div className="flex items-center justify-between">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-400 border-2 border-[#282828] flex-shrink-0">

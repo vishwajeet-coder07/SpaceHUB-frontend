@@ -318,7 +318,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
         <img
           src={line1}
           alt="decorative line"
-          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-19.8rem] sm:bottom-[-19.8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>
@@ -345,7 +345,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
         <img
           src={line2}
           alt="decorative line"
-          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>
@@ -372,7 +372,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
         <img
           src={line3}
           alt="decorative line"
-          className="absolute hidden sm:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
+          className="absolute hidden lg:block left-1/2 transform -translate-x-1/2 bottom-[-6rem] sm:bottom-[-8rem] w-[85%] sm:w-[70%] max-w-5xl object-contain pointer-events-none"
           loading="lazy"
         />
       </section>

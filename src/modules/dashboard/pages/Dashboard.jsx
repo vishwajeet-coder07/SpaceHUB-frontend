@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useMatch } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
-import { getProfileSummary } from '../../../shared/services/API';
+import { getProfileSummary, getFriendsList } from '../../../shared/services/API';
 import {
   selectSelectedView,
   selectShowCreate,
@@ -37,20 +37,128 @@ const Dashboard = () => {
   const selectedFriend = useSelector(selectSelectedFriend);
   const showInbox = useSelector(selectShowInbox);
 
+  const discoverMatch = useMatch('/dashboard/discover');
+  const chatMatch = useMatch('/dashboard/chat/:friendId');
+  const baseDashboardMatch = useMatch({ path: '/dashboard', end: true });
 
-  useEffect(() => {
-    const storedFriend = sessionStorage.getItem('selectedFriend');
-    if (storedFriend) {
+  const ensureFriend = useCallback(async (friendIdentifier) => {
+    if (!friendIdentifier) return;
+    const normalized = friendIdentifier.toLowerCase();
+    const currentUsername = selectedFriend?.username?.toLowerCase();
+    const currentEmail = selectedFriend?.email?.toLowerCase();
+
+    if (currentUsername === normalized || currentEmail === normalized) {
+      return;
+    }
+
+    const applyFriend = (candidate) => {
+      if (!candidate) return false;
+      const candidateUsername = (candidate.username || '').toLowerCase();
+      const candidateEmail = (candidate.email || candidate.userEmail || '').toLowerCase();
+      
+      const matches = candidateUsername === normalized || candidateEmail === normalized;
+      if (!matches) {
+        return false;
+      }
+      
+      dispatch(setSelectedFriend(candidate));
       try {
-        const friend = JSON.parse(storedFriend);
-        dispatch(setSelectedFriend(friend));
-        dispatch(setSelectedView('dashboard'));
-        sessionStorage.removeItem('selectedFriend');
-      } catch (e) {
-        console.error('Error parsing selected friend:', e);
+        sessionStorage.setItem('activeChatFriend', JSON.stringify(candidate));
+      } catch (error) {
+        console.warn('Failed to persist active chat friend:', error);
+      }
+      return true;
+    };
+
+    const activeChatRaw = sessionStorage.getItem('activeChatFriend');
+    if (activeChatRaw) {
+      try {
+        const storedFriend = JSON.parse(activeChatRaw);
+        const storedUsername = (storedFriend?.username || '').toLowerCase();
+        const storedEmail = (storedFriend?.email || '').toLowerCase();
+        if (storedUsername === normalized || storedEmail === normalized) {
+          if (applyFriend(storedFriend)) {
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse active chat friend from session storage:', error);
       }
     }
-  }, [dispatch]);
+
+    const friendsListRaw = sessionStorage.getItem('friendsList');
+    if (friendsListRaw) {
+      try {
+        const cachedFriends = JSON.parse(friendsListRaw);
+        if (Array.isArray(cachedFriends)) {
+            const cachedMatch = cachedFriends.find((friend) => {
+            const friendUsername = (friend?.username || '').toLowerCase();
+            const friendEmail = (friend?.email || '').toLowerCase();
+            return friendUsername === normalized || friendEmail === normalized;
+          });
+          if (applyFriend(cachedMatch)) {
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse cached friends from session storage:', error);
+      }
+    }
+
+    const storedUserData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    const requesterEmail = user?.email || storedUserData?.email || '';
+
+    if (!requesterEmail) {
+      const isEmail = normalized.includes('@');
+      applyFriend({ 
+        email: isEmail ? friendIdentifier : undefined, 
+        username: isEmail ? friendIdentifier.split('@')[0] : friendIdentifier 
+      });
+      return;
+    }
+
+    try {
+      const response = await getFriendsList(requesterEmail);
+      const friends = response?.data || [];
+      if (Array.isArray(friends)) {
+        const fetchedMatch = friends.find((friend) => {
+          const friendUsername = (friend?.username || '').toLowerCase();
+          const friendEmail = (friend?.email || '').toLowerCase();
+          return friendUsername === normalized || friendEmail === normalized;
+        });
+        if (applyFriend(fetchedMatch)) {
+          try {
+            sessionStorage.setItem('friendsList', JSON.stringify(friends));
+            sessionStorage.setItem('friendsListUserEmail', requesterEmail);
+          } catch (storageError) {
+            console.warn('Failed to cache friends list after fetch:', storageError);
+          }
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to resolve friend for chat route:', error);
+    }
+
+    const isEmail = normalized.includes('@');
+    applyFriend({ 
+      email: isEmail ? friendIdentifier : undefined, 
+      username: isEmail ? friendIdentifier.split('@')[0] : friendIdentifier 
+    });
+  }, [dispatch, selectedFriend, user]);
+
+  useEffect(() => {
+    if (selectedFriend) {
+      try {
+        sessionStorage.setItem('activeChatFriend', JSON.stringify(selectedFriend));
+      } catch (error) {
+        console.warn('Failed to persist active chat friend:', error);
+      }
+    } else {
+      sessionStorage.removeItem('activeChatFriend');
+    }
+  }, [selectedFriend]);
+
 
   useEffect(() => {
     const profileSetupRequired = sessionStorage.getItem('profileSetupRequired') === 'true';
@@ -98,6 +206,40 @@ const Dashboard = () => {
     };
   }, [user, updateUser]);
 
+  useEffect(() => {
+    if (chatMatch && chatMatch.params?.friendId) {
+      if (selectedView !== 'dashboard') {
+        dispatch(setSelectedView('dashboard'));
+      }
+      const identifier = decodeURIComponent(chatMatch.params.friendId);
+      if (identifier) {
+        ensureFriend(identifier);
+      }
+      return;
+    }
+
+    if (discoverMatch) {
+      if (selectedView !== 'discover') {
+        dispatch(setSelectedView('discover'));
+      }
+      if (selectedFriend) {
+        dispatch(setSelectedFriend(null));
+        sessionStorage.removeItem('activeChatFriend');
+      }
+      return;
+    }
+
+    if (baseDashboardMatch) {
+      if (selectedView !== 'dashboard') {
+        dispatch(setSelectedView('dashboard'));
+      }
+      if (selectedFriend) {
+        dispatch(setSelectedFriend(null));
+        sessionStorage.removeItem('activeChatFriend');
+      }
+    }
+  }, [chatMatch, discoverMatch, baseDashboardMatch, selectedView, selectedFriend, dispatch, ensureFriend]);
+
   // Close right sidebar by default on mobile screens
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -132,11 +274,14 @@ const Dashboard = () => {
       navigate('/dashboard/create-join');
     } else if (view === 'discover') {
       dispatch(setSelectedView('discover'));
-    } else if (view === 'dashboard') {
-      dispatch(setSelectedView('dashboard'));
       dispatch(setSelectedFriend(null));
+      sessionStorage.removeItem('activeChatFriend');
+      navigate('/dashboard/discover');
     } else {
       dispatch(setSelectedView('dashboard'));
+      dispatch(setSelectedFriend(null));
+      sessionStorage.removeItem('activeChatFriend');
+      navigate('/dashboard');
     }
     setIsMobileMenuOpen(false);
   };

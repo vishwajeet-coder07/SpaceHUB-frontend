@@ -167,8 +167,17 @@ const DirectMessagePage = () => {
   }, [searchQuery, friends]);
 
   const handleFriendClick = (friend) => {
-    sessionStorage.setItem('selectedFriend', JSON.stringify(friend));
-    navigate('/dashboard');
+    try {
+      sessionStorage.setItem('activeChatFriend', JSON.stringify(friend));
+    } catch (error) {
+      console.warn('Failed to persist active chat friend:', error);
+    }
+    const friendIdentifier = friend?.username || friend?.email || friend?.id || '';
+    if (friendIdentifier) {
+      navigate(`/dashboard/chat/${encodeURIComponent(friendIdentifier)}`);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const formatTime = (timestamp) => {
