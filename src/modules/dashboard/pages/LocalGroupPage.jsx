@@ -63,6 +63,10 @@ const LocalGroupPage = () => {
             if (found.chatRoomCode) {
               sessionStorage.setItem(`localGroupChatRoomCode:${found.id}`, found.chatRoomCode);
             }
+            const detectedChatRoomId = found.chatRoomId || found.chatroomId || found.primaryChatRoomId || found.roomId || found.id;
+            if (detectedChatRoomId) {
+              sessionStorage.setItem(`localGroupChatRoomId:${found.id}`, String(detectedChatRoomId));
+            }
           } catch (e) {
             console.warn('Failed to save local group to sessionStorage:', e);
           }

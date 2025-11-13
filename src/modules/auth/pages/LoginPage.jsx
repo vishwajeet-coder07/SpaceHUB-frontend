@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { loginUser, getProfileSummary } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
@@ -16,6 +16,39 @@ const LoginPage = () => {
   const [invalidCredentials, setInvalidCredentials] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const debounceRefs = useRef({});
+  const throttleRefs = useRef({ login: 0 });
+
+  const showToast = (message, type = 'info') => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { message, type }
+    }));
+  };
+
+  const runDebounced = (key, fn, delay = 300) => {
+    if (debounceRefs.current[key]) {
+      clearTimeout(debounceRefs.current[key]);
+    }
+    debounceRefs.current[key] = setTimeout(fn, delay);
+  };
+
+  const shouldThrottleAction = (key, delay = 2000, message) => {
+    const now = Date.now();
+    const last = throttleRefs.current[key] || 0;
+    if (now - last < delay) {
+      showToast(message || 'Please wait before trying again.', 'info');
+      return true;
+    }
+    throttleRefs.current[key] = now;
+    return false;
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(debounceRefs.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
 
   const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
   const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
@@ -30,6 +63,9 @@ const LoginPage = () => {
     e.preventDefault();
     setInvalidCredentials(false);
     setError('');
+    if (shouldThrottleAction('login', 2000, 'Please wait before trying again.')) {
+      return;
+    }
     setLoading(true);
     const emailLike = isValidEmail(identifier);
     const phoneLike = normalizePhone(identifier);
@@ -74,9 +110,7 @@ const LoginPage = () => {
             sessionStorage.setItem('lastPhone', phoneLike);
           }
         } catch {}
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'Login successful!', type: 'success' }
-        }));
+        showToast('Login successful!', 'success');
         navigate('/dashboard');
       })
       .catch((err) => {
@@ -85,9 +119,7 @@ const LoginPage = () => {
         if (err.message.includes('Invalid credentials')) {
           setInvalidCredentials(true);
         }
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: errorMessage, type: 'error' }
-        }));
+        showToast(errorMessage, 'error');
       })
       .finally(() => setLoading(false));
   };
@@ -103,11 +135,14 @@ const LoginPage = () => {
     setIdentifier(value);
     setInvalidCredentials(false);
     setError('');
-    if (value && !validateIdentifier(value)) {
-      setIdentifierError(true);
-    } else {
-      setIdentifierError(false);
-    }
+    setIdentifierError(false);
+    runDebounced('identifier', () => {
+      if (value && !validateIdentifier(value)) {
+        setIdentifierError(true);
+      } else {
+        setIdentifierError(false);
+      }
+    });
   };
 
   const validatePassword = (password) => {
@@ -120,11 +155,14 @@ const LoginPage = () => {
     setPassword(value);
     setInvalidCredentials(false);
     setError('');
-    if (value && !validatePassword(value)) {
-      setPasswordError(true);
-    } else {
-      setPasswordError(false);
-    }
+    setPasswordError(false);
+    runDebounced('password', () => {
+      if (value && !validatePassword(value)) {
+        setPasswordError(true);
+      } else {
+        setPasswordError(false);
+      }
+    });
   };
 
   return (

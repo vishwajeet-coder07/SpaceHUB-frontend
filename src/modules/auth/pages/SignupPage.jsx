@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { registerUser, validateRegisterOtp, resendRegisterOtp } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthSlides from '../components/AuthSlides';
@@ -27,6 +27,39 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [registrationToken, setRegistrationToken] = useState('');
   const [error, setError] = useState('');
+  const debounceRefs = useRef({});
+  const throttleRefs = useRef({ requestOtp: 0, verifyOtp: 0, resendOtp: 0 });
+
+  const showToast = (message, type = 'info') => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { message, type }
+    }));
+  };
+
+  const runDebounced = (key, fn, delay = 300) => {
+    if (debounceRefs.current[key]) {
+      clearTimeout(debounceRefs.current[key]);
+    }
+    debounceRefs.current[key] = setTimeout(fn, delay);
+  };
+
+  const shouldThrottleAction = (key, delay = 2000, message) => {
+    const now = Date.now();
+    const last = throttleRefs.current[key] || 0;
+    if (now - last < delay) {
+      showToast(message || 'Please wait before trying again.', 'info');
+      return true;
+    }
+    throttleRefs.current[key] = now;
+    return false;
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(debounceRefs.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
 
   const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
   const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
@@ -51,66 +84,69 @@ const SignupPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'firstName' || name === 'lastName') {
       const cleanValue = value.replace(/[^A-Za-z]/g, '');
       const limitedValue = cleanValue.slice(0, 50);
-      
-      setFormData({
-        ...formData,
+
+      setFormData((prev) => ({
+        ...prev,
         [name]: limitedValue
-      });
-      
+      }));
+
       const trimmedValue = limitedValue.trim();
-      
+      const hasError = validateName(limitedValue, trimmedValue);
       if (name === 'firstName') {
-        setFirstNameError(validateName(limitedValue, trimmedValue));
-      }
-      
-      if (name === 'lastName') {
-        setLastNameError(validateName(limitedValue, trimmedValue));
-      }
-      
-      return;
-    }
-    
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    if (name === 'email') {
-      if (value && !isValidEmail(value)) {
-        setEmailError(true);
+        setFirstNameError(hasError);
       } else {
-        setEmailError(false);
+        setLastNameError(hasError);
       }
+      return;
     }
 
     if (name === 'mobile') {
-      const { digits, isValid } = formatAndValidateMobile(value);
+      const digits = value.replace(/\D/g, '').slice(0, 10);
       setFormData((prev) => ({ ...prev, mobile: digits }));
-      setMobileError(!!digits && !isValid);
+      setMobileError(false);
+      runDebounced('mobile', () => {
+        const { isValid } = formatAndValidateMobile(digits || '');
+        setMobileError(!!digits && !isValid);
+      });
       return;
     }
-    
-    if (name === 'password') {
-      const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
-      if ((value && !passwordRegex.test(value)) || hasEmoji(value)) {
-        setPasswordError(true);
-      } else {
-        setPasswordError(false);
+
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      if (name === 'password' || name === 'confirmPassword') {
+        setPasswordMismatch(false);
+        runDebounced('passwordMatch', () => {
+          const nextPassword = name === 'password' ? value : updated.password;
+          const nextConfirm = name === 'confirmPassword' ? value : updated.confirmPassword;
+          if (nextPassword && nextConfirm) {
+            setPasswordMismatch(nextPassword !== nextConfirm);
+          } else {
+            setPasswordMismatch(false);
+          }
+        }, 200);
       }
+
+      return updated;
+    });
+
+    if (name === 'email') {
+      setEmailError(false);
+      runDebounced('email', () => {
+        setEmailError(Boolean(value) && !isValidEmail(value));
+      });
     }
 
-    if (name === 'password' || name === 'confirmPassword') {
-      const nextPassword = name === 'password' ? value : formData.password;
-      const nextConfirm = name === 'confirmPassword' ? value : formData.confirmPassword;
-      if (nextPassword && nextConfirm) {
-        setPasswordMismatch(nextPassword !== nextConfirm);
-      } else {
-        setPasswordMismatch(false);
-      }
+    if (name === 'password') {
+      setPasswordError(false);
+      runDebounced('password', () => {
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
+        setPasswordError(Boolean(value) && (!passwordRegex.test(value) || hasEmoji(value)));
+      });
     }
   };
 
@@ -147,6 +183,9 @@ const SignupPage = () => {
     if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch || hasEmoji(formData.email) || hasEmoji(formData.password)) {
       return;
     }
+    if (shouldThrottleAction('requestOtp', 2500, 'Please wait a moment before requesting another OTP.')) {
+      return;
+    }
     setLoading(true);
     setError('');
     const { firstName, lastName, email, password, mobile } = formData;
@@ -167,17 +206,13 @@ const SignupPage = () => {
         sessionStorage.setItem('signupFirstName', firstName);
         sessionStorage.setItem('signupLastName', lastName);
         
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'OTP sent to your email!', type: 'success' }
-        }));
+        showToast('OTP sent to your email!', 'success');
         setStep(3);
       })
       .catch((err) => {
         console.error('Failed to initiate registration/OTP:', err.message);
         const errorMessage = err.message || 'Failed to send OTP. Please try again.';
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: errorMessage, type: 'error' }
-        }));
+        showToast(errorMessage, 'error');
       })
       .finally(() => setLoading(false));
   };
@@ -187,6 +222,9 @@ const SignupPage = () => {
     const onlyDigits = otp.replace(/\D/g, '');
     if (!/^\d{6}$/.test(onlyDigits)) {
       setOtpError(true);
+      return;
+    }
+    if (shouldThrottleAction('verifyOtp', 2000, 'Please wait a moment before submitting again.')) {
       return;
     }
     setOtpError(false);
@@ -235,9 +273,7 @@ const SignupPage = () => {
           if (e164) sessionStorage.setItem('lastPhone', e164);
         } catch {}
         checkAuthStatus();
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'Account created successfully!', type: 'success' }
-        }));
+        showToast('Account created successfully!', 'success');
         sessionStorage.setItem('profileSetupRequired', 'true');
         navigate('/profile/setup', { replace: true });
       } catch (err) {
@@ -246,9 +282,7 @@ const SignupPage = () => {
         if (err.message.includes('Invalid') || err.message.includes('invalid') || err.message.includes('OTP')) {
           setInvalidOtp(true);
         }
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: errorMessage, type: 'error' }
-        }));
+        showToast(errorMessage, 'error');
       } finally {
         setLoading(false);
       }
@@ -257,20 +291,19 @@ const SignupPage = () => {
   const handleResendOtp = (e) => {
     e.preventDefault();
     if (!registrationToken || !formData.email) return;
+    if (shouldThrottleAction('resendOtp', 30000, 'OTP already sent. Please wait 30 seconds before resending.')) {
+      return;
+    }
     setLoading(true);
     setError('');
     resendRegisterOtp(formData.email, registrationToken)
       .then(() => {
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'OTP resent successfully!', type: 'success' }
-        }));
+        showToast('OTP resent successfully!', 'success');
       })
       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
         const errorMessage = err.message || 'Failed to resend OTP. Please try again.';
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: errorMessage, type: 'error' }
-        }));
+        showToast(errorMessage, 'error');
       })
       .finally(() => setLoading(false));
   };

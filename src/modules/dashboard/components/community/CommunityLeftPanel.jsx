@@ -626,7 +626,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
 
   // Fetch voice rooms when group dropdown opens
   useEffect(() => {
-    if (open && roomId && !isLocalGroup) {
+    if (open && roomId) {
       const fetchVoiceRooms = async () => {
         setLoadingVoiceRooms(true);
         try {
@@ -651,7 +651,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
 
   // Listen for voice room creation events to refresh the list
   useEffect(() => {
-    if (!open || !roomId || isLocalGroup) return;
+    if (!open || !roomId) return;
 
     const handleVoiceRoomCreated = (event) => {
       const { roomId: eventRoomId } = event.detail || {};
@@ -675,7 +675,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     return () => {
       window.removeEventListener('voice-room:created', handleVoiceRoomCreated);
     };
-  }, [open, roomId, isLocalGroup]);
+  }, [open, roomId]);
   
   // Filter out 'general' from both room types
   const filteredChatRooms = (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
@@ -893,8 +893,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               }
             }
             
-            // If still not found, try fetching from API (skip for local groups)
-            if (!janusRoomId && !isLocalGroup) {
+            if (!janusRoomId) {
               try {
                 const response = await getVoiceRoomsList(roomId);
                 const voiceRoomsData = response?.voiceRooms || [];
@@ -1071,8 +1070,9 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           sessionStorage.setItem(`localGroupDetails:${communityId}`, JSON.stringify(lg));
         } catch {}
 
-        // Get chatRoomCode from the saved response
+        // Get chatRoomCode and chatRoomId from the saved response
         const chatRoomCode = lg.chatRoomCode || lg.roomCode || lg.code;
+        const chatRoomId = lg.chatRoomId || lg.chatroomId || lg.primaryChatRoomId || lg.roomId || lg.id;
         
         // Save chatRoomCode separately for easy access
         if (chatRoomCode) {
@@ -1080,10 +1080,16 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             sessionStorage.setItem(`localGroupChatRoomCode:${communityId}`, chatRoomCode);
           } catch {}
         }
+        if (chatRoomId) {
+          try {
+            sessionStorage.setItem(`localGroupChatRoomId:${communityId}`, String(chatRoomId));
+          } catch {}
+        }
 
         const transformedGroups = [
           {
             id: lg.id || lg.groupId || communityId,
+            chatRoomId: chatRoomId || lg.id || communityId,
             name: lg.name || lg.groupName || title || 'Local Group',
             chatRooms: ['general'], // Default general channel
             voiceRooms: ['general'], // Default general channel
@@ -1271,10 +1277,21 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       // Create voice room via API
       // For local groups, use the group's id as chatRoomId (same as communities)
       let chatRoomId = roomId;
-      if (isLocalGroup && !chatRoomId) {
-        // Get the group's id from the groups array
+      if (isLocalGroup) {
+        // Prioritize chatRoomId from group data or session storage
         const targetGroup = groups.find((g) => g.name === groupName);
-        chatRoomId = targetGroup?.id || communityId;
+        chatRoomId = targetGroup?.chatRoomId || chatRoomId;
+        if (!chatRoomId) {
+          try {
+            const storedChatRoomId = sessionStorage.getItem(`localGroupChatRoomId:${communityId}`);
+            if (storedChatRoomId) {
+              chatRoomId = storedChatRoomId;
+            }
+          } catch {}
+        }
+        if (!chatRoomId) {
+          chatRoomId = targetGroup?.id || communityId;
+        }
       }
       
       if (chatRoomId && userEmail) {
@@ -1591,7 +1608,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               selectedChannel={selectedChannel}
               onSelectChannel={handleChannelSelect}
               roomCode={group.roomCode}
-              roomId={group.id}
+              roomId={group.chatRoomId || group.id}
               isLocalGroup={isLocalGroup}
               canCreate={canCreate}
             />

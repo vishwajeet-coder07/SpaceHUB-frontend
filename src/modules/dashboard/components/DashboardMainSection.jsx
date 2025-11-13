@@ -67,6 +67,20 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   
   const friendEmail = selectedFriend?.email;
 
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        try {
+          wsRef.current.close(1000, 'Dashboard main section unmounted');
+        } catch (error) {
+          console.warn('Failed to close direct chat WebSocket on unmount:', error);
+        } finally {
+          wsRef.current = null;
+        }
+      }
+    };
+  }, []);
+ 
   
   const sortMessagesByTime = useCallback((messages) => {
     return [...messages].sort(

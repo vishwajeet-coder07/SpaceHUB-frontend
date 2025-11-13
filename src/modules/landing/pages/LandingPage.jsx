@@ -167,9 +167,18 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
     <div className="min-h-screen bg-[#f3f3f3] text-gray-900">
 
       {/* HEADER */}
-      <header className="w-full sticky top-0 left-0 px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm z-50">
+      <header className="w-full sticky top-0 left-0 px-4 sm:px-10 py-4 sm:py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm z-50">
         <div className="flex items-center gap-2 sm:gap-3">
-          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+          <button
+            onClick={() => {
+              try {
+                window.location.assign('/');
+              } catch {
+                navigate('/');
+              }
+            }}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
             <img src={logo} alt="SpaceHUB logo" className="w-8 h-8 sm:w-10 sm:h-10" />
           </button>
           <span className="text-lg sm:text-xl font-bold text-gray-800">SPACEHUB</span>
@@ -177,19 +186,18 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
         
         {/* Mobile Hamburger Menu Button */}
         <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2 text-gray-700 hover:text-gray-900 transition-colors"
-          aria-label="Menu"
+          onClick={() => !isMenuOpen && setIsMenuOpen(true)}
+          className={`md:hidden p-2 text-gray-700 hover:text-gray-900 transition-colors ${
+            isMenuOpen ? 'invisible pointer-events-none' : ''
+          }`}
+          aria-label="Open menu"
+          disabled={isMenuOpen}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {isMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-
+        
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-10">
           <a href="#Features" className="text-gray-700 hover:text-gray-900 transition-colors">Features</a>

@@ -415,45 +415,32 @@ const InboxModal = ({ isOpen, onClose }) => {
                   No pending requests
                 </div>
               ) : (
-                pending.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                      {item.avatar ? (
-                        <img src={item.avatar} alt={item.requester} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-xs font-semibold text-gray-600">
-                            {item.requester?.charAt(0) || 'U'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Request Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-800 leading-tight">
-                        {item.name}
-                        <span className="text-xs font-normal text-gray-500 ml-1">
-                          ({item.type || 'friend'})
-                        </span>
+                pending.map((item) => {
+                  const displayName = item.requester || item.username || item.name || 'Unknown';
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        {item.avatar ? (
+                          <img src={item.avatar} alt={displayName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                            <span className="text-xs font-semibold text-gray-600">
+                              {displayName?.charAt(0) || 'U'}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {item.rawJson && (
-                        <pre className="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-2 whitespace-pre-wrap break-words">
-                          {item.rawJson}
-                        </pre>
-                      )}
-                    </div>
 
-                    {/* Requested Button */}
-                    <button
-                      disabled
-                      className="px-2.5 md:px-4 py-1.5 md:py-2 bg-white border border-gray-300 text-gray-600 text-xs font-semibold rounded-md flex-shrink-0 cursor-not-allowed"
-                    >
-                      Requested
-                    </button>
-                  </div>
-                ))
+                      {/* Request Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-800 leading-tight truncate">
+                          {displayName}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           )}

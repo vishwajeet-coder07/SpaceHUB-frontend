@@ -55,6 +55,13 @@ const CommunitySettingsPage = () => {
   const [showOwnerSection, setShowOwnerSection] = useState(true);
   const dropdownRefs = useRef({});
 
+  const showToast = (message, type = 'error') => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { message, type }
+    }));
+  };
+
   useEffect(() => {
     const fetchCommunity = async () => {
       setLoading(true);
@@ -235,7 +242,7 @@ const CommunitySettingsPage = () => {
     const userEmail = userData?.email;
 
     if (!userEmail) {
-      alert('User email not found');
+      showToast('User email not found');
       return;
     }
 
@@ -319,7 +326,7 @@ const CommunitySettingsPage = () => {
       setHasChanges(false);
     } catch (err) {
       console.error('Error saving community profile:', err);
-      alert(err.message || 'Failed to update community profile');
+      showToast(err.message || 'Failed to update community profile');
     } finally {
       setSaving(false);
     }
@@ -359,7 +366,7 @@ const CommunitySettingsPage = () => {
     const userEmail = userData?.email;
 
     if (!userEmail) {
-      alert('User email not found');
+      showToast('User email not found');
       return;
     }
 
@@ -376,12 +383,12 @@ const CommunitySettingsPage = () => {
         }
 
         if (!group.name || group.name.trim().length === 0) {
-          alert('Group name cannot be empty');
+          showToast('Group name cannot be empty');
           return;
         }
 
         if (group.name.length > 20) {
-          alert('Group name cannot exceed 20 characters');
+          showToast('Group name cannot exceed 20 characters');
           return;
         }
 
@@ -429,7 +436,7 @@ const CommunitySettingsPage = () => {
       setEditingGroupId(null);
     } catch (err) {
       console.error('Error saving groups:', err);
-      alert(err.message || 'Failed to save group changes');
+      showToast(err.message || 'Failed to save group changes');
     }
   };
 
@@ -479,7 +486,7 @@ const CommunitySettingsPage = () => {
     const userEmail = userData?.email;
 
     if (!userEmail) {
-      alert('User email not found');
+      showToast('User email not found');
       return;
     }
 
@@ -538,7 +545,7 @@ const CommunitySettingsPage = () => {
     const userEmail = userData?.email;
 
     if (!userEmail) {
-      alert('User email not found');
+      showToast('User email not found');
       return;
     }
 
@@ -568,7 +575,7 @@ const CommunitySettingsPage = () => {
     const userEmail = userData?.email;
 
     if (!userEmail) {
-      alert('User email not found');
+      showToast('User email not found');
       return;
     }
 

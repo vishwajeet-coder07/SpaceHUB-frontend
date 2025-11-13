@@ -4,8 +4,12 @@ const VoiceRoom = ({
   title = '# general',
   participants = [],
   localMuted = false,
+  isConnected = false,
+  callActive = false,
+  callEnded = false,
   onToggleMute,
   onLeave,
+  onStartCall = () => {},
   onBack = null,
 }) => {
   const placeholderAvatar = '/avatars/avatar-1.png';
@@ -108,6 +112,10 @@ const VoiceRoom = ({
     }
   };
 
+  const showCallEnded = callEnded || (!callActive && participantCount === 0);
+  const showConnecting = callActive && !isConnected && !showCallEnded;
+  const showWaiting = !showCallEnded && !showConnecting && participantCount === 0 && callActive;
+
   return (
     <div className="flex-1 bg-gray-50 h-full md:h-[calc(100vh-56px)] flex flex-col rounded-xl border border-gray-300 overflow-hidden shadow-lg">
       {/* Header */}
@@ -132,7 +140,7 @@ const VoiceRoom = ({
             </svg>
           </div>
           <div className="font-semibold text-gray-800 truncate text-base md:text-lg">{title}</div>
-          {participantCount > 0 && (
+          {callActive && participantCount > 0 && (
             <span className="text-xs text-gray-500 ml-2 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
               {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
             </span>
@@ -142,7 +150,31 @@ const VoiceRoom = ({
 
       {/* Video Grid Container - Centered and responsive */}
       <div className="flex-1 overflow-auto min-h-0 p-3 sm:p-4 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100">
-        {participantCount === 0 ? (
+        {showCallEnded ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white flex items-center justify-center border-4 border-gray-200 shadow-lg">
+                <svg className="w-10 h-10 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 13H7v-2h10v2z" />
+                </svg>
+              </div>
+              <p className="text-lg text-gray-700 font-semibold mb-2">Call ended</p>
+              <p className="text-sm text-gray-500 mb-6">Start the call again to invite participants back</p>
+            </div>
+          </div>
+        ) : showConnecting ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white flex items-center justify-center border-4 border-blue-200 shadow-lg animate-spin">
+                <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8" />
+                </svg>
+              </div>
+              <p className="text-lg text-gray-700 font-semibold mb-2">Connecting to the voice room...</p>
+              <p className="text-sm text-gray-500">Hang tight while we set things up for you</p>
+            </div>
+          </div>
+        ) : showWaiting ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white flex items-center justify-center border-4 border-gray-200 shadow-lg">
@@ -175,34 +207,50 @@ const VoiceRoom = ({
 
       {/* Controls */}
       <div className="px-4 pb-4 sm:pb-6 flex-shrink-0">
-        <div className="mx-auto w-full sm:w-[min(400px,90%)] bg-black/80 rounded-2xl flex items-center justify-center gap-4 sm:gap-6 py-4 px-4 border border-gray-200 shadow-lg">
-          <button
-            onClick={onToggleMute}
-            className={`w-28 sm:w-32 h-12 sm:h-14 rounded-xl flex items-center justify-center text-white transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${
-              localMuted 
-                ? 'bg-red-500 hover:bg-red-600' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-            title={localMuted ? 'Unmute' : 'Mute'}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[24px] sm:h-[24px]">
-              {localMuted ? (
-                <path d="M16.5 12c0-2.49-2.01-4.5-4.5-4.5v-3l-5 5h-3v6h3l5 5v-3c2.49 0 4.5-2.01 4.5-4.5zM19 12c0 3.87-3.13 7-7 7v3c5.52 0 10-4.48 10-10h-3zm-7-7v3c-3.87 0-7 3.13-7 7H2c0-5.52 4.48-10 10-10z" />
-              ) : (
-                <path d="M3 10v4h3l5 5V5L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03zM14 3.23v2.06C17.39 6.64 20 9.91 20 13.5h-2c0-3.04-1.72-5.64-4-6.77z" />
-              )}
-            </svg>
-          </button>
-          <button
-            onClick={onLeave}
-            className="w-28 sm:w-32 h-12 sm:h-14 rounded-xl flex items-center justify-center text-white bg-red-500 hover:bg-red-600 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-            title="Leave"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[24px] sm:h-[24px]">
-              <path d="M12 7c-4.97 0-9 2.69-9 6v3h6v-3H5.08c.74-1.77 3.52-3 6.92-3s6.18 1.23 6.92 3H15v3h6v-3c0-3.31-4.03-6-9-6z" />
-            </svg>
-          </button>
-        </div>
+        {showCallEnded ? (
+          <div className="mx-auto w-full sm:w-[min(360px,90%)] bg-white/90 border border-gray-200 rounded-2xl shadow-lg px-4 py-4 flex items-center justify-center">
+            <button
+              onClick={onStartCall}
+              className="w-full h-12 sm:h-14 rounded-xl flex items-center justify-center text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+              Start call
+            </button>
+          </div>
+        ) : (
+          <div className="mx-auto w-full sm:w-[min(400px,90%)] bg-black/80 rounded-2xl flex items-center justify-center gap-4 sm:gap-6 py-4 px-4 border border-gray-200 shadow-lg">
+            <button
+              onClick={onToggleMute}
+              disabled={!isConnected}
+              className={`w-28 sm:w-32 h-12 sm:h-14 rounded-xl flex items-center justify-center text-white transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed ${
+                localMuted 
+                  ? 'bg-red-500 hover:bg-red-600' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+              title={localMuted ? 'Unmute' : 'Mute'}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[24px] sm:h-[24px]">
+                {localMuted ? (
+                  <path d="M16.5 12c0-2.49-2.01-4.5-4.5-4.5v-3l-5 5h-3v6h3l5 5v-3c2.49 0 4.5-2.01 4.5-4.5zM19 12c0 3.87-3.13 7-7 7v3c5.52 0 10-4.48 10-10h-3zm-7-7v3c-3.87 0-7 3.13-7 7H2c0-5.52 4.48-10 10-10z" />
+                ) : (
+                  <path d="M3 10v4h3l5 5V5L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03zM14 3.23v2.06C17.39 6.64 20 9.91 20 13.5h-2c0-3.04-1.72-5.64-4-6.77z" />
+                )}
+              </svg>
+            </button>
+            <button
+              onClick={onLeave}
+              disabled={!isConnected && !callActive}
+              className="w-28 sm:w-32 h-12 sm:h-14 rounded-xl flex items-center justify-center text-white bg-red-500 hover:bg-red-600 transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Leave"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[24px] sm:h-[24px]">
+                <path d="M12 7c-4.97 0-9 2.69-9 6v3h6v-3H5.08c.74-1.77 3.52-3 6.92-3s6.18 1.23 6.92 3H15v3h6v-3c0-3.31-4.03-6-9-6z" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

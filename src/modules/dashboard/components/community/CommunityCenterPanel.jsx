@@ -150,6 +150,20 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       window.removeEventListener('community:channel-selected', handleChannelSelect);
     };
   }, [user?.email, communityId, currentRoomCode, roomCode]);
+
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        try {
+          wsRef.current.close(1000, 'Community center unmounted');
+        } catch (error) {
+          console.warn('Failed to close community WebSocket on unmount:', error);
+        } finally {
+          wsRef.current = null;
+        }
+      }
+    };
+  }, []);
   
   // Listen for voice room join completion
   useEffect(() => {
@@ -576,7 +590,36 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 
 // Voice Room Component with WebRTC
 function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null }) {
-  const enabled = voiceRoomData && voiceRoomData.janusRoomId && voiceRoomData.sessionId && voiceRoomData.handleId;
+  const hasConnectionParams = Boolean(
+    voiceRoomData &&
+    voiceRoomData.janusRoomId &&
+    voiceRoomData.sessionId &&
+    voiceRoomData.handleId &&
+    voiceRoomData.userId
+  );
+  const [callActive, setCallActive] = React.useState(hasConnectionParams);
+  const [callEnded, setCallEnded] = React.useState(false);
+  const [hasConnectedOnce, setHasConnectedOnce] = React.useState(false);
+
+  React.useEffect(() => {
+    if (hasConnectionParams) {
+      setCallActive(true);
+      setCallEnded(false);
+      setHasConnectedOnce(false);
+    } else {
+      setCallActive(false);
+      setCallEnded(false);
+      setHasConnectedOnce(false);
+    }
+  }, [
+    hasConnectionParams,
+    voiceRoomData?.janusRoomId,
+    voiceRoomData?.sessionId,
+    voiceRoomData?.handleId,
+    voiceRoomData?.userId
+  ]);
+
+  const enabled = hasConnectionParams && callActive;
 
   const {
     isConnected, participants, isMuted, error, toggleMute, leave
@@ -587,6 +630,25 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
     voiceRoomData?.userId,
     enabled
   );
+
+  React.useEffect(() => {
+    if (enabled && isConnected) {
+      setHasConnectedOnce(true);
+      setCallEnded(false);
+    }
+  }, [enabled, isConnected]);
+
+  React.useEffect(() => {
+    if (!callActive && hasConnectedOnce) {
+      setCallEnded(true);
+    }
+  }, [callActive, hasConnectedOnce]);
+
+  React.useEffect(() => {
+    return () => {
+      leave();
+    };
+  }, [leave]);
 
   // Helper function to get avatar from session storage
   const getAvatarFromStorage = (email) => {
@@ -636,6 +698,9 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
 
   const handleLeave = () => {
     leave();
+    setCallActive(false);
+    setCallEnded(true);
+    setHasConnectedOnce(true);
     try {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Call has ended', type: 'info' }
@@ -648,13 +713,22 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
     }
   };
 
+  const handleStartCall = () => {
+    setCallEnded(false);
+    setCallActive(true);
+  };
+
   return (
     <VoiceRoom
       title={title}
       participants={enrichedParticipants}
       localMuted={isMuted}
+      isConnected={isConnected}
+      callActive={callActive}
+      callEnded={callEnded}
       onToggleMute={toggleMute}
       onLeave={handleLeave}
+      onStartCall={handleStartCall}
       onBack={onBack} />
   );
 }
