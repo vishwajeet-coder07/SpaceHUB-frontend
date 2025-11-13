@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logo from '../../../assets/landing/logo-removebg-preview.svg';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import { getProfileSummary } from '../../../shared/services/API';
 import {
   selectSelectedView,
   selectShowCreate,
@@ -24,10 +25,11 @@ import InboxModal from '../components/InboxModal';
 import MobileHamburgerMenu from '../components/MobileHamburgerMenu';
 
 const Dashboard = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, updateUser } = useAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const profileFetchEmailRef = useRef(null);
   
   const selectedView = useSelector(selectSelectedView);
   const showCreate = useSelector(selectShowCreate);
@@ -49,6 +51,52 @@ const Dashboard = () => {
       }
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    const profileSetupRequired = sessionStorage.getItem('profileSetupRequired') === 'true';
+    if (profileSetupRequired) return;
+
+    const sessionUserRaw = sessionStorage.getItem('userData');
+    let sessionUser = {};
+    try {
+      sessionUser = sessionUserRaw ? JSON.parse(sessionUserRaw) : {};
+    } catch {
+      sessionUser = {};
+    }
+
+    const effectiveEmail = user?.email || sessionUser?.email;
+    if (!effectiveEmail) return;
+    if (profileFetchEmailRef.current === effectiveEmail) return;
+
+    let isMounted = true;
+
+    const fetchProfileSummary = async () => {
+      try {
+        const summary = await getProfileSummary(effectiveEmail);
+        if (!isMounted) return;
+        const summaryData = summary?.data || {};
+        const updatedUserData = {
+          ...sessionUser,
+          ...user,
+          ...(summaryData.profileImage
+            ? { profileImage: summaryData.profileImage, avatarUrl: summaryData.profileImage }
+            : {}),
+          ...(summaryData.username ? { username: summaryData.username } : {}),
+        };
+        sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
+        updateUser?.(updatedUserData);
+        profileFetchEmailRef.current = effectiveEmail;
+      } catch (error) {
+        console.error('Failed to fetch profile summary on dashboard:', error);
+      }
+    };
+
+    fetchProfileSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, updateUser]);
 
   // Close right sidebar by default on mobile screens
   useEffect(() => {

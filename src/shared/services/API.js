@@ -346,7 +346,6 @@ export async function deleteCommunity({ name, userEmail }) {
     data = null;
   }
   if (!response.ok) {
-    // Handle 429 Too Many Requests
     if (response.status === 429) {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Wait for some time to reload', type: 'error' }

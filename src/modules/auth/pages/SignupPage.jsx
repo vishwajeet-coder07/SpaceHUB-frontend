@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { registerUser, validateRegisterOtp, resendRegisterOtp, getProfileSummary } from '../../../shared/services/API';
+import { registerUser, validateRegisterOtp, resendRegisterOtp } from '../../../shared/services/API';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthSlides from '../components/AuthSlides';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
@@ -225,21 +225,6 @@ const SignupPage = () => {
         }
         
         if (userData) {
-          // Fetch profile summary to get profile image
-          try {
-            const profileData = await getProfileSummary(formData.email);
-            if (profileData?.data?.profileImage) {
-              userData.profileImage = profileData.data.profileImage;
-              userData.avatarUrl = profileData.data.profileImage;
-            }
-            if (profileData?.data?.username) {
-              userData.username = profileData.data.username;
-            }
-          } catch (error) {
-            console.error('Failed to fetch profile summary:', error);
-            // Continue with registration even if profile fetch fails
-          }
-          
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }        
         try {
@@ -486,6 +471,31 @@ const SignupPage = () => {
                     </div>
                   )}
                 </div>
+                <div>
+                  <label htmlFor="mobile" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
+                    Mobile number
+                  </label>
+                  <div className="relative flex">
+                    <span className="inline-flex items-center px-3 border-2 border-r-0 rounded-l-md text-gray-600 bg-gray-50 h-[2.2rem] lg:h-[2.75rem]">
+                      +91
+                    </span>
+                    <input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
+                      inputMode="numeric"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      className={`w-full pl-3 pr-3 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-r-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${mobileError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      placeholder="10-digit number"
+                    />
+                  </div>
+                  {mobileError && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                      <p className="text-xs text-blue-600 font-medium">Enter a valid 10-digit Indian mobile number starting with 6-9.</p>
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <label htmlFor="password" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
@@ -535,31 +545,6 @@ const SignupPage = () => {
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="mobile" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                    Mobile number
-                  </label>
-                  <div className="relative flex">
-                    <span className="inline-flex items-center px-3 border-2 border-r-0 rounded-l-md text-gray-600 bg-gray-50 h-[2.2rem] lg:h-[2.75rem]">
-                      +91
-                    </span>
-                    <input
-                      id="mobile"
-                      name="mobile"
-                      type="tel"
-                      inputMode="numeric"
-                      value={formData.mobile}
-                      onChange={handleChange}
-                      className={`w-full pl-3 pr-3 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-r-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${mobileError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
-                      placeholder="10-digit number"
-                    />
-                  </div>
-                  {mobileError && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                      <p className="text-xs text-blue-600 font-medium">Enter a valid 10-digit Indian mobile number starting with 6-9.</p>
-                    </div>
-                  )}
-                </div>
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
