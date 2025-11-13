@@ -344,6 +344,47 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           };
           
           setMessages((prev) => {
+            // Check if message already exists to avoid duplicates
+            const existingIndex = prev.findIndex(m => {
+              // Check by ID if available
+              if (receivedMsg.id && m.id === receivedMsg.id) return true;
+              // Check by text, email, and timestamp (within 3 seconds)
+              if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
+                const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());
+                if (timeDiff < 3000) {
+                  // Also check if images match (if both have images)
+                  const mImages = Array.isArray(m.images) ? m.images : [];
+                  const receivedImages = Array.isArray(receivedMsg.images) ? receivedMsg.images : [];
+                  if (mImages.length === 0 && receivedImages.length === 0) return true;
+                  if (mImages.length === receivedImages.length && mImages.length > 0) {
+                    // Check if image arrays match
+                    const imagesMatch = mImages.every((img, idx) => img === receivedImages[idx]);
+                    if (imagesMatch) return true;
+                  }
+                  // If text matches and within time window, consider it duplicate even if images differ slightly
+                  return true;
+                }
+              }
+              return false;
+            });
+            
+            if (existingIndex !== -1) {
+              const existing = prev[existingIndex];
+              // Replace optimistic message (temp ID) with server message (real ID)
+              if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
+                console.log('Replacing optimistic message with server message');
+                const updated = [...prev];
+                updated[existingIndex] = receivedMsg;
+                return updated.sort((a, b) => {
+                  const timeA = new Date(a.createdAt).getTime();
+                  const timeB = new Date(b.createdAt).getTime();
+                  return timeA - timeB;
+                });
+              }
+              console.log('Message already exists, skipping duplicate');
+              return prev;
+            }
+            
             const updated = [...prev, receivedMsg];
             return updated.sort((a, b) => {
               const timeA = new Date(a.createdAt).getTime();

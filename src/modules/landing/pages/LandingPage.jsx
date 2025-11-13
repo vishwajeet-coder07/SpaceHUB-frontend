@@ -68,8 +68,7 @@ const LandingPage = () => {
       scrollToSection(section);
     }
   };
-
-  // Handle hash links on page load and when hash changes
+  
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1); // Remove the # symbol
@@ -81,10 +80,8 @@ const LandingPage = () => {
       }
     };
 
-    // Handle initial hash on page load
     handleHashChange();
 
-    // Handle hash changes (when user clicks hash links)
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
@@ -92,17 +89,15 @@ const LandingPage = () => {
     };
   }, []);
 
-  // Handle all anchor link clicks for smooth scrolling
   useEffect(() => {
     const handleAnchorClick = (e) => {
       const anchor = e.target.closest('a[href^="#"]');
       if (anchor && anchor.getAttribute('href') !== '#') {
         const href = anchor.getAttribute('href');
-        const hash = href.slice(1); // Remove the # symbol
+        const hash = href.slice(1);
         if (hash) {
           e.preventDefault();
           scrollToSection(hash);
-          // Update URL without triggering scroll
           window.history.pushState(null, '', href);
         }
       }
@@ -172,7 +167,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
     <div className="min-h-screen bg-[#f3f3f3] text-gray-900">
 
       {/* HEADER */}
-      <header id="Home" className="w-full sticky top-0 left-0 px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm z-50">
+      <header className="w-full sticky top-0 left-0 px-4 sm:px-10 py-6 flex items-center justify-between bg-white rounded-b-lg shadow-sm z-50">
         <div className="flex items-center gap-2 sm:gap-3">
           <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
             <img src={logo} alt="SpaceHUB logo" className="w-8 h-8 sm:w-10 sm:h-10" />
