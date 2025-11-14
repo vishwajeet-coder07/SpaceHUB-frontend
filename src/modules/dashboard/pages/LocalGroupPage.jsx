@@ -236,7 +236,7 @@ const LocalGroupPage = () => {
             onClick={() => dispatch(setShowInbox(true))}
             title='Inbox'
             className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
-            <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+            <img src="/icons/inbox.svg" alt="Inbox" className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -283,7 +283,7 @@ const LocalGroupPage = () => {
               onClick={() => navigate('/dashboard/settings')}
               className="w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
             >
-              <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
+              <img src="/icons/setting.svg" alt="Settings" className="w-5 h-5" />
             </button>
 
             {/* Logout Icon */}

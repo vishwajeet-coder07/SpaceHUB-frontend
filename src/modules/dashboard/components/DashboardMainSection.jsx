@@ -230,7 +230,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           {/* Right - Members and Online Status */}
           {showMembers && (
             <div className="flex-shrink-0 text-right">
-              <div className="text-xs text-gray-600 mb-1">Members: {members}</div>
+              <div className="text-xs text-gray-600 mb-1 flex items-center gap-1 justify-end">
+                <img src="/icons/user-friends.svg" alt="Members" className="w-4 h-4" />
+                <span>Members: {members}</span>
+              </div>
             </div>
           )}
         </div>
@@ -259,7 +262,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             {/* Member Status - Top Right */}
             {showMembers && (
               <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-right text-xs sm:text-sm">
-                <div className="text-gray-300">Members: {members}</div>
+                <div className="text-gray-300 flex items-center gap-1 justify-end">
+                  <img src="/icons/user-friends.svg" alt="Members" className="w-4 h-4" />
+                  <span>Members: {members}</span>
+                </div>
               </div>
             )}
             
@@ -1139,9 +1145,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               title='Add Friend'
               className="hidden md:flex w-7 h-7 items-center justify-center text-black hover:bg-gray-300 rounded-md transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
+              <img src="/icons/add_frnd.svg" alt="Add Friend" className="w-5 h-5" />
             </button>
           )}
         </div>

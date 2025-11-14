@@ -167,12 +167,7 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
   const PanelContent = () => (
     <>
       <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
+        <img src="/icons/user-friends.svg" alt="Members" className="w-5 h-5" />
         Members {members?.length ? `(${members.length})` : ''}
       </h3>
 
@@ -228,9 +223,10 @@ const CommunityRightPanel = ({ community, isLocalGroup = false, onClose = null }
                   <button
                     onClick={() => openConfirm(m)}
                     disabled={isRemoving}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     title="Remove member"
                   >
+                    <img src="/icons/delete.svg" alt="Remove member" className="w-4 h-4" />
                     {isRemoving ? 'Removing...' : 'Remove'}
                   </button>
                 )}

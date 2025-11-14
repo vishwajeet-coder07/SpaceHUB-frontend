@@ -1,6 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = 'Start your own group and bring people together. Share ideas, interests, and good vibes in one place.', nameLabel = 'Group name', placeholder = 'Enter group name', confirmText = 'Confirm', initialName = '', initialImageFile = null, onChange }) => {
+const CreateGroup = ({
+  onBack,
+  onConfirm,
+  title = 'Create a group',
+  subtitle = 'Start your own group and bring people together. Share ideas, interests, and good vibes in one place.',
+  nameLabel = 'Group name',
+  placeholder = 'Enter group name',
+  confirmText = 'Confirm',
+  initialName = '',
+  initialImageFile = null,
+  onChange,
+  iconSrc = null,
+}) => {
   const [groupName, setGroupName] = useState(initialName || '');
   const [preview, setPreview] = useState('');
   const [imageFile, setImageFile] = useState(initialImageFile || null);
@@ -126,12 +138,16 @@ const CreateGroup = ({ onBack, onConfirm, title = 'Create a group', subtitle = '
             <div className="mt-6 sm:mt-10 w-full">
               <label className="block text-lg sm:text-2xl font-semibold mb-2 sm:mb-3">{nameLabel}</label>
               <div className={`bg-white text-gray-900 rounded-xl flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 ${showNameError ? 'ring-2 ring-red-400' : ''}`}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-[22px] sm:h-[22px]">
-              <path d="M16 14c2.21 0 4 1.79 4 4v1H12v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
-              <path d="M8 14c2.21 0 4 1.79 4 4v1H0v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
-              <circle cx="16" cy="8" r="3" fill="#111827"/>
-              <circle cx="8" cy="8" r="3" fill="#111827"/>
-            </svg>
+                {iconSrc ? (
+                  <img src={iconSrc} alt="" aria-hidden="true" className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-[22px] sm:h-[22px]">
+                    <path d="M16 14c2.21 0 4 1.79 4 4v1H12v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
+                    <path d="M8 14c2.21 0 4 1.79 4 4v1H0v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
+                    <circle cx="16" cy="8" r="3" fill="#111827"/>
+                    <circle cx="8" cy="8" r="3" fill="#111827"/>
+                  </svg>
+                )}
             <input
               value={groupName}
                   onChange={handleNameChange}

@@ -481,7 +481,7 @@ const SettingPage = () => {
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-3 text-red-500 hover:text-red-400 mb-4"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7l5 5v7a2 2 0 0 1-2 2H6z"/></svg>
+              <img src="/icons/delete.svg" alt="Delete Account" className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Delete Account</span>
             </button>
               <button 

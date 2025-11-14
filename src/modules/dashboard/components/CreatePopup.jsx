@@ -194,6 +194,7 @@ const CreatePopup = ({ open, onClose }) => {
           confirmText={'Confirm'}
           initialName={groupData.name}
           initialImageFile={groupData.imageFile}
+          iconSrc={kind === 'community' ? '/icons/community.svg' : '/icons/user-friends.svg'}
           onChange={({ name, imageFile }) => setGroupData((prev) => ({ ...prev, name: name ?? prev.name, imageFile: imageFile ?? prev.imageFile }))}
         />
       )}

@@ -486,10 +486,10 @@ const ChatRoom = ({
                       return updated;
                     });
                   }}
-                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/80"
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80"
                   title="Remove"
                 >
-                  ✕
+                  <img src="/icons/delete.svg" alt="Remove attachment" className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
@@ -547,9 +547,7 @@ const ChatRoom = ({
             className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Send"
           >
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            <img src="/icons/msg_send_icon.svg" alt="Send message" className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           
           {/* Emoji Picker */}

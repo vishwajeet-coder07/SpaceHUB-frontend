@@ -226,18 +226,16 @@ const VoiceRoom = ({
               disabled={!isConnected}
               className={`w-28 sm:w-32 h-12 sm:h-14 rounded-xl flex items-center justify-center text-white transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed ${
                 localMuted 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-blue-600 hover:bg-blue-700'
+                  ? 'bg-white hover:bg-gray-100' 
+                  : 'bg-[#595959]'
               }`}
               title={localMuted ? 'Unmute' : 'Mute'}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="sm:w-[24px] sm:h-[24px]">
-                {localMuted ? (
-                  <path d="M16.5 12c0-2.49-2.01-4.5-4.5-4.5v-3l-5 5h-3v6h3l5 5v-3c2.49 0 4.5-2.01 4.5-4.5zM19 12c0 3.87-3.13 7-7 7v3c5.52 0 10-4.48 10-10h-3zm-7-7v3c-3.87 0-7 3.13-7 7H2c0-5.52 4.48-10 10-10z" />
-                ) : (
-                  <path d="M3 10v4h3l5 5V5L6 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03zM14 3.23v2.06C17.39 6.64 20 9.91 20 13.5h-2c0-3.04-1.72-5.64-4-6.77z" />
-                )}
-              </svg>
+              <img
+                src="/icons/mutecall.svg"
+                alt={localMuted ? 'Unmute microphone' : 'Mute microphone'}
+                className="w-[70px] h-9 object-contain"
+              />
             </button>
             <button
               onClick={onLeave}

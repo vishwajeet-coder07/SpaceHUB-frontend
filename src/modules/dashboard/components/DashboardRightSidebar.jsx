@@ -137,18 +137,23 @@ const DashboardRightSidebar = ({ onClose }) => {
 
           <div className="mb-4">
             <div className="relative">
+              <img
+                src="/icons/search_icon.svg"
+                alt="Search users"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+              />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Enter username or email"
-                className="w-full px-3 pr-24 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-24 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
               <button
                 onClick={handleSendRequest}
                 disabled={searchLoading || searchQuery.trim().length < 2}
-                className="absolute right-1 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               >
                 {searchLoading ? 'Searching...' : 'Search'}
               </button>
@@ -214,8 +219,9 @@ const DashboardRightSidebar = ({ onClose }) => {
                     <button
                       onClick={() => handleAddFriend(user)}
                       disabled={addingFriend[user?.userId || user?.id] || requested[user?.userId || user?.id]}
-                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${requested[user?.userId || user?.id] ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${requested[user?.userId || user?.id] ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                     >
+                      <img src="/icons/add_frnd.svg" alt="Add friend" className="w-4 h-4" />
                       {addingFriend[user?.userId || user?.id]
                         ? 'Sending...'
                         : requested[user?.userId || user?.id]

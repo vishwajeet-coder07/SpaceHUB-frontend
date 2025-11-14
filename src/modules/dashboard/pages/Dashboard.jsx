@@ -359,7 +359,7 @@ const Dashboard = () => {
               onClick={() => dispatch(setShowInbox(true))}
               title='Inbox'
               className="relative w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
-              <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+              <img src="/icons/inbox.svg" alt="Inbox" className="w-5 h-5" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
                   <span className="text-[0px]">{unreadCount}</span>
@@ -410,7 +410,7 @@ const Dashboard = () => {
               onClick={() => navigate('/dashboard/settings')}
               className="w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
             >
-              <img src="/avatars/setting.png" alt="Settings" className="w-5 h-5" />
+              <img src="/icons/setting.svg" alt="Settings" className="w-5 h-5" />
             </button>
 
             {/* Logout Icon */}

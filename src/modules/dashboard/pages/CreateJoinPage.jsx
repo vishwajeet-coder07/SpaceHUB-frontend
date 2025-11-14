@@ -219,7 +219,7 @@ const CreateJoinPage = () => {
           className="p-2 -mr-2 text-gray-700 hover:text-gray-900"
           title="Inbox"
         >
-          <img src="/avatars/inbox.png" alt="Inbox" className="w-6 h-6" />
+          <img src="/icons/inbox.svg" alt="Inbox" className="w-5 h-5" />
         </button>
       </div>
 
@@ -229,10 +229,11 @@ const CreateJoinPage = () => {
           <div className="flex flex-col items-center">
             {/* Plus Icon and Title */}
             <div className="flex flex-col items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+              <div className="w-16 h-16 rounded-full bg-[#1E2635] flex items-center justify-center mb-4">
+                <div className="relative w-6 h-6" aria-hidden="true">
+                  <span className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] rounded-full bg-white" />
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-white" />
+                </div>
               </div>
               <h1 className="text-2xl font-bold text-gray-900">Create/join</h1>
             </div>
@@ -244,12 +245,7 @@ const CreateJoinPage = () => {
                 className="w-full bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 14c2.21 0 4 1.79 4 4v1H12v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
-                    <path d="M8 14c2.21 0 4 1.79 4 4v1H0v-1c0-2.21 1.79-4 4-4Z" fill="#111827"/>
-                    <circle cx="16" cy="8" r="3" fill="#111827"/>
-                    <circle cx="8" cy="8" r="3" fill="#111827"/>
-                  </svg>
+                  <img src="/icons/user-friends.svg" alt="Friends" className="w-6 h-6" />
                 </div>
                 <span className="font-semibold text-gray-900">For me and my Friends</span>
               </button>
@@ -259,11 +255,7 @@ const CreateJoinPage = () => {
                 className="w-full bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 15c2.76 0 5 2.24 5 5v1H7v-1c0-2.76 2.24-5 5-5Z" fill="#111827"/>
-                    <circle cx="12" cy="8" r="3" fill="#111827"/>
-                    <path d="M19 8h-2V6h-2V4h2V2h2v2h2v2h-2v2Z" fill="#111827"/>
-                  </svg>
+                  <img src="/icons/community.svg" alt="Community" className="w-6 h-6" />
                 </div>
                 <span className="font-semibold text-gray-900">For clubs and community</span>
               </button>
@@ -294,6 +286,7 @@ const CreateJoinPage = () => {
               confirmText={'Confirm'}
               initialName={groupData.name}
               initialImageFile={groupData.imageFile}
+              iconSrc={kind === 'community' ? '/icons/community.svg' : '/icons/user-friends.svg'}
               onChange={({ name, imageFile }) => setGroupData((prev) => ({ ...prev, name: name ?? prev.name, imageFile: imageFile ?? prev.imageFile }))}
             />
           </div>

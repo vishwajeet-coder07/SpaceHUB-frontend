@@ -827,17 +827,14 @@ const CommunitySettingsPage = () => {
           </button>
         </div>
          <div className="flex-1 text-center">
-           <div className="flex items-center gap-2">
-             <img src="/setting.svg" alt="Settings" className="w-6 h-6" />
            <h1 className="text-lg font-semibold text-gray-800">Settings</h1>
-           </div>
          </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => dispatch(setShowInbox(true))}
             title='Inbox'
             className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
-            <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+            <img src="/icons/inbox.svg" alt="Inbox" className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -874,9 +871,7 @@ const CommunitySettingsPage = () => {
                    onClick={() => setShowDeleteModal(true)}
                    className="w-full text-left px-4 py-4 rounded-md text-red-600 hover:bg-red-100 transition-colors text-base font-medium flex items-center gap-3"
                  >
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                   </svg>
+                   <img src="/icons/delete.svg" alt="Delete community" className="w-5 h-5" />
                    Delete community
                  </button>
                  <button
@@ -1082,15 +1077,13 @@ const CommunitySettingsPage = () => {
                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                  </svg>
                                </button>
-                               <button
-                                 onClick={() => handleDeleteGroupClick(index)}
-                                 className="text-red-600 hover:text-red-700 transition-colors p-1.5"
-                                 title="Delete group"
-                               >
-                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                                 </svg>
-                               </button>
+                              <button
+                                onClick={() => handleDeleteGroupClick(index)}
+                                className="text-red-600 hover:text-red-700 transition-colors p-1.5"
+                                title="Delete group"
+                              >
+                                <img src="/icons/delete.svg" alt="Delete group" className="w-4 h-4" />
+                              </button>
                              </div>
                              <div className="flex items-center justify-end pr-12">
                                <p className="text-xs text-gray-500">{charCount}/30</p>
@@ -1431,9 +1424,7 @@ const CommunitySettingsPage = () => {
                   onClick={() => setShowDeleteModal(true)}
                   className="w-full text-left px-4 py-2 rounded-md text-sm font-medium text-orange-500 hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                  </svg>
+                  <img src="/icons/delete.svg" alt="Delete community" className="w-4 h-4" />
                   Delete community
                 </button>
                 <button
@@ -1686,9 +1677,7 @@ const CommunitySettingsPage = () => {
                                     className="text-orange-500 hover:text-orange-400 transition-colors p-2"
                                     title="Delete group"
                                   >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                                    </svg>
+                                    <img src="/icons/delete.svg" alt="Delete group" className="w-5 h-5" />
                                   </button>
                                 </div>
                                 <div className="flex items-center justify-end pr-12">
