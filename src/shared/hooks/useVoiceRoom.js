@@ -405,6 +405,23 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
 
   // Track current connection params to prevent unnecessary reconnections
   const connectionParamsRef = useRef(null);
+  const previousJanusRoomIdRef = useRef(janusRoomId);
+
+  // Clear participants when janusRoomId changes (room switch)
+  useEffect(() => {
+    const previousJanusRoomId = previousJanusRoomIdRef.current;
+    const currentJanusRoomId = janusRoomId;
+    
+    // If janusRoomId changed, clear participants
+    if (previousJanusRoomId && currentJanusRoomId && previousJanusRoomId !== currentJanusRoomId) {
+      log('Room changed, clearing participants');
+      setParticipants([]);
+      setIsConnected(false);
+    }
+    
+    // Update ref for next comparison
+    previousJanusRoomIdRef.current = currentJanusRoomId;
+  }, [janusRoomId, log]);
 
   // Connect when enabled and all required params are available
   useEffect(() => {
@@ -420,6 +437,11 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
           log('Already connected with same params, skipping reconnect');
           return;
         }
+      }
+      // Clear participants when switching to a new room
+      if (previousParamsKey && paramsKey !== previousParamsKey) {
+        log('Room params changed, clearing participants before connecting');
+        setParticipants([]);
       }
       connectionParamsRef.current = currentParams;
       connectWebSocket();

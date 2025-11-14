@@ -602,6 +602,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
     <div className="flex-1 min-w-0 bg-white h-full flex flex-col rounded-xl border border-gray-500 overflow-hidden md:bg-white">
       {currentMode === 'voice' ? (
         <VoiceRoomWithWebRTC
+          key={`voice-room-${voiceRoomData?.janusRoomId || 'none'}-${selectedChannelId || 'no-channel'}`}
           title={currentRoomTitle}
           voiceRoomData={voiceRoomData}
           communityId={communityId}
@@ -725,16 +726,41 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
   const [callActive, setCallActive] = React.useState(hasConnectionParams);
   const [callEnded, setCallEnded] = React.useState(false);
   const [hasConnectedOnce, setHasConnectedOnce] = React.useState(false);
+  const previousJanusRoomIdRef = React.useRef(voiceRoomData?.janusRoomId);
 
   React.useEffect(() => {
-    if (hasConnectionParams) {
-      setCallActive(true);
-      setCallEnded(false);
-      setHasConnectedOnce(false);
-    } else {
+    const currentJanusRoomId = voiceRoomData?.janusRoomId;
+    const previousJanusRoomId = previousJanusRoomIdRef.current;
+    
+    // If janusRoomId changed, reset state before setting new values
+    if (previousJanusRoomId && currentJanusRoomId && previousJanusRoomId !== currentJanusRoomId) {
+      // Room changed - reset state
       setCallActive(false);
       setCallEnded(false);
       setHasConnectedOnce(false);
+      
+      // Update ref
+      previousJanusRoomIdRef.current = currentJanusRoomId;
+      
+      // Small delay to allow cleanup, then activate if we have connection params
+      const timer = setTimeout(() => {
+        if (hasConnectionParams) {
+          setCallActive(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Normal state update when connection params change (but room hasn't changed)
+      previousJanusRoomIdRef.current = currentJanusRoomId;
+      if (hasConnectionParams) {
+        setCallActive(true);
+        setCallEnded(false);
+        setHasConnectedOnce(false);
+      } else {
+        setCallActive(false);
+        setCallEnded(false);
+        setHasConnectedOnce(false);
+      }
     }
   }, [
     hasConnectionParams,
