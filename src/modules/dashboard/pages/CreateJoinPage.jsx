@@ -6,7 +6,7 @@ import CreateGroup from '../components/createComponents/CreateGroup';
 import CreateGroupDescription from '../components/createComponents/CreateGroupDescription';
 import CreateCongrats from '../components/createComponents/CreateCongrats';
 import CreateJoin from '../components/CreateJoin';
-import { createCommunity, createLocalGroup } from '../../../shared/services/API';
+import { createCommunity, createLocalGroup, createDefaultAnnouncementGroup } from '../../../shared/services/API';
 import { addCommunity, addLocalGroup } from '../../../shared/store/slices/dashboardSlice';
 import MobileHamburgerMenu from '../components/MobileHamburgerMenu';
 import InboxModal from '../components/InboxModal';
@@ -117,6 +117,22 @@ const CreateJoinPage = () => {
         if (communityData) {
           dispatch(addCommunity(communityData));
         }
+        
+        // Create default Announcement group with general chatroom
+        const communityId = communityData?.id || communityData?.communityId || response?.data?.id || response?.id;
+        if (communityId) {
+          try {
+            await createDefaultAnnouncementGroup(communityId, trimmedEmail);
+            console.log('Default Announcement group and general chatroom created successfully');
+          } catch (announcementError) {
+            console.error('Failed to create default Announcement group:', announcementError);
+            // Don't block community creation if announcement group creation fails
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: 'Community created, but failed to create default Announcement group', type: 'warning' }
+            }));
+          }
+        }
+        
         window.dispatchEvent(new Event('refresh:communities'));
       } else {
         response = await createLocalGroup({

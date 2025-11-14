@@ -536,31 +536,6 @@ export async function joinCommunity(communityName, userEmail) {
 
 export const getAllRooms = (requesterEmail) => getAllLocalGroups(requesterEmail);
 
-export async function getMyPendingRequests(requesterEmail) {
-  const response = await authenticatedFetch(`${BASE_URL}community/my-pending-requests?requesterEmail=${encodeURIComponent(requesterEmail)}`, {
-    method: 'GET'
-  });
-  let data;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-  if (!response.ok) {
-    // Handle 429 Too Many Requests
-    if (response.status === 429) {
-      window.dispatchEvent(new CustomEvent('toast', {
-        detail: { message: 'Wait for some time to reload', type: 'error' }
-      }));
-      const message = (data && (data.message || data.error)) || 'Too many requests. Please wait for some time to reload.';
-      throw new Error(message);
-    }
-    const message = (data && (data.message || data.error)) || `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-  return data;
-}
-
 export async function acceptJoinRequest({ communityName, creatorEmail, userEmail }) {
   const response = await authenticatedFetch(`${BASE_URL}community/acceptRequest`, {
     method: 'POST',
@@ -640,29 +615,6 @@ export async function sendFriendRequest(userEmail, friendEmail) {
 // Get friends list
 export async function getFriendsList(userEmail) {
   const response = await authenticatedFetch(`${BASE_URL}friends/list`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userEmail })
-  });
-  return handleJson(response);
-}
-
-// Get incoming friend requests
-export async function getIncomingFriendRequests(userEmail) {
-  const response = await authenticatedFetch(`${BASE_URL}friends/pending/incoming`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userEmail })
-  });
-  return handleJson(response);
-}
-
-export async function getOutgoingFriendRequests(userEmail) {
-  const response = await authenticatedFetch(`${BASE_URL}friends/pending/outgoing`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -798,7 +750,6 @@ export async function deleteAccount({ email, currentPassword }) {
   return handleJson(response);
 }
 
-// Get profile summary (profile image, username, etc.)
 export async function getProfileSummary(email) {
   const response = await authenticatedFetch(`${BASE_URL}dashboard/profile-summary?email=${encodeURIComponent(email)}`, {
     method: 'GET'
@@ -894,6 +845,48 @@ export async function createNewChatroom(roomCode, name) {
     body: formData
   });
   return handleJson(response);
+}
+
+// Create default Announcement group with general chatroom for a community
+export async function createDefaultAnnouncementGroup(communityId, requesterEmail) {
+  try {
+    // Step 1: Create the Announcement group
+    const groupUrl = `${BASE_URL}community/${communityId}/rooms/create`;
+    const groupResponse = await authenticatedFetch(groupUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        roomName: 'Announcement',
+        requesterEmail: requesterEmail
+      })
+    });
+
+    const groupData = await groupResponse.json();
+    
+    if (!groupResponse.ok) {
+      throw new Error(groupData.message || 'Failed to create Announcement group');
+    }
+
+    const announcementGroup = groupData.data || groupData;
+    const roomCode = announcementGroup.roomCode || announcementGroup.id;
+
+    if (!roomCode) {
+      throw new Error('Room code not found in Announcement group response');
+    }
+
+    // Step 2: Create the general chatroom in the Announcement group
+    const chatroomResponse = await createNewChatroom(roomCode, 'general');
+    
+    return {
+      group: announcementGroup,
+      chatroom: chatroomResponse
+    };
+  } catch (error) {
+    console.error('Error creating default Announcement group:', error);
+    throw error;
+  }
 }
 
 export async function getChatroomsSummary(roomCode) {

@@ -35,10 +35,15 @@ const InboxModal = ({ isOpen, onClose }) => {
   const loading = useSelector(selectInboxLoading);
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
+  const requestsRef = useRef(requests);
 
-  // Transform notification data to inbox format
+  useEffect(() => {
+    requestsRef.current = requests;
+  }, [requests]);
+
+
   const transformFriendRequest = (req, idx = 0) => {
-    // Handle new WebSocket format
+
     if (req.senderName || req.senderEmail) {
       const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown User';
       const avatarUrl = req.senderProfileImageUrl 
@@ -63,27 +68,26 @@ const InboxModal = ({ isOpen, onClose }) => {
       };
     }
     
-    // Handle legacy format
-    let displayName = 'Unknown User';
-    if (req.username) {
-      displayName = req.username;
+          let displayName = 'Unknown User';
+          if (req.username) {
+            displayName = req.username;
     } else if (req.name) {
       displayName = req.name;
     } else if (req.email || req.requesterEmail) {
       displayName = (req.email || req.requesterEmail).split('@')[0];
-    }
-    
-    return {
-      id: `friend-${req.id || req.requesterEmail || req.email || idx}`,
-      type: 'friend',
-      name: displayName,
-      requester: displayName,
-      requesterEmail: req.email || req.requesterEmail,
-      userId: req.id || req.userId,
-      firstName: req.firstName,
-      lastName: req.lastName,
-      avatar: req.avatar || req.avatarUrl || req.profileImage || null
-    };
+          }
+          
+          return {
+            id: `friend-${req.id || req.requesterEmail || req.email || idx}`,
+            type: 'friend',
+            name: displayName,
+            requester: displayName,
+            requesterEmail: req.email || req.requesterEmail,
+            userId: req.id || req.userId,
+            firstName: req.firstName,
+            lastName: req.lastName,
+            avatar: req.avatar || req.avatarUrl || req.profileImage || null
+          };
   };
 
   const transformCommunityRequest = (req, communityId, communityName) => {
@@ -114,35 +118,35 @@ const InboxModal = ({ isOpen, onClose }) => {
     // Handle legacy format
     return {
       id: `${communityId}-${req.userId || req.id}`,
-      communityId,
-      type: 'community',
-      name: communityName,
-      requester: req.username || req.email?.split('@')[0] || 'Unknown',
-      requesterEmail: req.email,
+                communityId,
+                type: 'community',
+                name: communityName,
+                requester: req.username || req.email?.split('@')[0] || 'Unknown',
+                requesterEmail: req.email,
       userId: req.userId || req.id,
-      avatar: req.avatar || null
+                avatar: req.avatar || null
     };
   };
 
   const transformPendingRequest = (req, idx = 0) => {
-    let displayName = 'Pending user';
-    const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
-    if (candidateName) {
-      displayName = candidateName;
-    } else if (req.friendEmail || req.receiverEmail || req.email) {
-      const rawEmail = req.friendEmail || req.receiverEmail || req.email;
-      displayName = rawEmail.split('@')[0];
-    }
+                let displayName = 'Pending user';
+                const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
+                if (candidateName) {
+                  displayName = candidateName;
+                } else if (req.friendEmail || req.receiverEmail || req.email) {
+                  const rawEmail = req.friendEmail || req.receiverEmail || req.email;
+                  displayName = rawEmail.split('@')[0];
+                }
 
-    return {
+                return {
       id: `pending-${req.id || req.friendEmail || req.receiverEmail || req.email || idx}`,
-      type: req.type || 'friend',
-      name: displayName,
-      requester: displayName,
-      avatar: req.avatar || req.avatarUrl || req.profileImage || null,
-      raw: req,
-      rawJson: JSON.stringify(req, null, 2),
-    };
+                  type: req.type || 'friend',
+                  name: displayName,
+                  requester: displayName,
+                  avatar: req.avatar || req.avatarUrl || req.profileImage || null,
+                  raw: req,
+                  rawJson: JSON.stringify(req, null, 2),
+                };
   };
 
   // Mark all notifications as read when inbox is opened
@@ -152,109 +156,87 @@ const InboxModal = ({ isOpen, onClose }) => {
     }
   }, [isOpen, dispatch]);
 
-  // WebSocket notification handler
+  // WebSocket notification handler - ALWAYS ACTIVE (not just when modal is open)
   useEffect(() => {
-    if (!isOpen) return;
-
     const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
     const userEmail = user?.email || storedEmail;
 
     if (!userEmail) {
-      dispatch(setError('User email not found'));
       return;
     }
 
-    // Request initial notifications when modal opens
-    if (webSocketService.isConnected()) {
-      dispatch(setLoading(true));
-      webSocketService.requestNotifications();
-      // Set a timeout to stop loading if no response comes back
-      const loadingTimeout = setTimeout(() => {
-        dispatch(setLoading(false));
-      }, 5000); // 5 second timeout
-      
-      return () => {
-        clearTimeout(loadingTimeout);
-      };
-    } else {
-      // If not connected, ensure loading is false so empty state can show
-      dispatch(setLoading(false));
-    }
-
-    // WebSocket event handler
     const handleWebSocketEvent = (eventType, data) => {
-      console.log('InboxModal: WebSocket event', eventType, data);
-
+      console.log('InboxModal: WebSocket event received', eventType, data);
+      
       switch (eventType) {
         case 'connected':
           dispatch(setWsConnected(true));
-          dispatch(setLoading(true));
-          // Request notifications on connection
-          webSocketService.requestNotifications();
+          if (isOpen) {
+            dispatch(setLoading(true));
+            webSocketService.requestNotifications();
+          }
           break;
-
         case 'disconnected':
           dispatch(setWsConnected(false));
           break;
-
-        case 'friend_request':
-        case 'incoming_friend_request':
-          // Single incoming friend request
+        case 'friend_request': {
           const friendReq = transformFriendRequest(data);
           dispatch(addRequest(friendReq));
-          dispatch(setLoading(false));
-          // Show toast notification only if not read
+          if (isOpen) {
+            dispatch(setLoading(false));
+          }
           if (!data.read) {
             window.dispatchEvent(new CustomEvent('toast', {
               detail: { message: `${friendReq.requester} wants to be your friend`, type: 'info' }
             }));
           }
           break;
-
-        case 'friend_requests_bulk':
-          // Bulk incoming friend requests
+        }
+        case 'friend_requests_bulk': {
           const friendRequests = Array.isArray(data) ? data.map((req, idx) => transformFriendRequest(req, idx)) : [];
-          // Get current requests and merge
-          const currentRequests = requests || [];
-          const existingNonFriend = currentRequests.filter(r => r.type !== 'friend');
+          const currentRequests = requestsRef.current || [];
+          const existingNonFriend = currentRequests.filter((r) => r.type !== 'friend');
           dispatch(setRequests([...existingNonFriend, ...friendRequests]));
-          dispatch(setLoading(false));
-          // If no friend requests, ensure we show empty state
+          if (isOpen) {
+            dispatch(setLoading(false));
+          }
           if (friendRequests.length === 0 && existingNonFriend.length === 0) {
             dispatch(setRequests([]));
           }
           break;
-
-        case 'community_request':
-        case 'community_join_request':
-          // Single community join request
+        }
+        case 'community_request': {
           const notificationData = data.request || data;
+          // Only skip if explicitly marked as non-actionable
+          // COMMUNITY_JOINED with actionable=true means someone wants to join
+          if (notificationData.actionable === false || (data.actionable === false && !notificationData.actionable)) {
+            console.log('InboxModal: Skipping non-actionable community notification', notificationData);
+            break;
+          }
           const commReq = transformCommunityRequest(
             notificationData,
             notificationData.communityId || data.communityId || data.community?.id,
             notificationData.communityName || data.communityName || data.community?.name
           );
+          console.log('InboxModal: Adding community request', commReq, 'from notification', notificationData);
           dispatch(addRequest(commReq));
-          dispatch(setLoading(false));
-          // Show toast notification only if not read
-          if (!notificationData.read && !data.read) {
-            window.dispatchEvent(new CustomEvent('toast', {
-              detail: { message: `${commReq.requester} wants to join ${commReq.name}`, type: 'info' }
-            }));
+          if (isOpen) {
+            dispatch(setLoading(false));
           }
+          if (!notificationData.read && !data.read) {
+          window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: `${commReq.requester} wants to join ${commReq.name}`, type: 'info' }
+          }));
+        }
           break;
-
-        case 'community_requests_bulk':
-          // Bulk community requests
+        }
+        case 'community_requests_bulk': {
           const communityRequests = [];
           if (Array.isArray(data)) {
             data.forEach((item) => {
-              // Handle new format where each item is a notification with communityId/communityName
               if (item.communityId || item.communityName) {
                 communityRequests.push(transformCommunityRequest(item, item.communityId, item.communityName));
-              } 
-              // Handle legacy format with nested requests
-              else {
+              } else {
                 const { communityId, communityName, requests: commRequests } = item;
                 if (Array.isArray(commRequests)) {
                   commRequests.forEach((req) => {
@@ -264,66 +246,60 @@ const InboxModal = ({ isOpen, onClose }) => {
               }
             });
           }
-          // Get current requests and merge
-          const currentReqs = requests || [];
-          const existingNonCommunity = currentReqs.filter(r => r.type !== 'community');
+          const currentReqs = requestsRef.current || [];
+          const existingNonCommunity = currentReqs.filter((r) => r.type !== 'community');
           dispatch(setRequests([...existingNonCommunity, ...communityRequests]));
-          dispatch(setLoading(false));
-          // If no community requests, ensure we show empty state
+          if (isOpen) {
+            dispatch(setLoading(false));
+          }
           if (communityRequests.length === 0 && existingNonCommunity.length === 0) {
             dispatch(setRequests([]));
           }
           break;
-
-        case 'pending_friend_request':
-        case 'outgoing_friend_request':
-          // Single pending friend request
+        }
+        case 'pending_friend_request': {
           const pendingReq = transformPendingRequest(data);
           dispatch(addPending(pendingReq));
-          dispatch(setLoading(false));
+          if (isOpen) {
+        dispatch(setLoading(false));
+          }
           break;
-
-        case 'pending_requests_bulk':
-          // Bulk pending requests
-          const pendingRequests = Array.isArray(data) ? data.map((req, idx) => transformPendingRequest(req, idx)) : [];
+        }
+        case 'pending_requests_bulk': {
+          const pendingRequests = Array.isArray(data)
+            ? data.map((req, idx) => transformPendingRequest(req, idx))
+            : [];
           dispatch(setPending(pendingRequests));
-          dispatch(setLoading(false));
-          // If no pending requests, ensure we show empty state
+          if (isOpen) {
+        dispatch(setLoading(false));
+          }
           if (pendingRequests.length === 0) {
             dispatch(setPending([]));
           }
           break;
-
+        }
         case 'friend_request_response':
-          // Friend request was accepted/rejected
+          dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
           if (data.accepted) {
-            dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
-            window.dispatchEvent(new CustomEvent('toast', {
+        window.dispatchEvent(new CustomEvent('toast', {
               detail: { message: 'Friend request accepted!', type: 'success' }
             }));
-          } else {
-            dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
           }
           break;
-
-        case 'notification':
-          // Generic notification - try to parse it
+        case 'notification': {
           const allRequests = [];
           if (data.friendRequests) {
-            const friendReqs = Array.isArray(data.friendRequests) 
-              ? data.friendRequests.map((req, idx) => transformFriendRequest(req, idx)) 
+            const friendReqs = Array.isArray(data.friendRequests)
+              ? data.friendRequests.map((req, idx) => transformFriendRequest(req, idx))
               : [];
             allRequests.push(...friendReqs);
           }
           if (data.communityRequests) {
             if (Array.isArray(data.communityRequests)) {
               data.communityRequests.forEach((item) => {
-                // Handle new format where each item is a notification
                 if (item.communityId || item.communityName) {
                   allRequests.push(transformCommunityRequest(item, item.communityId, item.communityName));
-                }
-                // Handle legacy format with nested requests
-                else {
+                } else {
                   const { communityId, communityName, requests: commRequests } = item;
                   if (Array.isArray(commRequests)) {
                     commRequests.forEach((req) => {
@@ -335,47 +311,65 @@ const InboxModal = ({ isOpen, onClose }) => {
             }
           }
           if (allRequests.length > 0) {
-            const currentReqsForNotification = requests || [];
-            const existingNonMatching = currentReqsForNotification.filter(r => 
-              !allRequests.some(newReq => newReq.id === r.id)
+            const currentReqsForNotification = requestsRef.current || [];
+            const existingNonMatching = currentReqsForNotification.filter(
+              (r) => !allRequests.some((newReq) => newReq.id === r.id)
             );
             dispatch(setRequests([...existingNonMatching, ...allRequests]));
           } else if (
-            (Array.isArray(data.friendRequests) && data.friendRequests.length === 0) || 
+            (Array.isArray(data.friendRequests) && data.friendRequests.length === 0) ||
             (Array.isArray(data.communityRequests) && data.communityRequests.length === 0)
           ) {
-            // Explicitly empty arrays - ensure we show empty state
             dispatch(setRequests([]));
           }
           if (data.pendingRequests) {
-            const pendingReqs = Array.isArray(data.pendingRequests) 
-              ? data.pendingRequests.map((req, idx) => transformPendingRequest(req, idx)) 
+            const pendingReqs = Array.isArray(data.pendingRequests)
+              ? data.pendingRequests.map((req, idx) => transformPendingRequest(req, idx))
               : [];
             dispatch(setPending(pendingReqs));
           } else if (Array.isArray(data.pendingRequests) && data.pendingRequests.length === 0) {
-            // Explicitly empty array
             dispatch(setPending([]));
           }
-          dispatch(setLoading(false));
+          if (isOpen) {
+            dispatch(setLoading(false));
+          }
           break;
-
+        }
         case 'error':
           dispatch(setError('WebSocket connection error'));
-          dispatch(setLoading(false));
+          if (isOpen) {
+            dispatch(setLoading(false));
+          }
           break;
-
         default:
           console.log('InboxModal: Unhandled WebSocket event', eventType, data);
+          break;
       }
     };
 
-    // Add WebSocket listener
     const removeListener = webSocketService.addListener(handleWebSocketEvent);
 
     return () => {
       removeListener();
     };
-  }, [isOpen, user, dispatch]);
+  }, [user, dispatch, isOpen]);
+
+  // Request notifications when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    dispatch(setLoading(true));
+    
+    if (webSocketService.isConnected()) {
+      webSocketService.requestNotifications();
+      const loadingTimeout = setTimeout(() => {
+        dispatch(setLoading(false));
+      }, 5000);
+      return () => clearTimeout(loadingTimeout);
+    } else {
+      dispatch(setLoading(false));
+    }
+  }, [isOpen, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

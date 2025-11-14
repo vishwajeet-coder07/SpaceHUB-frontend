@@ -7,9 +7,9 @@ const initialState = {
   error: '',
   activeTab: 'request',
   processingRequest: null,
-  wsConnected: false,
   unreadCount: 0,
   readRequestIds: [], // Track which requests have been read (array of IDs)
+  wsConnected: false,
 };
 
 const inboxSlice = createSlice({
@@ -129,8 +129,8 @@ export const selectInboxActiveTab = (state) => state.inbox.activeTab;
 export const selectInboxLoading = (state) => state.inbox.loading;
 export const selectInboxError = (state) => state.inbox.error;
 export const selectProcessingRequest = (state) => state.inbox.processingRequest;
-export const selectWsConnected = (state) => state.inbox.wsConnected;
 export const selectUnreadCount = (state) => state.inbox.unreadCount;
+export const selectWsConnected = (state) => state.inbox.wsConnected;
 
 export default inboxSlice.reducer;
 

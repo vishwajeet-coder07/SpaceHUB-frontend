@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadFileAndGetUrl } from '../../../../shared/services/API';
 
+const systemVariantStyles = {
+  'chat-join': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'voice-join': 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+};
+
 const ChatRoom = ({
   title = '#general',
   currentUser = {},
@@ -13,6 +18,7 @@ const ChatRoom = ({
   onBack = null,
   sendMessage = null,
   onToggleRightPanel = null,
+  isReadOnly = false,
 }) => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
@@ -293,6 +299,24 @@ const ChatRoom = ({
               const isSelf = !!m.isSelf;
               const showAvatar = idx === 0 || !prev || prev.author !== m.author;
               
+              if (m.type === 'system') {
+                const variantClass = systemVariantStyles[m.systemVariant] || 'bg-gray-200 text-gray-700 border border-gray-300';
+                return (
+                  <React.Fragment key={m.id}>
+                    {showDateChip && (
+                      <div className="flex justify-center mt-2">
+                        <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded-full text-xs font-medium">{formatDateChip(m.createdAt)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-center mt-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${variantClass}`}>
+                        {m.text}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                );
+              }
+
               return (
                 <React.Fragment key={m.id}>
                   {showDateChip && (
@@ -475,7 +499,8 @@ const ChatRoom = ({
           {/* Emoji Button */}
           <button
             onClick={() => setShowEmoji(!showEmoji)}
-            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0"
+            disabled={isReadOnly}
+            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Emoji"
           >
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,7 +513,8 @@ const ChatRoom = ({
           {/* Attachment Button */}
           <button
             onClick={onPickFiles}
-            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0"
+            disabled={isReadOnly}
+            className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Attach file"
           >
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -508,15 +534,16 @@ const ChatRoom = ({
                 handleSend();
               }
             }}
-            placeholder={title.startsWith('#') ? title : `#${title}`}
-            className="flex-1 bg-white text-black placeholder-gray-400 rounded-md px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2.5 outline-none transition-colors text-left text-sm sm:text-base"
+            placeholder={isReadOnly ? 'Only admins can send messages here' : (title.startsWith('#') ? title : `#${title}`)}
+            disabled={isReadOnly}
+            className="flex-1 bg-white text-black placeholder-gray-400 rounded-md px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2.5 outline-none transition-colors text-left text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100"
             ref={messageInputRef}
           />
           
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={(!message.trim() && attachments.filter(att => !att.uploading && att.s3Url).length === 0) || attachments.some(att => att.uploading)}
+            disabled={isReadOnly || (!message.trim() && attachments.filter(att => !att.uploading && att.s3Url).length === 0) || attachments.some(att => att.uploading)}
             className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Send"
           >

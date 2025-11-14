@@ -451,5 +451,4 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
     </div>
   );
 };
-
-export default LandingPage;
+export default LandingPage

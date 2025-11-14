@@ -5,7 +5,7 @@ import { Client } from '@stomp/stompjs';
 const BASE_URL = 'https://codewithketan.me';
 const WS_URL = `${BASE_URL}/ws`;
 
-export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled = false) => {
+export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled = false, communityId = null) => {
   const [isConnected, setIsConnected] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -82,9 +82,20 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
       return;
     }
 
+    // Check if already connected or connecting
     if (stompClientRef.current) {
-      log('WebSocket already connected');
-      return;
+      const client = stompClientRef.current;
+      if (client.connected || client.active) {
+        log('WebSocket already connected');
+        return;
+      }
+      // If client exists but not connected, deactivate it first
+      try {
+        client.deactivate();
+      } catch (e) {
+        log(`Error deactivating existing client: ${e.message}`);
+      }
+      stompClientRef.current = null;
     }
 
     log('Connecting to WebSocket...');
@@ -153,6 +164,22 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
     stompClientRef.current = client;
   }, [janusRoomId, sessionId, handleId, userId, log]);
 
+  const resolveParticipantName = useCallback((identifier) => {
+    if (!identifier) return 'Someone';
+    if (communityId) {
+      try {
+        const usernames = JSON.parse(sessionStorage.getItem(`community_usernames_${communityId}`) || '{}');
+        const normalized = typeof identifier === 'string' ? identifier.toLowerCase() : String(identifier).toLowerCase();
+        const stored = usernames[normalized];
+        if (stored) return stored;
+      } catch {}
+    }
+    if (identifier.includes && identifier.includes('@')) {
+      return identifier.split('@')[0];
+    }
+    return identifier;
+  }, [communityId]);
+
   const handleRoomEvent = useCallback((event) => {
     if (event.type === 'joined') {
       log(`A new user joined: ${event.userId}`);
@@ -163,6 +190,12 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
         }
         return prev;
       });
+      if (event.userId && userId && event.userId !== userId) {
+        const displayName = resolveParticipantName(event.userId);
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: `${displayName} joined the voice room`, type: 'info' }
+        }));
+      }
     } else if (event.type === 'left') {
       log(`User left: ${event.userId}`);
       setParticipants(prev => prev.filter(p => p.userId !== event.userId));
@@ -174,7 +207,7 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
         remoteStreamsRef.current.delete(event.userId);
       }
     }
-  }, [log]);
+  }, [log, resolveParticipantName, userId]);
 
   const handleJanusEvent = useCallback((resp) => {
     try {
@@ -370,20 +403,39 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
     cleanup();
   }, [cleanup]);
 
+  // Track current connection params to prevent unnecessary reconnections
+  const connectionParamsRef = useRef(null);
+
   // Connect when enabled and all required params are available
   useEffect(() => {
+    const currentParams = { janusRoomId, sessionId, handleId, userId };
+    const paramsKey = JSON.stringify(currentParams);
+    const previousParamsKey = connectionParamsRef.current ? JSON.stringify(connectionParamsRef.current) : null;
+
+    // Don't reconnect if already connected with same params
     if (enabled && janusRoomId && sessionId && handleId && userId) {
+      if (paramsKey === previousParamsKey && stompClientRef.current) {
+        const client = stompClientRef.current;
+        if (client.connected || client.active) {
+          log('Already connected with same params, skipping reconnect');
+          return;
+        }
+      }
+      connectionParamsRef.current = currentParams;
       connectWebSocket();
     } else if (!enabled) {
+      connectionParamsRef.current = null;
       cleanup();
     }
 
     return () => {
       if (!enabled) {
+        connectionParamsRef.current = null;
         cleanup();
       }
     };
-  }, [enabled, janusRoomId, sessionId, handleId, userId, connectWebSocket, cleanup]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, janusRoomId, sessionId, handleId, userId]);
 
   return {
     isConnected,

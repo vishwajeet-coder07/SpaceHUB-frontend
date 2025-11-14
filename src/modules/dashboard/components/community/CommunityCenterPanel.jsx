@@ -13,6 +13,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   const storageKey = useMemo(() => (communityId ? `welcomeShown:community:${communityId}:channel:general` : ''), [communityId]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [currentUserRole, setCurrentUserRole] = useState('');
   
   // Helper function to get avatar from session storage
   const getAvatarFromStorage = (email) => {
@@ -37,6 +38,17 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       return null;
     }
   };
+
+  const resolveDisplayName = (identifier, fallback = 'Someone') => {
+    if (!identifier || typeof identifier !== 'string') return fallback;
+    const normalized = identifier.toLowerCase();
+    const stored = getUsernameFromStorage(normalized);
+    if (stored) return stored;
+    if (identifier.includes('@')) {
+      return identifier.split('@')[0];
+    }
+    return identifier || fallback;
+  };
   // Get stored channel selection from sessionStorage to persist across remounts
   const getStoredChannel = () => {
     if (!communityId) return null;
@@ -56,9 +68,11 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
   const [currentMode, setCurrentMode] = useState(storedChannel?.mode || 'chat'); // 'chat' | 'voice'
   const [currentRoomTitle, setCurrentRoomTitle] = useState(storedChannel?.title || '#general');
   const [localMuted, setLocalMuted] = useState(false);
+  const [selectedChannelId, setSelectedChannelId] = useState(storedChannel?.channelId || null);
 
   const [activeChatRoomCode, setActiveChatRoomCode] = useState(storedChannel?.chatRoomCode || null);
   const [voiceRoomData, setVoiceRoomData] = useState(storedChannel?.voiceRoomData || null); // { janusRoomId, sessionId, handleId, userId }
+  const currentWsRoomCodeRef = useRef(null); // Track which room we're connected to (using ref to avoid re-renders)
 
   // Store channel selection in sessionStorage
   const storeChannelSelection = (channelData) => {
@@ -79,6 +93,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       else setActiveChatRoomCode(null);
       
       if (channelId && typeof channelId === 'string') {
+        setSelectedChannelId(channelId);
         const parts = channelId.split(':');
         if (parts.length >= 3) {
           const kind = parts[1] === 'voice' ? 'voice' : 'chat';
@@ -196,6 +211,7 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
         wsRef.current.close();
         wsRef.current = null;
       }
+      currentWsRoomCodeRef.current = null;
       setMessages([]);
       return;
     }
@@ -205,13 +221,31 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
     if (!userEmail || !activeRoomCode) return;
 
     const wsRoomCode = activeChatRoomCode || activeRoomCode;
+    
+    // Don't reconnect if already connected to the same room
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentWsRoomCodeRef.current === wsRoomCode) {
+      return;
+    }
+    
+    // Don't create new connection if already connecting to the same room
+    if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING && currentWsRoomCodeRef.current === wsRoomCode) {
+      return;
+    }
+    
     const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(wsRoomCode)}&email=${encodeURIComponent(userEmail)}`;
     
-    // Clear messages when switching to a new room/channel
-    setMessages([]);
+    // Only clear messages when switching to a different room
+    if (currentWsRoomCodeRef.current !== wsRoomCode) {
+      setMessages([]);
+    }
     
-    if (wsRef.current) {
-      wsRef.current.close();
+    // Close existing connection if switching rooms
+    if (wsRef.current && currentWsRoomCodeRef.current !== wsRoomCode) {
+      try {
+        wsRef.current.close();
+      } catch (e) {
+        console.warn('Error closing existing WebSocket:', e);
+      }
       wsRef.current = null;
     }
     
@@ -222,21 +256,30 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           .finally(() => {
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
+            currentWsRoomCodeRef.current = wsRoomCode;
             setupWebSocket(ws, wsRoomCode);
           });
       } else {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
+        currentWsRoomCodeRef.current = wsRoomCode;
         setupWebSocket(ws, wsRoomCode);
       }
     } catch (e) {
       console.error('Failed to create WebSocket:', e);
+      currentWsRoomCodeRef.current = null;
     }
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+      // Only cleanup if switching to a different room or unmounting
+      if (wsRef.current && currentWsRoomCodeRef.current !== wsRoomCode) {
+        try {
+          wsRef.current.close();
+        } catch (e) {
+          console.warn('Error closing WebSocket in cleanup:', e);
+        }
         wsRef.current = null;
+        currentWsRoomCodeRef.current = null;
       }
     };
   }, [currentRoomCode, roomCode, currentMode, user?.email, activeChatRoomCode]);
@@ -246,6 +289,60 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
 
     ws.onopen = () => {
       console.log('WebSocket connected to room:', roomCodeForLog);
+    };
+
+    const normalizedUserEmail = userEmail ? userEmail.toLowerCase() : '';
+
+    const processJoinAnnouncement = (rawText, metadata = {}) => {
+      if (!rawText) return false;
+      const trimmed = rawText.trim();
+      if (!/(joined the chat|joined the voice room)$/i.test(trimmed)) {
+        return false;
+      }
+
+      const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+      const emailMatch = trimmed.match(emailRegex);
+      const joinEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
+      const isSelf = joinEmail && normalizedUserEmail && joinEmail === normalizedUserEmail;
+      const identifier = joinEmail || trimmed.replace(/joined the (chat|voice room)/i, '').trim();
+      const storedName = joinEmail ? getUsernameFromStorage(joinEmail) : null;
+      const displayName = storedName || metadata.senderName || metadata.username || resolveDisplayName(identifier, 'Someone');
+      const isVoiceAnnouncement = /joined the voice room$/i.test(trimmed);
+      const suffix = isVoiceAnnouncement ? 'joined the voice room' : 'joined the chat';
+      const messageText = `${displayName} ${suffix}`;
+      const createdAt = metadata.timestamp || metadata.createdAt || new Date().toISOString();
+      const messageId = metadata.id || `system-${isVoiceAnnouncement ? 'voice' : 'chat'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      setMessages((prev) => {
+        const createdTs = new Date(createdAt).getTime();
+        if (prev.some((msg) => {
+          if (msg.type !== 'system' || msg.text !== messageText) return false;
+          const msgTs = new Date(msg.createdAt).getTime();
+          return Math.abs(msgTs - createdTs) < 2000;
+        })) {
+          return prev;
+        }
+        const updated = [
+          ...prev,
+          {
+            id: messageId,
+            type: 'system',
+            systemVariant: isVoiceAnnouncement ? 'voice-join' : 'chat-join',
+            text: messageText,
+            createdAt,
+          },
+        ];
+        updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return updated;
+      });
+
+      if (!isSelf) {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: messageText, type: 'info' }
+        }));
+      }
+
+      return true;
     };
 
     ws.onmessage = (event) => {
@@ -338,6 +435,9 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
         const isTyped = data?.type === 'message' || data?.type === 'chat';
         if (isLegacy || isTyped) {
           const text = isLegacy ? data.message : (data.text || data.content || '');
+          if (typeof text === 'string' && processJoinAnnouncement(text, data)) {
+            return;
+          }
           const senderEmail = data.senderEmail || data.email || '';
           
           const storedUsername = getUsernameFromStorage(senderEmail);
@@ -428,17 +528,24 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       if (event.code !== 1000 && userEmail && wsRoomCode && currentMode === 'chat') {
         console.log('Attempting to reconnect WebSocket for community chat...');
         setTimeout(() => {
-          if (userEmail && wsRoomCode && currentMode === 'chat' && (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
+          // Only reconnect if we're still supposed to be connected to this room
+          if (userEmail && wsRoomCode && currentMode === 'chat' && currentWsRoomCodeRef.current === wsRoomCode && (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
             try {
               const wsUrl = `wss://codewithketan.me/chat?roomCode=${encodeURIComponent(wsRoomCode)}&email=${encodeURIComponent(userEmail)}`;
               const newWs = new WebSocket(wsUrl);
               wsRef.current = newWs;
+              currentWsRoomCodeRef.current = wsRoomCode;
               setupWebSocket(newWs, wsRoomCode);
             } catch (e) {
               console.error('Failed to reconnect WebSocket:', e);
             }
           }
         }, 10000);
+      } else {
+        // If it was a normal close, clear the ref
+        if (event.code === 1000) {
+          currentWsRoomCodeRef.current = null;
+        }
       }
     };
   };
@@ -449,16 +556,17 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
       if (isLocalGroup) return;
 
       try {
-        const seen = localStorage.getItem(storageKey);
-        if (seen === '1') return;
-
         const data = await getCommunityMembers(communityId);
 
         const members = data?.data?.members || data?.members || [];
         const me = members.find((m) => (m.email || m.username) === user.email);
-        const myRole = me?.role || '';
+        const myRole = (me?.role || '').toUpperCase();
+        setCurrentUserRole(myRole);
 
-        if ((myRole || '').toUpperCase() === 'ADMIN') {
+        const seen = localStorage.getItem(storageKey);
+        if (seen === '1') return;
+
+        if (myRole === 'ADMIN') {
           setShowWelcomeModal(true);
         }
       } catch (e) {
@@ -508,7 +616,24 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
           isGroupChat={true}
           onToggleRightPanel={onToggleRightPanel}
           onBack={onBack}
+          isReadOnly={(() => {
+            // Check if we're in the general room of Announcement group
+            const isGeneralAnnouncementRoom = selectedChannelId === 'announcement:general' || 
+                                             (currentRoomTitle === '# general' && selectedChannelId?.startsWith('announcement:'));
+            return isGeneralAnnouncementRoom && currentUserRole !== 'ADMIN';
+          })()}
           onSend={async (msg) => {
+            // Check if we're in the general room of Announcement group
+            const isGeneralAnnouncementRoom = selectedChannelId === 'announcement:general' || 
+                                             (currentRoomTitle === '# general' && selectedChannelId?.startsWith('announcement:'));
+            
+            if (isGeneralAnnouncementRoom && currentUserRole !== 'ADMIN') {
+              window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: 'Only admins can send messages in the general announcement room', type: 'error' }
+              }));
+              return;
+            }
+            
             try {
               if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
@@ -628,7 +753,8 @@ function VoiceRoomWithWebRTC({ title, voiceRoomData, communityId, onBack = null 
     voiceRoomData?.sessionId,
     voiceRoomData?.handleId,
     voiceRoomData?.userId,
-    enabled
+    enabled,
+    communityId
   );
 
   React.useEffect(() => {

@@ -242,8 +242,6 @@ const Dashboard = () => {
       }
     }
   }, [chatMatch, discoverMatch, baseDashboardMatch, selectedView, selectedFriend, dispatch, ensureFriend]);
-
-  // Close right sidebar by default on mobile screens
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (window.innerWidth < 1024) {
@@ -265,7 +263,8 @@ const Dashboard = () => {
     };
   }, [dispatch]);
 
-  // Initialize WebSocket connection for notifications
+  const previousUserEmailRef = useRef(null);
+
   useEffect(() => {
     const sessionUserRaw = sessionStorage.getItem('userData');
     let sessionUser = {};
@@ -276,20 +275,36 @@ const Dashboard = () => {
     }
 
     const effectiveEmail = user?.email || sessionUser?.email;
-    
-    if (effectiveEmail) {
-      // Connect to WebSocket
-      webSocketService.connect(effectiveEmail);
-      
-      // Cleanup on unmount
-      return () => {
+
+    if (!effectiveEmail) {
+      // Disconnect if no email
+      if (previousUserEmailRef.current) {
         webSocketService.disconnect();
-      };
+        previousUserEmailRef.current = null;
+      }
+      return;
     }
-  }, [user]);
+
+    // Only connect if email changed or not connected
+    if (previousUserEmailRef.current !== effectiveEmail) {
+      // Disconnect previous connection if switching users
+      if (previousUserEmailRef.current) {
+        webSocketService.disconnect();
+      }
+      previousUserEmailRef.current = effectiveEmail;
+      webSocketService.connect(effectiveEmail);
+    } else {
+      // Same email, just ensure connected (won't reconnect if already connected)
+      webSocketService.connect(effectiveEmail);
+    }
+
+    return () => {
+      // Only disconnect on unmount, not on user change (handled above)
+      // This prevents disconnecting when user object reference changes but email is same
+    };
+  }, [user?.email]); // Only depend on email, not entire user object
 
   const handleLogout = () => {
-    // Disconnect WebSocket before logout
     webSocketService.disconnect();
     logout();
     navigate('/');

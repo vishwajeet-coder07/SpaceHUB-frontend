@@ -3,67 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
-const AnnouncementSection = ({ items, open, onToggle, selectedChannel, onSelectChannel }) => {
-  const getChannelId = (channelName) => `announcement:${channelName}`;
-  
-  return (
-    <div className="mb-3">
-      <div className="flex items-center text-base text-gray-800">
-        <button onClick={onToggle} className="flex items-center gap-2">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`text-gray-600 transition-transform ${open ? 'rotate-90' : ''}`}
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-          <span className="text-gray-800">Announcement</span>
-        </button>
-      </div>
-      {open && (
-        <div className="mt-2 pl-5 space-y-1">
-          {items && items.length > 0 ? (
-            items.map((c) => {
-              const channelId = getChannelId(c);
-              const isSelected = selectedChannel === channelId;
-              return (
-                <button
-                  key={c}
-                  onClick={() => onSelectChannel?.(channelId)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-semibold ${
-                    isSelected
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-800 hover:bg-gray-100'
-                  }`}
-                >
-                  # {c}
-                </button>
-              );
-            })
-          ) : (
-            <button
-              onClick={() => onSelectChannel?.(getChannelId('general'))}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-semibold ${
-                selectedChannel === getChannelId('general')
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-800 hover:bg-gray-100'
-              }`}>
-              #general
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Chat Room or Voice Room Section
 const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false }) => {
-  const filteredChannels = (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
+  // For Announcement group, include 'general' channel; for others, filter it out
+  const isAnnouncement = (title || groupName || '').toLowerCase() === 'announcement';
+  const filteredChannels = isAnnouncement 
+    ? (channels || []) // Keep all channels including 'general' for Announcement
+    : (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
   const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
@@ -677,8 +623,13 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     };
   }, [open, roomId]);
   
-  // Filter out 'general' from both room types
-  const filteredChatRooms = (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+  // Check if this is the Announcement group
+  const isAnnouncement = (groupName || '').toLowerCase() === 'announcement';
+  
+  // For Announcement group, include 'general' in chatRooms; for others, filter it out
+  const filteredChatRooms = isAnnouncement 
+    ? (chatRooms || []) // Keep all including 'general' for Announcement
+    : (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   const filteredVoiceRooms = (voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   
   // Merge fetched chatrooms with existing chat rooms, avoiding duplicates
@@ -703,6 +654,9 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     return merged;
   }, [filteredVoiceRooms, fetchedVoiceRooms]);
 
+  // For Announcement, get the general chatroom
+  const generalChatroom = isAnnouncement ? allChatRooms.find(ch => ch.toLowerCase() === 'general') : null;
+  
   const hasNoRooms = allChatRooms.length === 0 && allVoiceRooms.length === 0;
   
   return (
@@ -725,7 +679,47 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       </div>
       {open && (
         <div className="mt-2">
-          {loadingChatrooms || loadingVoiceRooms ? (
+          {isAnnouncement ? (
+            // For Announcement group, show general chatroom directly
+            loadingChatrooms ? (
+              <div className="pl-5">
+                <div className="h-8 w-32 bg-gray-200 rounded-md animate-pulse"></div>
+              </div>
+            ) : generalChatroom ? (
+              <div className="pl-5 space-y-1">
+                <button
+                  onClick={() => {
+                    const channelId = `${groupName}:chat:${generalChatroom}`;
+                    onSelectChannel?.(channelId, roomCode, roomId);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-semibold ${
+                    selectedChannel === `${groupName}:chat:${generalChatroom}`
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-800 hover:bg-gray-100'
+                  }`}
+                >
+                  # {generalChatroom}
+                </button>
+              </div>
+            ) : (
+              // Fallback: show general even if not found in fetched list (it should be in chatRooms prop)
+              <div className="pl-5 space-y-1">
+                <button
+                  onClick={() => {
+                    const channelId = `${groupName}:chat:general`;
+                    onSelectChannel?.(channelId, roomCode, roomId);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-semibold ${
+                    selectedChannel === `${groupName}:chat:general`
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-800 hover:bg-gray-100'
+                  }`}
+                >
+                  # general
+                </button>
+              </div>
+            )
+          ) : loadingChatrooms || loadingVoiceRooms ? (
             <div className="ml-4 space-y-2">
               {/* Shimmer for Chat Room section */}
               <div className="space-y-2">
@@ -814,16 +808,10 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const title = community?.name || 'Community';
   const communityId = community?.id || community?.communityId || community?.community_id;
 
-  const initial = useMemo(() => ({
-    announcements: community?.announcements || [],
-    groups: [], 
-  }), [community]);
-
-  const [announcements] = useState(initial.announcements);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('announcement:general');
+  const [selectedChannel, setSelectedChannel] = useState(null);
 
   const handleChannelSelect = async (channelId, roomCode, roomId) => {
     setSelectedChannel(channelId);
@@ -840,8 +828,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       const roomType = parts[1];
       
       if (roomType === 'chat') {
-      // Only fetch chatRoomCode for non-general channels
-      if (channelName && channelName !== 'general' && roomCode) {
+      // Fetch chatRoomCode for all channels (including general)
+      if (channelName && roomCode) {
         try {
           // First, check session storage for existing chatroom
           const storageKey = `chatroom_${roomCode}_${channelName}`;
@@ -973,7 +961,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     }
   };
 
-  const [openAnn, setOpenAnn] = useState(true);
   const [openGroups, setOpenGroups] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -1113,7 +1100,12 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         }
 
         const transformedGroups = roomsList.map((room) => {
-          const chatRooms = (room.chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
+          // For Announcement group, include 'general' in chatRooms
+          // For other groups, filter out 'general' as it's handled separately
+          const isAnnouncement = (room.name || room.roomName || '').toLowerCase() === 'announcement';
+          const chatRooms = isAnnouncement 
+            ? (room.chatRooms || []).concat(['general']).filter((ch, idx, arr) => arr.indexOf(ch) === idx) // Include general and remove duplicates
+            : (room.chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
           const voiceRooms = (room.voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
           return {
             id: room.id,
@@ -1159,6 +1151,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   }, [communityId, fetchGroups]);
 
   const handleAddChatRoom = (groupName) => {
+    // Prevent room creation in Announcement group
+    if (groupName === 'Announcement') {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Cannot create rooms in the Announcement group', type: 'error' }
+      }));
+      return;
+    }
+    
     // Only allow workspace owners and admins to create chatrooms
     const isAuthorized = currentUserRole === 'ADMIN' || 
                         currentUserRole === 'OWNER' || 
@@ -1174,6 +1174,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   };
 
   const handleAddVoiceRoom = (groupName) => {
+    // Prevent room creation in Announcement group
+    if (groupName === 'Announcement') {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Cannot create rooms in the Announcement group', type: 'error' }
+      }));
+      return;
+    }
+    
     // Only allow workspace owners and admins to create voice rooms
     const isAuthorized = currentUserRole === 'ADMIN' || 
                         currentUserRole === 'OWNER' || 
@@ -1194,6 +1202,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const handleChannelCreated = async (channelName) => {
     const { groupName, roomType, roomId } = channelModalContext;
     if (!groupName || !channelName) return;
+
+    // Prevent room creation in Announcement group
+    if (groupName === 'Announcement') {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Cannot create rooms in the Announcement group', type: 'error' }
+      }));
+      return;
+    }
 
     // Only allow workspace owners and admins to create rooms
     const isAuthorized = currentUserRole === 'ADMIN' || 
@@ -1547,17 +1563,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       <div className="flex-1 overflow-y-auto px-4 py-3 relative pb-16">
         {loading && (
           <div className="space-y-4">
-            {/* Announcement skeleton */}
-            {!isLocalGroup && (
-              <div className="mb-3">
-                <div className="h-4 w-28 bg-gray-300 rounded animate-pulse mb-2" />
-                <div className="space-y-2 pl-5">
-                  <div className="h-8 w-40 bg-gray-200 rounded animate-pulse" />
-                  <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-                </div>
-              </div>
-            )}
-
             {/* Groups skeleton */}
             {Array.from({ length: 3 }).map((_, idx) => (
               <div key={idx} className="mb-3">
@@ -1572,17 +1577,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         )}
         {error && (
           <div className="text-red-600 text-sm mb-4">{error}</div>
-        )}
-        
-        {/* Announcement Section hidden for Local Groups */}
-        {!isLocalGroup && (
-          <AnnouncementSection
-            items={announcements}
-            open={openAnn}
-            onToggle={() => setOpenAnn((v) => !v)}
-            selectedChannel={selectedChannel}
-            onSelectChannel={(channelId) => handleChannelSelect(channelId, null)}
-          />
         )}
 
         {/* Groups with Chat room and Voice room */}
@@ -1601,8 +1595,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               groupName={group.name}
               open={openGroups[group.name] || false}
               onToggle={() => toggleGroup(group.name)}
-              chatRooms={group.chatRooms || ['general']}
-              voiceRooms={group.voiceRooms || ['general']}
+              chatRooms={group.chatRooms || []}
+              voiceRooms={group.voiceRooms || []}
               onAddChatRoom={handleAddChatRoom}
               onAddVoiceRoom={handleAddVoiceRoom}
               selectedChannel={selectedChannel}
