@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom, deleteChatroom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false, onDeleteChatroom = null, currentUserRole = '' }) => {
   // For Announcement group, include 'general' channel; for others, filter it out
   const isAnnouncement = (title || groupName || '').toLowerCase() === 'announcement';
   const filteredChannels = isAnnouncement 
@@ -12,9 +12,11 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
     : (channels || []).filter(ch => ch !== 'general' && ch !== 'General');
   const roomType = isVoice ? 'voice' : 'chat';
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
+  const [fetchedChatroomsData, setFetchedChatroomsData] = useState([]); // Store full chatroom objects
   const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
   const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
+  const [deletingChatroom, setDeletingChatroom] = useState({});
   
   const getChannelId = (channelName) => `${groupName}:${roomType}:${channelName}`;
   
@@ -26,11 +28,14 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
         try {
           const response = await getChatroomsSummary(roomCode);
           const chatroomsData = response?.data || [];
+          // Store full chatroom objects for delete functionality
+          setFetchedChatroomsData(chatroomsData);
           const chatroomNames = chatroomsData.map((cr) => cr.name || cr.chatRoomCode).filter(Boolean);
           setFetchedChatrooms(chatroomNames);
         } catch (error) {
           console.error('Failed to fetch chatrooms:', error);
           setFetchedChatrooms([]);
+          setFetchedChatroomsData([]);
         } finally {
           setLoadingChatrooms(false);
         }
@@ -56,9 +61,73 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       fetchVoiceRooms();
     } else if (!open) {
       setFetchedChatrooms([]);
+      setFetchedChatroomsData([]);
       setFetchedVoiceRooms([]);
     }
   }, [open, isVoice, roomCode, roomId, isLocalGroup]);
+
+  const handleDeleteChatroom = async (chatroomName, e) => {
+    e.stopPropagation(); 
+    const chatroom = fetchedChatroomsData.find(cr => (cr.name || cr.chatRoomCode) === chatroomName);
+    if (!chatroom || !roomCode) return;
+    
+    const chatroomId = chatroom.id || chatroom.chatRoomId || chatroom.chatRoomCode;
+    if (!chatroomId) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Chatroom ID not found', type: 'error' }
+      }));
+      return;
+    }
+
+    // Confirm deletion
+    if (!window.confirm(`Are you sure you want to delete "${chatroomName}"?`)) {
+      return;
+    }
+
+    setDeletingChatroom((prev) => ({ ...prev, [chatroomName]: true }));
+
+    try {
+      await deleteChatroom(chatroomId, roomCode);
+      
+      // Remove from local state
+      setFetchedChatrooms((prev) => prev.filter(name => name !== chatroomName));
+      setFetchedChatroomsData((prev) => prev.filter(cr => (cr.name || cr.chatRoomCode) !== chatroomName));
+      
+      // Call parent callback if provided
+      if (onDeleteChatroom) {
+        onDeleteChatroom(chatroomName, chatroomId);
+      }
+      
+      // Remove from session storage
+      try {
+        const storageKey = `chatroom_${roomCode}_${chatroomName}`;
+        sessionStorage.removeItem(storageKey);
+        
+        const existingChatrooms = JSON.parse(sessionStorage.getItem('chatrooms') || '[]');
+        const updated = existingChatrooms.filter(
+          (cr) => !(cr.name === chatroomName && cr.roomCode === roomCode)
+        );
+        sessionStorage.setItem('chatrooms', JSON.stringify(updated));
+      } catch (storageError) {
+        console.warn('Failed to update session storage:', storageError);
+      }
+      
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Chatroom deleted successfully', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('Failed to delete chatroom:', error);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: error.message || 'Failed to delete chatroom', type: 'error' }
+      }));
+    } finally {
+      setDeletingChatroom((prev) => {
+        const updated = { ...prev };
+        delete updated[chatroomName];
+        return updated;
+      });
+    }
+  };
   
   const allChannels = useMemo(() => {
     const merged = [...filteredChannels];
@@ -119,28 +188,62 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
             const channelId = getChannelId(channel);
             const isSelected = selectedChannel === channelId;
             const isFetched = isVoice ? fetchedVoiceRooms.includes(channel) : fetchedChatrooms.includes(channel);
+            const isDeleting = deletingChatroom[channel];
+            // Only allow deletion of fetched chatrooms (not from channels prop), and not for "general" in Announcement group
+            // Also restrict to workspace owners and admins only
+            const isAuthorized = currentUserRole === 'ADMIN' || 
+                                currentUserRole === 'OWNER' || 
+                                currentUserRole === 'WORKSPACE_OWNER';
+            const canDelete = !isVoice && isFetched && canCreate && onDeleteChatroom && isAuthorized &&
+                             !(isAnnouncement && channel.toLowerCase() === 'general');
+            
             return (
-              <button
+              <div
                 key={channel}
-                onClick={() => handleChannelClick(channel)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
+                className={`flex items-center gap-2 group rounded-md ${
                   isSelected
-                    ? 'bg-gray-700 text-white font-semibold'
-                    : 'text-gray-800 hover:bg-gray-100'
+                    ? 'bg-gray-700 text-white'
+                    : 'hover:bg-gray-100'
                 }`}
               >
-                {isVoice ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={isSelected ? 'text-white' : 'text-gray-700'}>
-                    <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5c-.55 0-1-.45-1-1V9c0-3.87 3.13-7 7-7s7 3.13 7 7v2c0 .55-.45 1-1 1h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
-                  </svg>
-                ) : (
-                  <span className={isSelected ? 'text-white' : 'text-gray-700'}>#</span>
+                <button
+                  onClick={() => handleChannelClick(channel)}
+                  className={`flex-1 text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
+                    isSelected
+                      ? 'text-white font-semibold'
+                      : 'text-gray-800'
+                  }`}
+                >
+                  {isVoice ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={isSelected ? 'text-white' : 'text-gray-700'}>
+                      <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5c-.55 0-1-.45-1-1V9c0-3.87 3.13-7 7-7s7 3.13 7 7v2c0 .55-.45 1-1 1h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                    </svg>
+                  ) : (
+                    <span className={isSelected ? 'text-white' : 'text-gray-700'}>#</span>
+                  )}
+                  <span>{channel}</span>
+                </button>
+                {canDelete && (
+                  <button
+                    onClick={(e) => handleDeleteChatroom(channel, e)}
+                    disabled={isDeleting}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 ${
+                      isSelected ? 'text-white hover:text-red-600' : 'text-gray-500 hover:text-red-600'
+                    } disabled:opacity-50`}
+                    title="Delete chatroom"
+                  >
+                    {isDeleting ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    )}
+                  </button>
                 )}
-                <span>{channel}</span>
-                {isFetched && (
-                  <span className="ml-auto text-xs text-gray-400" title="Fetched from API">•</span>
-                )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -535,7 +638,7 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false, canCreate = false }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false, canCreate = false, currentUserRole = '' }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
@@ -632,6 +735,9 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     : (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   const filteredVoiceRooms = (voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   
+  // Store full chatroom data for delete functionality
+  const [fetchedChatroomsData, setFetchedChatroomsData] = useState([]);
+
   // Merge fetched chatrooms with existing chat rooms, avoiding duplicates
   const allChatRooms = useMemo(() => {
     const merged = [...filteredChatRooms];
@@ -642,6 +748,17 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     });
     return merged;
   }, [filteredChatRooms, fetchedChatrooms]);
+
+  // Handle chatroom deletion
+  const handleDeleteChatroom = useCallback((chatroomName, chatroomId) => {
+    // Remove from fetched chatrooms
+    setFetchedChatrooms((prev) => prev.filter(name => name !== chatroomName));
+    setFetchedChatroomsData((prev) => prev.filter(cr => {
+      const crName = cr.name || cr.chatRoomCode;
+      const crId = cr.id || cr.chatRoomId || cr.chatRoomCode;
+      return crName !== chatroomName && crId !== chatroomId;
+    }));
+  }, []);
 
   // Merge fetched voice rooms with existing voice rooms, avoiding duplicates
   const allVoiceRooms = useMemo(() => {
@@ -778,6 +895,8 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 roomCode={roomCode}
                 isLocalGroup={isLocalGroup}
                 canCreate={canCreate}
+                onDeleteChatroom={handleDeleteChatroom}
+                currentUserRole={currentUserRole}
               />
               <RoomSection
                 title="Voice room"
@@ -1605,6 +1724,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               roomId={group.chatRoomId || group.id}
               isLocalGroup={isLocalGroup}
               canCreate={canCreate}
+              currentUserRole={currentUserRole}
             />
           );
         })}

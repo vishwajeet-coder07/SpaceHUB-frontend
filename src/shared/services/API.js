@@ -896,6 +896,14 @@ export async function getChatroomsSummary(roomCode) {
   return handleJson(response);
 }
 
+// Delete chatroom
+export async function deleteChatroom(chatroomId, roomCode) {
+  const response = await authenticatedFetch(`${BASE_URL}new-chatroom/${chatroomId}/delete?RoomCode=${encodeURIComponent(roomCode)}`, {
+    method: 'DELETE'
+  });
+  return handleJson(response);
+}
+
 // Get voice rooms list for a room
 export async function getVoiceRoomsList(roomId) {
   const response = await authenticatedFetch(`${BASE_URL}voice-room/list/${roomId}`, {

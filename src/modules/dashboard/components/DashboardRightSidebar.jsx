@@ -188,6 +188,15 @@ const DashboardRightSidebar = ({ onClose }) => {
                 }
                 const email = user.email || '';
                 const avatarUrl = user.avatarUrl || user.avatar || '/avatars/avatar-1.png';
+                
+                // Check friendshipStatus from API response
+                // If friendshipStatus is null/undefined, show "Add Friend" button
+                // Otherwise, show "Requested" button
+                const friendshipStatus = user.friendshipStatus;
+                const isNull = friendshipStatus === null || friendshipStatus === undefined;
+                const isRequested = !isNull || requested[user?.userId || user?.id];
+                const friendId = user?.userId || user?.id;
+                
                 return (
                   <div key={user.userId || user.id || email || idx} className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -218,13 +227,13 @@ const DashboardRightSidebar = ({ onClose }) => {
                     </div>
                     <button
                       onClick={() => handleAddFriend(user)}
-                      disabled={addingFriend[user?.userId || user?.id] || requested[user?.userId || user?.id]}
-                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${requested[user?.userId || user?.id] ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                      disabled={addingFriend[friendId] || isRequested}
+                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${isRequested ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                     >
                       <img src="/icons/add_frnd.svg" alt="Add friend" className="w-4 h-4" />
-                      {addingFriend[user?.userId || user?.id]
+                      {addingFriend[friendId]
                         ? 'Sending...'
-                        : requested[user?.userId || user?.id]
+                        : isRequested
                           ? 'Requested'
                           : 'Add Friend'}
                     </button>

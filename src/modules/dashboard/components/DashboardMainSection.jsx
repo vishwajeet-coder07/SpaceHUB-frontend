@@ -477,7 +477,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
   // Helper function to set up WebSocket handlers
   const setupWebSocketHandlers = useCallback((ws, friendName, friendAvatar, wsUrl, currentFriendEmail, currentUserEmail, onOpenCallback) => {
       ws.onopen = (event) => {
-        console.log('WebSocket connected for direct chat', { currentFriendEmail, currentUserEmail });
+        // console.log('WebSocket connected for direct chat', { currentFriendEmail, currentUserEmail });
         setWsConnected(true);
         setWsStatus('connected');
         // Call additional callback if provided (e.g., to clear timeout)
@@ -488,9 +488,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
       ws.onmessage = (event) => {
         try {
-          console.log('WebSocket message received:', event.data);
+          // console.log('WebSocket message received:', event.data);
           const data = JSON.parse(event.data);
-          console.log('Parsed WebSocket data:', data);
+          // console.log('Parsed WebSocket data:', data);
         
           const mapMessage = (msg) => {
             // Handle FILE type messages
@@ -595,13 +595,12 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             (sender === currentUserEmail && receiver === currentFriendEmail) ||
             (sender === currentFriendEmail && receiver === currentUserEmail);
 
-          console.log('Message check:', { sender, receiver, currentUserEmail, currentFriendEmail, isForCurrentChat });
+          // console.log('Message check:', { sender, receiver, currentUserEmail, currentFriendEmail, isForCurrentChat });
 
           if (isForCurrentChat || !sender || !receiver) {
             const receivedMsg = mapMessage(data);
-            console.log('Adding message to state:', receivedMsg);
+            // console.log('Adding message to state:', receivedMsg);
             setMessages((prev) => {
-              // Check if message already exists to avoid duplicates
               const existingIndex = prev.findIndex(m => {
                 if (m.id === receivedMsg.id) return true;
                 if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
@@ -625,7 +624,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             
               const next = [...prev, receivedMsg];
               const sorted = sortMessagesByTime(next);
-              console.log('Updated messages array length:', sorted.length);
+              // console.log('Updated messages array length:', sorted.length);
               return sorted;
             });
           } else {
@@ -720,7 +719,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     }
 
     const wsUrl = `wss://codewithketan.me/ws/direct-chat?senderEmail=${encodeURIComponent(userEmail)}&receiverEmail=${encodeURIComponent(friendEmail)}`;
-    console.log('Creating new WebSocket connection:', wsUrl);
+    // console.log('Creating new WebSocket connection:', wsUrl);
     
     let connectionTimeout = null;
     
@@ -890,7 +889,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
     const friendName = formatFriendName(selectedFriend);
     const friendAvatar = selectedFriend.avatar || selectedFriend.avatarUrl || selectedFriend.profileImage || '/avatars/avatar-1.png';
 
-    console.log('Rendering ChatRoom with messages:', messages.length, messages);
+    // console.log('Rendering ChatRoom with messages:', messages.length, messages);
 
     return (
       <ChatRoom
@@ -997,7 +996,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                 });
               }
               
-              // Send text message if there's text
               if (text && text.trim()) {
                 try {
                   const payload = { 
@@ -1005,7 +1003,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                     senderEmail: userEmail,
                     receiverEmail: friendEmail
                   };
-                  console.log('Sending message via WebSocket (from ChatRoom):', payload);
+                  // console.log('Sending message via WebSocket (from ChatRoom):', payload);
                   
                   // Double-check connection is still open before sending
                   if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -1026,8 +1024,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   isSelf: true,
                   images: []
                 };
-                
-                console.log('Adding optimistic message (from ChatRoom):', optimisticMessage);
+
                 setMessages((prev) => {
                   // Check if message already exists to avoid duplicates
                   const exists = prev.some(m => {
@@ -1045,7 +1042,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   }
                   const next = [...prev, optimisticMessage];
                   const sorted = sortMessagesByTime(next);
-                  console.log('Updated messages array length (from ChatRoom):', sorted.length);
+                  // console.log('Updated messages array length (from ChatRoom):', sorted.length);
                   return sorted;
                 });
                 } catch (textError) {
