@@ -754,6 +754,7 @@ const CommunitySettingsPage = () => {
     }
     setProfileImageFile(null);
     setProfileImagePreview(null);
+    setImageError(true); // This will hide the existing community image
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -826,7 +827,8 @@ const CommunitySettingsPage = () => {
           <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
           </button>
         </div>
-         <div className="flex-1 text-center">
+         <div className="flex-1 text-center flex items-center justify-center gap-2">
+          
            <h1 className="text-lg font-semibold text-gray-800">Settings</h1>
          </div>
         <div className="flex items-center gap-3">
@@ -878,10 +880,10 @@ const CommunitySettingsPage = () => {
                    onClick={() => setShowLeaveModal(true)}
                    className="w-full text-left px-4 py-4 rounded-md text-red-600 hover:bg-red-100 transition-colors text-base font-medium flex items-center gap-3"
                  >
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                   </svg>
-                   Log out
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                  Leave Community
                  </button>
                </div>
              </div>
@@ -892,14 +894,19 @@ const CommunitySettingsPage = () => {
                {activeSection === 'profile' && (
                  <div className="flex-1 p-3 overflow-hidden">
                    <div className="bg-white rounded-xl shadow-md p-4 h-full flex flex-col">
-                   <h2 className="text-lg font-bold text-gray-800 mb-3">Community Profile</h2>
+                   {/* Active Section Tab */}
+                   <div className="mb-4">
+                     <div className="bg-[#282828] text-white px-4 py-2 rounded-md inline-block">
+                       <span className="text-sm font-medium">Community Profile</span>
+                     </div>
+                   </div>
                    
                    <div className="flex-1 overflow-y-auto">
                    {/* Profile Section */}
-                   <div className="mb-3">
-                     <h3 className="text-sm font-semibold text-gray-800 mb-2">Profile</h3>
-                     <div className="flex items-center gap-3 mb-2">
-                       <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                   <div className="mb-4">
+                     <h3 className="text-sm font-semibold text-gray-800 mb-3">Profile</h3>
+                     <div className="mb-2">
+                       <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                          {profileImagePreview ? (
                            <img
                              src={profileImagePreview}
@@ -920,29 +927,19 @@ const CommunitySettingsPage = () => {
                                {title.charAt(0).toUpperCase()}
                              </div>
                            </div>
-                         )}
-                         <button
-                           onClick={profileImagePreview ? handleRemoveProfileImage : handleImageUpload}
-                           className="absolute -right-1 -top-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors cursor-pointer z-10 shadow-lg"
-                           type="button"
-                         >
-                           {profileImagePreview ? (
-                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                             </svg>
-                           ) : (
-                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                             </svg>
-                           )}
-                         </button>
+                        )}
+                        {(profileImagePreview || (community?.imageUrl && !imageError)) && (
+                          <button
+                            onClick={handleImageUpload}
+                            className="absolute right-2 bottom-2 w-6 h-6 rounded-full bg-white hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors cursor-pointer z-10 shadow-md"
+                            type="button"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                        )}
                        </div>
-                       <button
-                         onClick={handleImageUpload}
-                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors text-xs"
-                       >
-                         {profileImageFile ? 'Change' : 'Upload'}
-                       </button>
                      </div>
                      <input
                        ref={fileInputRef}
@@ -953,8 +950,8 @@ const CommunitySettingsPage = () => {
                      />
                    </div>
 
-                   {/* Community Name Section */}
-                   <div className="mb-3">
+                   {/* Community Name Section - Hidden in mobile as per design */}
+                   <div className="mb-3 hidden">
                      <label className="block text-gray-800 text-xs font-medium mb-1">Community name</label>
                      <div className="relative">
                        <input
@@ -1062,7 +1059,7 @@ const CommunitySettingsPage = () => {
                                        handleGroupBlur(index);
                                      }
                                    }}
-                                   className="w-full bg-gray-50 border border-gray-300 text-gray-800 px-3 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                   className="w-full bg-gray-200 border border-gray-300 text-gray-800 px-3 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                    placeholder="Group name"
                                    autoFocus={editingGroupId === index}
                                    maxLength={30}
@@ -1112,7 +1109,7 @@ const CommunitySettingsPage = () => {
                    {communityOwner && (
                      <div className="mb-3">
                        <h3 className="text-sm font-semibold text-gray-800 mb-2">Community admin</h3>
-                       <div className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2">
+                       <div className="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2">
                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                            {communityOwner.avatarPreviewUrl ? (
                              <img 
@@ -1155,7 +1152,7 @@ const CommunitySettingsPage = () => {
                          placeholder="Search"
                          value={searchQuery}
                          onChange={(e) => setSearchQuery(e.target.value)}
-                         className="w-full bg-gray-50 border border-gray-300 text-gray-800 px-8 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                         className="w-full bg-white border border-gray-300 text-gray-800 px-8 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                        />
                      </div>
                    </div>
@@ -1191,7 +1188,7 @@ const CommunitySettingsPage = () => {
                                return (
                                  <div 
                                    key={memberId}
-                                   className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2"
+                                   className="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2"
                                  >
                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                      {member.avatarPreviewUrl ? (
@@ -1362,9 +1359,9 @@ const CommunitySettingsPage = () => {
          </div>
 
          {/* Desktop Layout */}
-         <div className="hidden md:block bg-gray-200 rounded-2xl w-full max-w-6xl h-full flex flex-col shadow-lg">
+         <div className="hidden md:block bg-gray-200 rounded-2xl w-full max-w-6xl flex flex-col shadow-lg" style={{ height: 'calc(100vh - 5rem - 3rem)', minHeight: '600px' }}>
            {/* Settings Container */}
-           <div className="flex-1 flex bg-[#282828] rounded-2xl overflow-hidden">
+           <div className="flex-1 flex bg-[#282828] rounded-2xl overflow-hidden" style={{ height: '100%' }}>
             {/* Left Sidebar */}
             <div className="w-64 bg-[#282828] border-r border-gray-700 flex flex-col">
               {/* Back Button */}
@@ -1440,9 +1437,9 @@ const CommunitySettingsPage = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className={`flex-1 bg-[#282828] ${activeSection === 'profile' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className="flex-1 bg-[#282828] overflow-hidden" style={{ height: '100%', minHeight: '600px' }}>
               {activeSection === 'profile' && (
-                <div className="p-6 h-full flex flex-col">
+                <div className="p-6 h-full flex flex-col" style={{ height: '100%' }}>
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <h2 className="text-3xl font-bold text-white">Community profile</h2>
@@ -1495,21 +1492,17 @@ const CommunitySettingsPage = () => {
                               </div>
                             </div>
                           )}
-                          <button
-                            onClick={profileImagePreview ? handleRemoveProfileImage : handleImageUpload}
-                            className="absolute -right-1 -top-1 w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors cursor-pointer z-10"
-                            type="button"
-                          >
-                            {profileImagePreview ? (
+                          {(profileImagePreview || (community?.imageUrl && !imageError)) && (
+                            <button
+                              onClick={handleRemoveProfileImage}
+                              className="absolute -right-1 -top-1 w-7 h-7 rounded-full bg-gray-300 hover:bg-gray-400 text-gray-700 flex items-center justify-center transition-colors cursor-pointer z-10"
+                              type="button"
+                            >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                               </svg>
-                            ) : (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                              </svg>
-                            )}
-                          </button>
+                            </button>
+                          )}
                         </div>
                         <button
                           onClick={handleImageUpload}
@@ -1608,9 +1601,9 @@ const CommunitySettingsPage = () => {
               )}
 
               {activeSection === 'channels' && (
-                <div className="p-8">
+                <div className="p-8 h-full flex flex-col overflow-y-auto" style={{ height: '100%' }}>
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-8 flex-shrink-0">
                     <h2 className="text-3xl font-bold text-white">Groups</h2>
                     <div className="flex items-center gap-3">
                       <button
@@ -1697,9 +1690,9 @@ const CommunitySettingsPage = () => {
               )}
 
               {activeSection === 'roles' && (
-                <div className="p-8">
+                <div className="p-8 h-full flex flex-col overflow-y-auto" style={{ height: '100%' }}>
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-8 flex-shrink-0">
                     <h2 className="text-3xl font-bold text-white">Roles</h2>
                     <div className="flex items-center gap-3">
                       <button

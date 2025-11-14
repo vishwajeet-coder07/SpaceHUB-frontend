@@ -437,15 +437,6 @@ const SettingPage = () => {
                   </button>
                 }
               />
-
-              <InputRow
-                label="New email (optional)"
-                type="email"
-                value={newEmail}
-                setValue={setNewEmail}
-                placeholder="New email (optional)"
-                isMobile={true}
-              />
         </div>
       </div>
 
@@ -457,6 +448,26 @@ const SettingPage = () => {
               className="w-full bg-purple-600 text-white py-3 rounded-md font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? 'Saving...' : 'Save profile'}
+            </button>
+          </div>
+
+          {/* Danger Zone - Mobile */}
+          <div className="px-4 py-4 border-t border-gray-200 bg-white space-y-3">
+            <button 
+              onClick={() => setShowDeleteModal(true)}
+              className="w-full flex items-center gap-3 text-red-600 hover:text-red-700 transition-colors text-base font-medium"
+            >
+              <img src="/icons/delete.svg" alt="Delete Account" className="w-5 h-5" />
+              <span>Delete Account</span>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 text-red-600 hover:text-red-700 transition-colors text-base font-medium"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+              </svg>
+              <span>Log out</span>
             </button>
           </div>
         </div>
@@ -607,15 +618,6 @@ const SettingPage = () => {
                   )}
                 </button>
               }
-            />
-
-            <InputRow
-              label="New email (optional)"
-              type="email"
-              value={newEmail}
-              setValue={setNewEmail}
-              placeholder="New email (optional)"
-              rightIcon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>}
             />
         </div>
       </div>
