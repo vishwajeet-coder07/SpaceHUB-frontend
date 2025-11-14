@@ -925,6 +925,19 @@ export async function createVoiceRoom(chatRoomId, roomName, createdBy) {
   return handleJson(response);
 }
 
+// Delete voice room
+export async function deleteVoiceRoom(chatRoomId, roomName, requester) {
+  const params = new URLSearchParams();
+  params.set('chatRoomId', chatRoomId);
+  params.set('roomName', roomName);
+  params.set('requester', requester);
+  
+  const response = await authenticatedFetch(`${BASE_URL}voice-room/delete?${params.toString()}`, {
+    method: 'DELETE'
+  });
+  return handleJson(response);
+}
+
 // Join voice room
 export async function joinVoiceRoom(janusRoomId, displayName) {
   const params = new URLSearchParams();

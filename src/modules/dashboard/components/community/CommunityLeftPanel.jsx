@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom, deleteChatroom } from '../../../../shared/services/API';
+import { authenticatedFetch, BASE_URL, createCommunityInvite, createLocalGroupInvite, getCommunityRooms, getLocalGroupById, getCommunityMembers, leaveCommunity, joinRoom, createNewChatroom, getChatroomsSummary, getVoiceRoomsList, createVoiceRoom, joinVoiceRoom, deleteChatroom, deleteVoiceRoom } from '../../../../shared/services/API';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
 
 // Chat Room or Voice Room Section
-const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false, onDeleteChatroom = null, currentUserRole = '' }) => {
+const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, selectedChannel, onSelectChannel, groupName, roomCode, roomId, isLocalGroup = false, canCreate = false, onDeleteChatroom = null, onDeleteVoiceRoom = null, currentUserRole = '', user = null, onSwitchToGeneral = null, onRefreshGroups = null }) => {
   // For Announcement group, include 'general' channel; for others, filter it out
   const isAnnouncement = (title || groupName || '').toLowerCase() === 'announcement';
   const filteredChannels = isAnnouncement 
@@ -14,9 +14,13 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
   const [fetchedChatroomsData, setFetchedChatroomsData] = useState([]); // Store full chatroom objects
   const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
+  const [fetchedVoiceRoomsData, setFetchedVoiceRoomsData] = useState([]); // Store full voice room objects
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
   const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
   const [deletingChatroom, setDeletingChatroom] = useState({});
+  const [deletingVoiceRoom, setDeletingVoiceRoom] = useState({});
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, roomName: '', roomType: '', roomId: null, roomCode: null });
+  const [voiceRoomModal, setVoiceRoomModal] = useState({ isOpen: false, channelName: '', channelId: null, roomCode: null, roomId: null });
   
   const getChannelId = (channelName) => `${groupName}:${roomType}:${channelName}`;
   
@@ -48,11 +52,14 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
         try {
           const response = await getVoiceRoomsList(roomId);
           const voiceRoomsData = response?.voiceRooms || [];
+          // Store full voice room objects for delete functionality
+          setFetchedVoiceRoomsData(voiceRoomsData);
           const voiceRoomNames = voiceRoomsData.map((vr) => vr.name).filter(Boolean);
           setFetchedVoiceRooms(voiceRoomNames);
         } catch (error) {
           console.error('Failed to fetch voice rooms:', error);
           setFetchedVoiceRooms([]);
+          setFetchedVoiceRoomsData([]);
         } finally {
           setLoadingVoiceRooms(false);
         }
@@ -63,6 +70,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       setFetchedChatrooms([]);
       setFetchedChatroomsData([]);
       setFetchedVoiceRooms([]);
+      setFetchedVoiceRoomsData([]);
     }
   }, [open, isVoice, roomCode, roomId, isLocalGroup]);
 
@@ -79,37 +87,60 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
       return;
     }
 
-    // Confirm deletion
-    if (!window.confirm(`Are you sure you want to delete "${chatroomName}"?`)) {
-      return;
-    }
+    setDeleteModal({
+      isOpen: true,
+      roomName: chatroomName,
+      roomType: 'chat',
+      roomId: chatroomId,
+      roomCode: roomCode
+    });
+  };
 
-    setDeletingChatroom((prev) => ({ ...prev, [chatroomName]: true }));
+  const confirmDeleteChatroom = async () => {
+    const { roomName, roomId, roomCode } = deleteModal;
+    if (!roomName || !roomId || !roomCode) return;
+
+    // Check if the deleted room is currently selected
+    const deletedChannelId = getChannelId(roomName);
+    const isCurrentlySelected = selectedChannel === deletedChannelId;
+
+    setDeletingChatroom((prev) => ({ ...prev, [roomName]: true }));
+    setDeleteModal({ isOpen: false, roomName: '', roomType: '', roomId: null, roomCode: null });
 
     try {
-      await deleteChatroom(chatroomId, roomCode);
+      await deleteChatroom(roomId, roomCode);
       
       // Remove from local state
-      setFetchedChatrooms((prev) => prev.filter(name => name !== chatroomName));
-      setFetchedChatroomsData((prev) => prev.filter(cr => (cr.name || cr.chatRoomCode) !== chatroomName));
+      setFetchedChatrooms((prev) => prev.filter(name => name !== roomName));
+      setFetchedChatroomsData((prev) => prev.filter(cr => (cr.name || cr.chatRoomCode) !== roomName));
       
       // Call parent callback if provided
       if (onDeleteChatroom) {
-        onDeleteChatroom(chatroomName, chatroomId);
+        onDeleteChatroom(roomName, roomId);
       }
       
       // Remove from session storage
       try {
-        const storageKey = `chatroom_${roomCode}_${chatroomName}`;
+        const storageKey = `chatroom_${roomCode}_${roomName}`;
         sessionStorage.removeItem(storageKey);
         
         const existingChatrooms = JSON.parse(sessionStorage.getItem('chatrooms') || '[]');
         const updated = existingChatrooms.filter(
-          (cr) => !(cr.name === chatroomName && cr.roomCode === roomCode)
+          (cr) => !(cr.name === roomName && cr.roomCode === roomCode)
         );
         sessionStorage.setItem('chatrooms', JSON.stringify(updated));
       } catch (storageError) {
         console.warn('Failed to update session storage:', storageError);
+      }
+      
+      // If the deleted room was currently selected, switch to general
+      if (isCurrentlySelected && onSwitchToGeneral) {
+        onSwitchToGeneral();
+      }
+      
+      // Refresh groups to update the list
+      if (onRefreshGroups) {
+        onRefreshGroups();
       }
       
       window.dispatchEvent(new CustomEvent('toast', {
@@ -123,7 +154,93 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
     } finally {
       setDeletingChatroom((prev) => {
         const updated = { ...prev };
-        delete updated[chatroomName];
+        delete updated[roomName];
+        return updated;
+      });
+    }
+  };
+
+  const handleDeleteVoiceRoom = async (voiceRoomName, e) => {
+    e.stopPropagation();
+    const voiceRoom = fetchedVoiceRoomsData.find(vr => vr.name === voiceRoomName);
+    if (!voiceRoom || !roomId) return;
+    const chatRoomId = roomId;
+    if (!chatRoomId) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Chat room ID not found', type: 'error' }
+      }));
+      return;
+    }
+
+    setDeleteModal({
+      isOpen: true,
+      roomName: voiceRoomName,
+      roomType: 'voice',
+      roomId: chatRoomId,
+      roomCode: null
+    });
+  };
+
+  const confirmDeleteVoiceRoom = async () => {
+    const { roomName, roomId } = deleteModal;
+    if (!roomName || !roomId) return;
+
+    // Check if the deleted room is currently selected
+    const deletedChannelId = getChannelId(roomName);
+    const isCurrentlySelected = selectedChannel === deletedChannelId;
+
+    let requester = '';
+    if (user?.username) {
+      requester = user.username;
+    } else {
+      try {
+        const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+        requester = userData?.username || userData?.email?.split('@')[0] || '';
+      } catch {}
+    }
+
+    if (!requester) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'User username not found', type: 'error' }
+      }));
+      setDeleteModal({ isOpen: false, roomName: '', roomType: '', roomId: null, roomCode: null });
+      return;
+    }
+
+    setDeletingVoiceRoom((prev) => ({ ...prev, [roomName]: true }));
+    setDeleteModal({ isOpen: false, roomName: '', roomType: '', roomId: null, roomCode: null });
+
+    try {
+      await deleteVoiceRoom(roomId, roomName, requester);
+      setFetchedVoiceRooms((prev) => prev.filter(name => name !== roomName));
+      setFetchedVoiceRoomsData((prev) => prev.filter(vr => vr.name !== roomName));
+      
+      if (onDeleteVoiceRoom) {
+        onDeleteVoiceRoom(roomName, roomId);
+      }
+      
+      // If the deleted room was currently selected, switch to general
+      if (isCurrentlySelected && onSwitchToGeneral) {
+        onSwitchToGeneral();
+      }
+      
+      // Refresh groups to update the list
+      if (onRefreshGroups) {
+        onRefreshGroups();
+      }
+      
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Voice room deleted successfully', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('Failed to delete voice room:', error);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: error.message || 'Failed to delete voice room', type: 'error' }
+      }));
+    } finally {
+      setDeletingVoiceRoom((prev) => {
+        const updated = { ...prev };
+        delete updated[roomName];
         return updated;
       });
     }
@@ -149,7 +266,29 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
   
   const handleChannelClick = (channelName) => {
     const channelId = getChannelId(channelName);
+    
+    if (isVoice) {
+      setVoiceRoomModal({
+        isOpen: true,
+        channelName: channelName,
+        channelId: channelId,
+        roomCode: roomCode,
+        roomId: roomId
+      });
+    } else {
+      // For chat rooms, directly select
+      onSelectChannel?.(channelId, roomCode, roomId);
+    }
+  };
+  
+  const handleStartVoiceRoom = () => {
+    const { channelId, roomCode, roomId } = voiceRoomModal;
+    setVoiceRoomModal({ isOpen: false, channelName: '', channelId: null, roomCode: null, roomId: null });
     onSelectChannel?.(channelId, roomCode, roomId);
+  };
+  
+  const handleExitVoiceRoom = () => {
+    setVoiceRoomModal({ isOpen: false, channelName: '', channelId: null, roomCode: null, roomId: null });
   };
   
   const hasChannels = allChannels.length > 0;
@@ -188,14 +327,14 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
             const channelId = getChannelId(channel);
             const isSelected = selectedChannel === channelId;
             const isFetched = isVoice ? fetchedVoiceRooms.includes(channel) : fetchedChatrooms.includes(channel);
-            const isDeleting = deletingChatroom[channel];
-            // Only allow deletion of fetched chatrooms (not from channels prop), and not for "general" in Announcement group
-            // Also restrict to workspace owners and admins only
+            const isDeleting = isVoice ? deletingVoiceRoom[channel] : deletingChatroom[channel]
             const isAuthorized = currentUserRole === 'ADMIN' || 
                                 currentUserRole === 'OWNER' || 
                                 currentUserRole === 'WORKSPACE_OWNER';
-            const canDelete = !isVoice && isFetched && canCreate && onDeleteChatroom && isAuthorized &&
-                             !(isAnnouncement && channel.toLowerCase() === 'general');
+            const canDeleteChatroom = !isVoice && isFetched && canCreate && onDeleteChatroom && isAuthorized &&
+                                     !(isAnnouncement && channel.toLowerCase() === 'general');
+            const canDeleteVoiceRoom = isVoice && isFetched && canCreate && onDeleteVoiceRoom && isAuthorized;
+            const canDelete = canDeleteChatroom || canDeleteVoiceRoom;
             
             return (
               <div
@@ -225,12 +364,12 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
                 </button>
                 {canDelete && (
                   <button
-                    onClick={(e) => handleDeleteChatroom(channel, e)}
+                    onClick={(e) => isVoice ? handleDeleteVoiceRoom(channel, e) : handleDeleteChatroom(channel, e)}
                     disabled={isDeleting}
                     className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 ${
                       isSelected ? 'text-white hover:text-red-600' : 'text-gray-500 hover:text-red-600'
                     } disabled:opacity-50`}
-                    title="Delete chatroom"
+                    title={isVoice ? "Delete voice room" : "Delete chatroom"}
                   >
                     {isDeleting ? (
                       <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,6 +385,77 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white md:bg-black rounded-lg shadow-lg max-w-md w-full border md:border-gray-700">
+            <div className="px-6 py-4">
+              <h3 className="text-lg font-semibold text-gray-900 md:text-white">
+                Delete {deleteModal.roomType === 'voice' ? 'Voice Room' : 'Chatroom'}
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-gray-700 md:text-gray-300">
+                Are you sure you want to delete <span className="font-semibold md:text-white">"{deleteModal.roomName}"</span>?
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 md:border-gray-700 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, roomName: '', roomType: '', roomId: null, roomCode: null })}
+                className="px-4 py-2 text-gray-700 md:text-gray-300 hover:bg-gray-100 md:hover:bg-gray-800 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (deleteModal.roomType === 'voice') {
+                    confirmDeleteVoiceRoom();
+                  } else {
+                    confirmDeleteChatroom();
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Room Confirmation Modal */}
+      {voiceRoomModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white md:bg-black rounded-lg shadow-lg max-w-md w-full border md:border-gray-700">
+            <div className="px-6 py-4">
+              <h3 className="text-lg font-semibold text-gray-900 md:text-white">
+                Voice Room: {voiceRoomModal.channelName}
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-gray-700 md:text-gray-300">
+                Would you like to start this voice room?
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 md:border-gray-700 flex items-center justify-end gap-3">
+              <button
+                onClick={handleExitVoiceRoom}
+                className="px-4 py-2 text-gray-700 md:text-gray-300 hover:bg-gray-100 md:hover:bg-gray-800 rounded-md transition-colors"
+              >
+                Exit
+              </button>
+              <button
+                onClick={handleStartVoiceRoom}
+                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors"
+              >
+                Start Voice Room
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -638,11 +848,12 @@ const CreateGroupModal = ({ isOpen, onClose, communityName, communityId, onCreat
 };
 
 // Group Section (contains Chat room and Voice room)
-const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false, canCreate = false, currentUserRole = '' }) => {
+const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddChatRoom, onAddVoiceRoom, selectedChannel, onSelectChannel, roomCode, roomId, isLocalGroup = false, canCreate = false, currentUserRole = '', onDeleteVoiceRoom = null, user = null, onSwitchToGeneral = null, onRefreshGroups = null }) => {
   const [chatOpen, setChatOpen] = useState(true);
   const [voiceOpen, setVoiceOpen] = useState(true);
   const [fetchedChatrooms, setFetchedChatrooms] = useState([]);
   const [fetchedVoiceRooms, setFetchedVoiceRooms] = useState([]);
+  const [fetchedVoiceRoomsData, setFetchedVoiceRoomsData] = useState([]); // Store full voice room objects
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
   const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
   
@@ -654,8 +865,6 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
         try {
           const response = await getChatroomsSummary(roomCode);
           const chatroomsData = response?.data || [];
-          
-          // Extract chatroom names from the response
           const chatroomNames = chatroomsData.map((cr) => cr.name || cr.chatRoomCode).filter(Boolean);
           setFetchedChatrooms(chatroomNames);
         } catch (error) {
@@ -668,12 +877,10 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       
       fetchChatrooms();
     } else if (!open) {
-      // Clear fetched chatrooms when dropdown closes
       setFetchedChatrooms([]);
-    }
+      }
   }, [open, roomCode]);
 
-  // Fetch voice rooms when group dropdown opens
   useEffect(() => {
     if (open && roomId) {
       const fetchVoiceRooms = async () => {
@@ -681,11 +888,13 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
         try {
           const response = await getVoiceRoomsList(roomId);
           const voiceRoomsData = response?.voiceRooms || [];
+          setFetchedVoiceRoomsData(voiceRoomsData);
           const voiceRoomNames = voiceRoomsData.map((vr) => vr.name).filter(Boolean);
           setFetchedVoiceRooms(voiceRoomNames);
         } catch (error) {
           console.error('Failed to fetch voice rooms:', error);
           setFetchedVoiceRooms([]);
+          setFetchedVoiceRoomsData([]);
         } finally {
           setLoadingVoiceRooms(false);
         }
@@ -693,12 +902,11 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
       
       fetchVoiceRooms();
     } else if (!open) {
-      // Clear fetched voice rooms when dropdown closes
       setFetchedVoiceRooms([]);
+      setFetchedVoiceRoomsData([]);
     }
   }, [open, roomId, isLocalGroup]);
 
-  // Listen for voice room creation events to refresh the list
   useEffect(() => {
     if (!open || !roomId) return;
 
@@ -726,19 +934,15 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     };
   }, [open, roomId]);
   
-  // Check if this is the Announcement group
   const isAnnouncement = (groupName || '').toLowerCase() === 'announcement';
   
-  // For Announcement group, include 'general' in chatRooms; for others, filter it out
   const filteredChatRooms = isAnnouncement 
-    ? (chatRooms || []) // Keep all including 'general' for Announcement
+    ? (chatRooms || [])
     : (chatRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   const filteredVoiceRooms = (voiceRooms || []).filter(ch => ch !== 'general' && ch !== 'General');
   
-  // Store full chatroom data for delete functionality
   const [fetchedChatroomsData, setFetchedChatroomsData] = useState([]);
 
-  // Merge fetched chatrooms with existing chat rooms, avoiding duplicates
   const allChatRooms = useMemo(() => {
     const merged = [...filteredChatRooms];
     fetchedChatrooms.forEach((name) => {
@@ -751,7 +955,6 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
 
   // Handle chatroom deletion
   const handleDeleteChatroom = useCallback((chatroomName, chatroomId) => {
-    // Remove from fetched chatrooms
     setFetchedChatrooms((prev) => prev.filter(name => name !== chatroomName));
     setFetchedChatroomsData((prev) => prev.filter(cr => {
       const crName = cr.name || cr.chatRoomCode;
@@ -760,7 +963,11 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     }));
   }, []);
 
-  // Merge fetched voice rooms with existing voice rooms, avoiding duplicates
+  const handleDeleteVoiceRoom = useCallback((voiceRoomName, chatRoomId) => {
+    setFetchedVoiceRooms((prev) => prev.filter(name => name !== voiceRoomName));
+    setFetchedVoiceRoomsData((prev) => prev.filter(vr => vr.name !== voiceRoomName));
+  }, []);
+
   const allVoiceRooms = useMemo(() => {
     const merged = [...filteredVoiceRooms];
     fetchedVoiceRooms.forEach((name) => {
@@ -771,7 +978,6 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
     return merged;
   }, [filteredVoiceRooms, fetchedVoiceRooms]);
 
-  // For Announcement, get the general chatroom
   const generalChatroom = isAnnouncement ? allChatRooms.find(ch => ch.toLowerCase() === 'general') : null;
   
   const hasNoRooms = allChatRooms.length === 0 && allVoiceRooms.length === 0;
@@ -897,6 +1103,9 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 canCreate={canCreate}
                 onDeleteChatroom={handleDeleteChatroom}
                 currentUserRole={currentUserRole}
+                user={user}
+                onSwitchToGeneral={onSwitchToGeneral}
+                onRefreshGroups={onRefreshGroups}
               />
               <RoomSection
                 title="Voice room"
@@ -912,6 +1121,11 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
                 roomId={roomId}
                 isLocalGroup={isLocalGroup}
                 canCreate={canCreate}
+                onDeleteVoiceRoom={onDeleteVoiceRoom}
+                currentUserRole={currentUserRole}
+                user={user}
+                onSwitchToGeneral={onSwitchToGeneral}
+                onRefreshGroups={onRefreshGroups}
               />
             </>
           )}
@@ -932,25 +1146,22 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const [error, setError] = useState('');
   const [selectedChannel, setSelectedChannel] = useState(null);
 
-  const handleChannelSelect = async (channelId, roomCode, roomId) => {
+  const handleChannelSelect = useCallback(async (channelId, roomCode, roomId) => {
     setSelectedChannel(channelId);
     
     let chatRoomCode = null;
     let janusRoomId = null;
     const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
     
-    // Parse channelId to extract channel name and group name
     const parts = channelId?.split(':') || [];
     if (parts.length >= 3) {
-      const groupName = parts[0]; // Extract groupName from channelId
+      const groupName = parts[0]; 
       const channelName = parts[2];
       const roomType = parts[1];
       
       if (roomType === 'chat') {
-      // Fetch chatRoomCode for all channels (including general)
       if (channelName && roomCode) {
         try {
-          // First, check session storage for existing chatroom
           const storageKey = `chatroom_${roomCode}_${channelName}`;
           const stored = sessionStorage.getItem(storageKey);
           
@@ -973,23 +1184,19 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         }
       }
       } else if (roomType === 'voice') {
-        // Handle voice room - get janusRoomId from sessionStorage
         if (channelName && roomId && userEmail) {
           try {
-            // First, try to get from the specific storage key (from create response)
             const storageKey = `voiceRoom_${roomId}_${channelName}`;
             const stored = sessionStorage.getItem(storageKey);
             
             if (stored) {
               const parsed = JSON.parse(stored);
-              // Handle different response structures
               janusRoomId = parsed?.data?.janusRoomId || 
                            parsed?.data?.voiceRooms?.[0]?.janusRoomId ||
                            parsed?.janusRoomId ||
                            parsed?.voiceRooms?.[0]?.janusRoomId;
             }
             
-            // If not found, check the voiceRooms array
             if (!janusRoomId) {
               const voiceRoomsArray = JSON.parse(sessionStorage.getItem('voiceRooms') || '[]');
               const voiceRoom = voiceRoomsArray.find(
@@ -1041,20 +1248,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
                 const sessionId = responseData?.sessionId;
                 const handleId = responseData?.handleId;
                 
-                // Dispatch event with join data for VoiceRoom component
                 if (sessionId && handleId) {
                   window.dispatchEvent(new CustomEvent('voice-room:joined', {
                     detail: { janusRoomId, sessionId, handleId, userId: userEmail }
                   }));
                 }
                 
-                // Show success toast
                 window.dispatchEvent(new CustomEvent('toast', {
                   detail: { message: 'Successfully joined voice room!', type: 'success' }
                 }));
               } catch (error) {
                 console.error('Failed to join voice room:', error);
-                // Don't show error toast for 403, might be expected behavior
                 if (error.message && !error.message.includes('403')) {
                   window.dispatchEvent(new CustomEvent('toast', {
                     detail: { message: error.message || 'Failed to join voice room', type: 'error' }
@@ -1078,7 +1282,37 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     } catch (error) {
       console.error('Error dispatching channel-selected event:', error);
     }
-  };
+  }, [user]);
+
+  const handleSwitchToGeneral = useCallback(() => {
+    // Find the Announcement group
+    const announcementGroup = groups.find(
+      (g) => (g.name || '').toLowerCase() === 'announcement'
+    );
+    
+    if (announcementGroup) {
+      const announcementRoomCode = announcementGroup.roomCode;
+      const announcementRoomId = announcementGroup.chatRoomId || announcementGroup.id;
+      const generalChannelId = `Announcement:chat:general`;
+      
+      // Select the general chatroom in the Announcement group
+      handleChannelSelect(generalChannelId, announcementRoomCode, announcementRoomId);
+    } else {
+      // If Announcement group not found, try to find any group with a general chatroom
+      const groupWithGeneral = groups.find(
+        (g) => (g.chatRooms || []).some((cr) => (cr || '').toLowerCase() === 'general')
+      );
+      
+      if (groupWithGeneral) {
+        const groupName = groupWithGeneral.name;
+        const groupRoomCode = groupWithGeneral.roomCode;
+        const groupRoomId = groupWithGeneral.chatRoomId || groupWithGeneral.id;
+        const generalChannelId = `${groupName}:chat:general`;
+        
+        handleChannelSelect(generalChannelId, groupRoomCode, groupRoomId);
+      }
+    }
+  }, [groups, handleChannelSelect]);
 
   const [openGroups, setOpenGroups] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
@@ -1113,7 +1347,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           const me = members.find((m) => (m.email || m.username) && (m.email || m.username).toLowerCase() === userEmail.toLowerCase());
           setCurrentUserRole(((me?.role || '').toUpperCase()) || '');
           
-          // Store avatar URLs and usernames in session storage for use in chat rooms and voice rooms
           const avatarMap = {};
           const usernameMap = {};
           members.forEach((member) => {
@@ -1128,14 +1361,12 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             }
           });
           
-          // Store avatars in session storage with community ID as key
           if (Object.keys(avatarMap).length > 0) {
             const storageKey = `community_avatars_${communityId}`;
             const existingAvatars = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
             sessionStorage.setItem(storageKey, JSON.stringify({ ...existingAvatars, ...avatarMap }));
           }
           
-          // Store usernames in session storage with community ID as key
           if (Object.keys(usernameMap).length > 0) {
             const storageKey = `community_usernames_${communityId}`;
             const existingUsernames = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
@@ -1147,17 +1378,24 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     determineRole();
   }, [communityId, isLocalGroup, user?.email]);
 
-  const fetchGroups = useCallback(async () => {
+  const openGroupsRef = useRef(openGroups);
+  useEffect(() => {
+    openGroupsRef.current = openGroups;
+  }, [openGroups]);
+
+  const fetchGroups = useCallback(async (preserveOpenState = false) => {
     if (!communityId) {
       console.warn('Community ID not available');
       return;
     }
 
+    // Preserve current open state if requested
+    const previousOpenGroups = preserveOpenState ? { ...openGroupsRef.current } : null;
+
     setLoading(true);
     setError('');
     try {
       if (isLocalGroup) {
-        // First try to get from session storage (from getAllLocalGroups response)
         let lg = null;
         try {
           const cached = sessionStorage.getItem(`localGroup:${communityId}`);
@@ -1166,7 +1404,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           }
         } catch {}
         
-        // If not in session storage, fetch from API
         if (!lg) {
           const data = await getLocalGroupById(communityId);
           lg = data?.data || data || {};
@@ -1175,13 +1412,10 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         try {
           sessionStorage.setItem(`localGroupDetails:${communityId}`, JSON.stringify(lg));
         } catch {}
-
-        // Get chatRoomCode and chatRoomId from the saved response
+  
         const chatRoomCode = lg.chatRoomCode || lg.roomCode || lg.code;
         const chatRoomId = lg.chatRoomId || lg.chatroomId || lg.primaryChatRoomId || lg.roomId || lg.id;
-        
-        // Save chatRoomCode separately for easy access
-        if (chatRoomCode) {
+              if (chatRoomCode) {
           try {
             sessionStorage.setItem(`localGroupChatRoomCode:${communityId}`, chatRoomCode);
           } catch {}
@@ -1204,14 +1438,24 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         ];
 
         setGroups(transformedGroups);
-        setOpenGroups(
-          transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: true }), {})
-        );
+        if (preserveOpenState && previousOpenGroups) {
+          // Preserve open state for existing groups
+          setOpenGroups((prev) => {
+            const newState = transformedGroups.reduce((acc, g) => {
+              acc[g.name] = previousOpenGroups[g.name] !== undefined ? previousOpenGroups[g.name] : true;
+              return acc;
+            }, {});
+            return newState;
+          });
+        } else {
+          setOpenGroups(
+            transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: true }), {})
+          );
+        }
       } else {
         const data = await getCommunityRooms(communityId);
         const roomsList = data?.data || [];
 
-        // Save the community rooms response to sessionStorage for later reference
         try {
           sessionStorage.setItem(`communityRooms:${communityId}`, JSON.stringify(data));
         } catch (err) {
@@ -1219,8 +1463,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         }
 
         const transformedGroups = roomsList.map((room) => {
-          // For Announcement group, include 'general' in chatRooms
-          // For other groups, filter out 'general' as it's handled separately
           const isAnnouncement = (room.name || room.roomName || '').toLowerCase() === 'announcement';
           const chatRooms = isAnnouncement 
             ? (room.chatRooms || []).concat(['general']).filter((ch, idx, arr) => arr.indexOf(ch) === idx) // Include general and remove duplicates
@@ -1236,9 +1478,20 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         });
 
         setGroups(transformedGroups);
-        setOpenGroups(
-          transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: false }), {})
-        );
+        if (preserveOpenState && previousOpenGroups) {
+          // Preserve open state for existing groups
+          setOpenGroups((prev) => {
+            const newState = transformedGroups.reduce((acc, g) => {
+              acc[g.name] = previousOpenGroups[g.name] !== undefined ? previousOpenGroups[g.name] : false;
+              return acc;
+            }, {});
+            return newState;
+          });
+        } else {
+          setOpenGroups(
+            transformedGroups.reduce((acc, g) => ({ ...acc, [g.name]: false }), {})
+          );
+        }
       }
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -1292,8 +1545,11 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     setShowCreateChannelModal(true);
   };
 
+
+  const handleDeleteVoiceRoom = useCallback((voiceRoomName, chatRoomId) => {
+  }, []);
+
   const handleAddVoiceRoom = (groupName) => {
-    // Prevent room creation in Announcement group
     if (groupName === 'Announcement') {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Cannot create rooms in the Announcement group', type: 'error' }
@@ -1301,7 +1557,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       return;
     }
     
-    // Only allow workspace owners and admins to create voice rooms
     const isAuthorized = currentUserRole === 'ADMIN' || 
                         currentUserRole === 'OWNER' || 
                         currentUserRole === 'WORKSPACE_OWNER';
@@ -1311,7 +1566,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       }));
       return;
     }
-    // Find the group to get roomId
     const targetGroup = groups.find((g) => g.name === groupName);
     const roomId = targetGroup?.id;
     setChannelModalContext({ groupName, roomType: 'voice', roomId });
@@ -1322,7 +1576,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     const { groupName, roomType, roomId } = channelModalContext;
     if (!groupName || !channelName) return;
 
-    // Prevent room creation in Announcement group
     if (groupName === 'Announcement') {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { message: 'Cannot create rooms in the Announcement group', type: 'error' }
@@ -1330,7 +1583,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       return;
     }
 
-    // Only allow workspace owners and admins to create rooms
     const isAuthorized = currentUserRole === 'ADMIN' || 
                         currentUserRole === 'OWNER' || 
                         currentUserRole === 'WORKSPACE_OWNER';
@@ -1344,13 +1596,10 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
     const clean = channelName.trim();
     const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
     
-    // Create chatroom via API for chat rooms
     if (roomType === 'chat') {
-      // Find the group to get roomCode
       const targetGroup = groups.find((g) => g.name === groupName);
       let roomCode = targetGroup?.roomCode;
       
-      // For local groups, try to get chatRoomCode from session storage
       if (isLocalGroup && !roomCode) {
         try {
           roomCode = sessionStorage.getItem(`localGroupChatRoomCode:${communityId}`);
@@ -1409,8 +1658,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         )
       );
     } else if (roomType === 'voice') {
-      // Create voice room via API
-      // For local groups, use the group's id as chatRoomId (same as communities)
       let chatRoomId = roomId;
       if (isLocalGroup) {
         // Prioritize chatRoomId from group data or session storage
@@ -1437,7 +1684,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           const storageKey = `voiceRoom_${roomId}_${clean}`;
           const existingVoiceRooms = JSON.parse(sessionStorage.getItem('voiceRooms') || '[]');
           
-          // Handle different response structures - could be direct object or wrapped in voiceRooms array
           const voiceRoomFromResponse = response?.data || response;
           const actualVoiceRoom = voiceRoomFromResponse?.voiceRooms?.[0] || voiceRoomFromResponse;
           
@@ -1454,7 +1700,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             created: new Date().toISOString()
           };
           
-          // Check if already exists, update if found, otherwise add
           const existingIndex = existingVoiceRooms.findIndex(
             (vr) => (vr.id === voiceRoomData.id && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId))) || 
                     (vr.name === clean && (vr.chatRoomId === roomId || vr.chatRoomId === String(roomId)))
@@ -1467,10 +1712,9 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           }
           
           sessionStorage.setItem('voiceRooms', JSON.stringify(existingVoiceRooms));
-          // Save the full response for reference
           sessionStorage.setItem(storageKey, JSON.stringify(response));
           
-          // Show success toast
+
           window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: 'Voice room created successfully!', type: 'success' }
           }));
@@ -1480,8 +1724,8 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             detail: { roomId, voiceRoomName: clean }
           }));
           
-          // Refresh groups to get updated voice rooms list
-          fetchGroups();
+          // Refresh groups to get updated voice rooms list, but preserve open state
+          fetchGroups(true);
         } catch (error) {
           console.error('Failed to create voice room:', error);
           window.dispatchEvent(new CustomEvent('toast', {
@@ -1518,8 +1762,6 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       ...prev,
       [groupName]: !prev[groupName],
     }));
-
-    // Removed auto-selection of 'general' channel since general channels are no longer used
   };
 
   const handleDropdownAction = (action) => {
@@ -1725,6 +1967,10 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
               isLocalGroup={isLocalGroup}
               canCreate={canCreate}
               currentUserRole={currentUserRole}
+              onDeleteVoiceRoom={handleDeleteVoiceRoom}
+              user={user}
+              onSwitchToGeneral={handleSwitchToGeneral}
+              onRefreshGroups={fetchGroups}
             />
           );
         })}

@@ -200,7 +200,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-10">
-          <a href="#Features" className="text-gray-700 hover:text-gray-900 transition-colors">Features</a>
+          {/* <a href="#Features" className="text-gray-700 hover:text-gray-900 transition-colors">Features</a> */}
           <a href="#Contact" className="text-gray-700 hover:text-gray-900 transition-colors">Contact</a>
           <a href="#About" className="text-gray-700 hover:text-gray-900 transition-colors">About</a>
         </nav>
@@ -234,12 +234,12 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-4">
-              <button
+              {/* <button
                 onClick={() => handleMenuClick('Features')}
                 className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
               >
                 Features
-              </button>
+              </button> */}
               <button
                 onClick={() => handleMenuClick('About')}
                 className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-300 rounded-md transition-colors font-medium"
@@ -265,7 +265,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
 
       {/* HERO SECTION / FEATURES */}
       <section
-        id="Features"
+        id="Home"
         className="w-full  min-h-[37rem] sm:min-h-screen py-8 sm:py-12 lg:py-16 relative px-4 sm:px-6"
         style={{
           backgroundImage: `url(${bgPattern})`,
@@ -434,7 +434,7 @@ Spacehub is all about connecting people who love to share ideas, build cool thin
               <div className="space-y-2">
                 <a href="#Home" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Home</a>
                 <a href="#About" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">About</a>
-                <a href="#Features" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Features</a>
+                {/* <a href="#Features" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Features</a> */}
                 <a href="#Contact" className="block text-gray-600 hover:text-gray-900 text-sm sm:text-base transition-colors">Contact</a>
               </div>
             </RevealOnScroll>
