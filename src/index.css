@@ -29,6 +29,13 @@
   .ring-primary:focus { outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5); }
   .rounded-lgx { border-radius: var(--radius-md); }
   .rounded-card { border-top-left-radius: var(--radius-lg); border-bottom-left-radius: var(--radius-lg); }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 html{
   scroll-behavior: smooth;

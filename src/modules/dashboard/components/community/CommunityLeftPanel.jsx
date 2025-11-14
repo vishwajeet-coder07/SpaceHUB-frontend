@@ -1832,13 +1832,13 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
 
   {/* Community Left Panel */}
   return (
-    <div className="min-w-[80vw] sm:min-w-55 md:min-w-70 bg-gray-200 h-full flex flex-col rounded-r-xl overflow-hidden">
+    <div className={`min-w-[80vw] sm:min-w-55 md:min-w-70 bg-gray-200 h-full flex flex-col rounded-r-xl relative ${showDropdown ? 'overflow-visible' : 'overflow-hidden'}`}>
       {/* Header */}
       <div
         ref={dropdownRef}
-        className={`px-4 py-3 relative ${
+        className={`px-4 py-3 relative flex-shrink-0 ${
           showDropdown
-            ? 'bg-[#282828] rounded-md'
+            ? 'bg-[#282828] rounded-t-md'
             : 'border-b border-gray-500'
         }`}
       >
@@ -1882,41 +1882,41 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
           </div>
         </div>
 
-
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu - Absolutely positioned to not expand panel */}
         {showDropdown && (
-          <div className="mt-0 pt-2 bg-[#282828] rounded-b-md overflow-hidden">
-            <button
-              onClick={() => handleDropdownAction('invite')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
-            >
-              Invite people
-            </button>
-            {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
+          <div className="absolute top-full left-0 right-0 bg-[#282828] rounded-b-md overflow-hidden shadow-lg z-50">
+            <div className="pt-2 pb-2 border-t border-gray-600">
               <button
-                onClick={() => handleDropdownAction('create-group')}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
+                onClick={() => handleDropdownAction('invite')}
+                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
               >
-                Create group
+                Invite people
               </button>
-            )}
-            {currentUserRole === 'ADMIN' && (
+              {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
+                <button
+                  onClick={() => handleDropdownAction('create-group')}
+                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
+                >
+                  Create group
+                </button>
+              )}
+              {currentUserRole === 'ADMIN' && (
+                <button
+                  onClick={() => handleDropdownAction('settings')}
+                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
+                >
+                  Settings
+                </button>
+              )}
               <button
-                onClick={() => handleDropdownAction('settings')}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
+                onClick={() => handleDropdownAction('leave')}
+                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
               >
-                Settings
+                {isLocalGroup ? 'Leave local-group' : 'Leave community'}
               </button>
-            )}
-            <button
-              onClick={() => handleDropdownAction('leave')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors rounded-md"
-            >
-              {isLocalGroup ? 'Leave local-group' : 'Leave community'}
-            </button>
+            </div>
           </div>
         )}
-        
       </div>
 
 

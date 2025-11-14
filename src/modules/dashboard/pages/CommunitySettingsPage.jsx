@@ -1439,7 +1439,7 @@ const CommunitySettingsPage = () => {
             {/* Main Content Area */}
             <div className="flex-1 bg-[#282828] overflow-hidden" style={{ height: '100%', minHeight: '600px' }}>
               {activeSection === 'profile' && (
-                <div className="p-6 h-full flex flex-col" style={{ height: '100%' }}>
+                <div className="p-6 h-full flex flex-col min-h-0" style={{ height: '100%' }}>
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <h2 className="text-3xl font-bold text-white">Community profile</h2>
@@ -1464,8 +1464,8 @@ const CommunitySettingsPage = () => {
                     </div>
                   </div>
 
-                  {/* Content - no scroll needed */}
-                  <div className="flex-1 flex flex-col justify-start">
+                  {/* Content - scrollable */}
+                  <div className="flex-1 flex flex-col justify-start overflow-y-auto min-h-0 scrollbar-hide">
                     {/* Profile Section */}
                     <div className="mb-4">
                       <h3 className="text-lg font-semibold text-white mb-2">Profile</h3>
