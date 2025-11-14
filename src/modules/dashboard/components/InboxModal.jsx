@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMyPendingRequests, acceptJoinRequest, rejectJoinRequest, getIncomingFriendRequests, getOutgoingFriendRequests, respondToFriendRequest } from '../../../shared/services/API';
+import { acceptJoinRequest, rejectJoinRequest, respondToFriendRequest } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
+import webSocketService from '../../../shared/services/WebSocketService';
 import {
   selectRequests,
   selectPending,
@@ -11,11 +12,16 @@ import {
   selectProcessingRequest,
   setRequests,
   setPending,
+  addRequest,
+  addPending,
+  removePending,
   setActiveTab,
   setLoading,
   setError,
   setProcessingRequest,
   removeRequest,
+  setWsConnected,
+  markAllAsRead,
 } from '../../../shared/store/slices/inboxSlice';
 
 const InboxModal = ({ isOpen, onClose }) => {
@@ -30,126 +36,345 @@ const InboxModal = ({ isOpen, onClose }) => {
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
 
-  // Fetch friend requests from API (for Request tab - incoming friend requests that need action)
+  // Transform notification data to inbox format
+  const transformFriendRequest = (req, idx = 0) => {
+    // Handle new WebSocket format
+    if (req.senderName || req.senderEmail) {
+      const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown User';
+      const avatarUrl = req.senderProfileImageUrl 
+        ? (req.senderProfileImageUrl.startsWith('http') 
+            ? req.senderProfileImageUrl 
+            : `https://codewithketan.me/api/v1/${req.senderProfileImageUrl}`)
+        : null;
+      
+      return {
+        id: `friend-${req.id || req.senderEmail || idx}`,
+        type: 'friend',
+        name: displayName,
+        requester: displayName,
+        requesterEmail: req.senderEmail,
+        userId: req.referenceId || req.id,
+        firstName: req.senderName?.split(' ')[0],
+        lastName: req.senderName?.split(' ').slice(1).join(' '),
+        avatar: avatarUrl,
+        notificationId: req.id,
+        read: req.read || false,
+        createdAt: req.createdAt
+      };
+    }
+    
+    // Handle legacy format
+    let displayName = 'Unknown User';
+    if (req.username) {
+      displayName = req.username;
+    } else if (req.name) {
+      displayName = req.name;
+    } else if (req.email || req.requesterEmail) {
+      displayName = (req.email || req.requesterEmail).split('@')[0];
+    }
+    
+    return {
+      id: `friend-${req.id || req.requesterEmail || req.email || idx}`,
+      type: 'friend',
+      name: displayName,
+      requester: displayName,
+      requesterEmail: req.email || req.requesterEmail,
+      userId: req.id || req.userId,
+      firstName: req.firstName,
+      lastName: req.lastName,
+      avatar: req.avatar || req.avatarUrl || req.profileImage || null
+    };
+  };
+
+  const transformCommunityRequest = (req, communityId, communityName) => {
+    // Handle new WebSocket format
+    if (req.senderName || req.senderEmail) {
+      const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown';
+      const avatarUrl = req.senderProfileImageUrl 
+        ? (req.senderProfileImageUrl.startsWith('http') 
+            ? req.senderProfileImageUrl 
+            : `https://codewithketan.me/api/v1/${req.senderProfileImageUrl}`)
+        : null;
+      
+      return {
+        id: `${req.communityId || communityId}-${req.referenceId || req.id}`,
+        communityId: req.communityId || communityId,
+        type: 'community',
+        name: req.communityName || communityName,
+        requester: displayName,
+        requesterEmail: req.senderEmail,
+        userId: req.referenceId || req.id,
+        avatar: avatarUrl,
+        notificationId: req.id,
+        read: req.read || false,
+        createdAt: req.createdAt
+      };
+    }
+    
+    // Handle legacy format
+    return {
+      id: `${communityId}-${req.userId || req.id}`,
+      communityId,
+      type: 'community',
+      name: communityName,
+      requester: req.username || req.email?.split('@')[0] || 'Unknown',
+      requesterEmail: req.email,
+      userId: req.userId || req.id,
+      avatar: req.avatar || null
+    };
+  };
+
+  const transformPendingRequest = (req, idx = 0) => {
+    let displayName = 'Pending user';
+    const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
+    if (candidateName) {
+      displayName = candidateName;
+    } else if (req.friendEmail || req.receiverEmail || req.email) {
+      const rawEmail = req.friendEmail || req.receiverEmail || req.email;
+      displayName = rawEmail.split('@')[0];
+    }
+
+    return {
+      id: `pending-${req.id || req.friendEmail || req.receiverEmail || req.email || idx}`,
+      type: req.type || 'friend',
+      name: displayName,
+      requester: displayName,
+      avatar: req.avatar || req.avatarUrl || req.profileImage || null,
+      raw: req,
+      rawJson: JSON.stringify(req, null, 2),
+    };
+  };
+
+  // Mark all notifications as read when inbox is opened
   useEffect(() => {
-    const fetchFriendRequests = async () => {
-      if (!isOpen) return;
+    if (isOpen) {
+      dispatch(markAllAsRead());
+    }
+  }, [isOpen, dispatch]);
 
+  // WebSocket notification handler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
+    const userEmail = user?.email || storedEmail;
+
+    if (!userEmail) {
+      dispatch(setError('User email not found'));
+      return;
+    }
+
+    // Request initial notifications when modal opens
+    if (webSocketService.isConnected()) {
       dispatch(setLoading(true));
-      dispatch(setError(''));
-
-      const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
-      const userEmail = user?.email || storedEmail;
-
-      if (!userEmail) {
-        dispatch(setError('User email not found'));
+      webSocketService.requestNotifications();
+      // Set a timeout to stop loading if no response comes back
+      const loadingTimeout = setTimeout(() => {
         dispatch(setLoading(false));
-        return;
-      }
+      }, 5000); // 5 second timeout
+      
+      return () => {
+        clearTimeout(loadingTimeout);
+      };
+    } else {
+      // If not connected, ensure loading is false so empty state can show
+      dispatch(setLoading(false));
+    }
 
-      try {
-        // Fetch incoming friend requests
-        const friendResponse = await getIncomingFriendRequests(userEmail);
-        const friendRequests = friendResponse?.data || friendResponse?.friends || friendResponse || [];
-        
-        const transformedFriendRequests = Array.isArray(friendRequests) ? friendRequests.map((req, idx) => {
-          // Prefer username for DM display; fall back to name, then first/last, then email prefix
-          let displayName = 'Unknown User';
-          if (req.username) {
-            displayName = req.username;
+    // WebSocket event handler
+    const handleWebSocketEvent = (eventType, data) => {
+      console.log('InboxModal: WebSocket event', eventType, data);
+
+      switch (eventType) {
+        case 'connected':
+          dispatch(setWsConnected(true));
+          dispatch(setLoading(true));
+          // Request notifications on connection
+          webSocketService.requestNotifications();
+          break;
+
+        case 'disconnected':
+          dispatch(setWsConnected(false));
+          break;
+
+        case 'friend_request':
+        case 'incoming_friend_request':
+          // Single incoming friend request
+          const friendReq = transformFriendRequest(data);
+          dispatch(addRequest(friendReq));
+          dispatch(setLoading(false));
+          // Show toast notification only if not read
+          if (!data.read) {
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: `${friendReq.requester} wants to be your friend`, type: 'info' }
+            }));
           }
-          
-          return {
-            id: `friend-${req.id || req.requesterEmail || req.email || idx}`,
-            type: 'friend',
-            name: displayName,
-            requester: displayName,
-            requesterEmail: req.email || req.requesterEmail,
-            userId: req.id || req.userId,
-            firstName: req.firstName,
-            lastName: req.lastName,
-            avatar: req.avatar || req.avatarUrl || req.profileImage || null
-          };
-        }) : [];
-        let communityRequests = [];
-        try {
-          const communityResponse = await getMyPendingRequests(userEmail);
-          const communityData = communityResponse?.data || [];
-          communityData.forEach((communityData) => {
-            const { communityId, communityName, requests: commRequests } = communityData;
-            
-            commRequests.forEach((req) => {
-              communityRequests.push({
-                id: `${communityId}-${req.userId}`,
-                communityId,
-                type: 'community',
-                name: communityName,
-                requester: req.username || req.email?.split('@')[0] || 'Unknown',
-                requesterEmail: req.email,
-                userId: req.userId,
-                avatar: req.avatar || null
-              });
-            });
-          });
-        } catch (err) {
-          console.error('Error fetching community requests:', err);
-          window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: err.message || 'Failed to fetch community requests', type: 'error' }
-          }));
-        }
+          break;
 
-       
-        let transformedPendingRequests = [];
-        try {
-          const outgoingResponse = await getOutgoingFriendRequests(userEmail);
-          const outgoingRequests = outgoingResponse?.data || outgoingResponse?.requests || outgoingResponse?.friends || outgoingResponse?.pending || outgoingResponse || [];
+        case 'friend_requests_bulk':
+          // Bulk incoming friend requests
+          const friendRequests = Array.isArray(data) ? data.map((req, idx) => transformFriendRequest(req, idx)) : [];
+          // Get current requests and merge
+          const currentRequests = requests || [];
+          const existingNonFriend = currentRequests.filter(r => r.type !== 'friend');
+          dispatch(setRequests([...existingNonFriend, ...friendRequests]));
+          dispatch(setLoading(false));
+          // If no friend requests, ensure we show empty state
+          if (friendRequests.length === 0 && existingNonFriend.length === 0) {
+            dispatch(setRequests([]));
+          }
+          break;
 
-          transformedPendingRequests = Array.isArray(outgoingRequests)
-            ? outgoingRequests.map((req, idx) => {
-                let displayName = 'Pending user';
-                const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
-                if (candidateName) {
-                  displayName = candidateName;
-                } else if (req.friendEmail || req.receiverEmail || req.email) {
-                  const rawEmail = req.friendEmail || req.receiverEmail || req.email;
-                  displayName = rawEmail.split('@')[0];
+        case 'community_request':
+        case 'community_join_request':
+          // Single community join request
+          const notificationData = data.request || data;
+          const commReq = transformCommunityRequest(
+            notificationData,
+            notificationData.communityId || data.communityId || data.community?.id,
+            notificationData.communityName || data.communityName || data.community?.name
+          );
+          dispatch(addRequest(commReq));
+          dispatch(setLoading(false));
+          // Show toast notification only if not read
+          if (!notificationData.read && !data.read) {
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: `${commReq.requester} wants to join ${commReq.name}`, type: 'info' }
+            }));
+          }
+          break;
+
+        case 'community_requests_bulk':
+          // Bulk community requests
+          const communityRequests = [];
+          if (Array.isArray(data)) {
+            data.forEach((item) => {
+              // Handle new format where each item is a notification with communityId/communityName
+              if (item.communityId || item.communityName) {
+                communityRequests.push(transformCommunityRequest(item, item.communityId, item.communityName));
+              } 
+              // Handle legacy format with nested requests
+              else {
+                const { communityId, communityName, requests: commRequests } = item;
+                if (Array.isArray(commRequests)) {
+                  commRequests.forEach((req) => {
+                    communityRequests.push(transformCommunityRequest(req, communityId, communityName));
+                  });
                 }
+              }
+            });
+          }
+          // Get current requests and merge
+          const currentReqs = requests || [];
+          const existingNonCommunity = currentReqs.filter(r => r.type !== 'community');
+          dispatch(setRequests([...existingNonCommunity, ...communityRequests]));
+          dispatch(setLoading(false));
+          // If no community requests, ensure we show empty state
+          if (communityRequests.length === 0 && existingNonCommunity.length === 0) {
+            dispatch(setRequests([]));
+          }
+          break;
 
-                return {
-                  id: `pending-${req.id || req.friendEmail || req.receiverEmail || idx}`,
-                  type: req.type || 'friend',
-                  name: displayName,
-                  requester: displayName,
-                  avatar: req.avatar || req.avatarUrl || req.profileImage || null,
-                  raw: req,
-                  rawJson: JSON.stringify(req, null, 2),
-                };
-              })
-            : [];
-        } catch (pendingErr) {
-          console.error('Error fetching pending friend requests:', pendingErr);
-          window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: pendingErr.message || 'Failed to fetch pending requests', type: 'error' }
-          }));
-        }
+        case 'pending_friend_request':
+        case 'outgoing_friend_request':
+          // Single pending friend request
+          const pendingReq = transformPendingRequest(data);
+          dispatch(addPending(pendingReq));
+          dispatch(setLoading(false));
+          break;
 
-        dispatch(setPending(transformedPendingRequests));
+        case 'pending_requests_bulk':
+          // Bulk pending requests
+          const pendingRequests = Array.isArray(data) ? data.map((req, idx) => transformPendingRequest(req, idx)) : [];
+          dispatch(setPending(pendingRequests));
+          dispatch(setLoading(false));
+          // If no pending requests, ensure we show empty state
+          if (pendingRequests.length === 0) {
+            dispatch(setPending([]));
+          }
+          break;
 
-        // Combine friend requests and community requests
-        dispatch(setRequests([...transformedFriendRequests, ...communityRequests]));
-        dispatch(setLoading(false));
-      } catch (err) {
-        console.error('Error fetching friend requests:', err);
-        const errorMsg = err.message || 'Failed to load requests';
-        dispatch(setError(errorMsg));
-        dispatch(setLoading(false));
-        window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: errorMsg, type: 'error' }
-        }));
+        case 'friend_request_response':
+          // Friend request was accepted/rejected
+          if (data.accepted) {
+            dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { message: 'Friend request accepted!', type: 'success' }
+            }));
+          } else {
+            dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
+          }
+          break;
+
+        case 'notification':
+          // Generic notification - try to parse it
+          const allRequests = [];
+          if (data.friendRequests) {
+            const friendReqs = Array.isArray(data.friendRequests) 
+              ? data.friendRequests.map((req, idx) => transformFriendRequest(req, idx)) 
+              : [];
+            allRequests.push(...friendReqs);
+          }
+          if (data.communityRequests) {
+            if (Array.isArray(data.communityRequests)) {
+              data.communityRequests.forEach((item) => {
+                // Handle new format where each item is a notification
+                if (item.communityId || item.communityName) {
+                  allRequests.push(transformCommunityRequest(item, item.communityId, item.communityName));
+                }
+                // Handle legacy format with nested requests
+                else {
+                  const { communityId, communityName, requests: commRequests } = item;
+                  if (Array.isArray(commRequests)) {
+                    commRequests.forEach((req) => {
+                      allRequests.push(transformCommunityRequest(req, communityId, communityName));
+                    });
+                  }
+                }
+              });
+            }
+          }
+          if (allRequests.length > 0) {
+            const currentReqsForNotification = requests || [];
+            const existingNonMatching = currentReqsForNotification.filter(r => 
+              !allRequests.some(newReq => newReq.id === r.id)
+            );
+            dispatch(setRequests([...existingNonMatching, ...allRequests]));
+          } else if (
+            (Array.isArray(data.friendRequests) && data.friendRequests.length === 0) || 
+            (Array.isArray(data.communityRequests) && data.communityRequests.length === 0)
+          ) {
+            // Explicitly empty arrays - ensure we show empty state
+            dispatch(setRequests([]));
+          }
+          if (data.pendingRequests) {
+            const pendingReqs = Array.isArray(data.pendingRequests) 
+              ? data.pendingRequests.map((req, idx) => transformPendingRequest(req, idx)) 
+              : [];
+            dispatch(setPending(pendingReqs));
+          } else if (Array.isArray(data.pendingRequests) && data.pendingRequests.length === 0) {
+            // Explicitly empty array
+            dispatch(setPending([]));
+          }
+          dispatch(setLoading(false));
+          break;
+
+        case 'error':
+          dispatch(setError('WebSocket connection error'));
+          dispatch(setLoading(false));
+          break;
+
+        default:
+          console.log('InboxModal: Unhandled WebSocket event', eventType, data);
       }
     };
 
-    fetchFriendRequests();
+    // Add WebSocket listener
+    const removeListener = webSocketService.addListener(handleWebSocketEvent);
+
+    return () => {
+      removeListener();
+    };
   }, [isOpen, user, dispatch]);
 
   useEffect(() => {
@@ -346,9 +571,13 @@ const InboxModal = ({ isOpen, onClose }) => {
             </div>
           ) : activeTab === 'request' ? (
             <div className="space-y-3">
-              {requests.length === 0 ? (
-                <div className="text-center text-gray-500 py-12 text-sm">
-                  No requests
+              {!loading && requests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p className="text-gray-500 text-sm font-medium">No requests</p>
+                  <p className="text-gray-400 text-xs mt-1">You don't have any pending requests</p>
                 </div>
               ) : (
                 requests.map((request) => (
@@ -410,9 +639,13 @@ const InboxModal = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {pending.length === 0 ? (
-                <div className="text-center text-gray-500 py-12 text-sm">
-                  No pending requests
+              {!loading && pending.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-gray-500 text-sm font-medium">No pending requests</p>
+                  <p className="text-gray-400 text-xs mt-1">You don't have any pending friend requests</p>
                 </div>
               ) : (
                 pending.map((item) => {

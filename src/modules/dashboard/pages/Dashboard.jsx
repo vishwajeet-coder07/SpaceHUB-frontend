@@ -4,6 +4,7 @@ import { useNavigate, useMatch } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import { getProfileSummary, getFriendsList } from '../../../shared/services/API';
+import webSocketService from '../../../shared/services/WebSocketService';
 import {
   selectSelectedView,
   selectShowCreate,
@@ -16,6 +17,7 @@ import {
   setSelectedFriend,
   setShowInbox,
 } from '../../../shared/store/slices/uiSlice';
+import { selectUnreadCount } from '../../../shared/store/slices/inboxSlice';
 import DashboardMainSection from '../components/DashboardMainSection';
 import DashboardRightSidebar from '../components/DashboardRightSidebar';
 import Discover from '../components/Discover';
@@ -36,6 +38,7 @@ const Dashboard = () => {
   const showRightSidebar = useSelector(selectShowRightSidebar);
   const selectedFriend = useSelector(selectSelectedFriend);
   const showInbox = useSelector(selectShowInbox);
+  const unreadCount = useSelector(selectUnreadCount);
 
   const discoverMatch = useMatch('/dashboard/discover');
   const chatMatch = useMatch('/dashboard/chat/:friendId');
@@ -262,7 +265,32 @@ const Dashboard = () => {
     };
   }, [dispatch]);
 
+  // Initialize WebSocket connection for notifications
+  useEffect(() => {
+    const sessionUserRaw = sessionStorage.getItem('userData');
+    let sessionUser = {};
+    try {
+      sessionUser = sessionUserRaw ? JSON.parse(sessionUserRaw) : {};
+    } catch {
+      sessionUser = {};
+    }
+
+    const effectiveEmail = user?.email || sessionUser?.email;
+    
+    if (effectiveEmail) {
+      // Connect to WebSocket
+      webSocketService.connect(effectiveEmail);
+      
+      // Cleanup on unmount
+      return () => {
+        webSocketService.disconnect();
+      };
+    }
+  }, [user]);
+
   const handleLogout = () => {
+    // Disconnect WebSocket before logout
+    webSocketService.disconnect();
     logout();
     navigate('/');
   };
@@ -315,8 +343,13 @@ const Dashboard = () => {
             <button 
               onClick={() => dispatch(setShowInbox(true))}
               title='Inbox'
-              className="w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
+              className="relative w-7 h-7 flex items-center justify-center hover:bg-gray-300 rounded-md transition-colors">
               <img src="/avatars/inbox.png" alt="Inbox" className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                  <span className="text-[0px]">{unreadCount}</span>
+                </span>
+              )}
             </button>
           </div>
         </div>

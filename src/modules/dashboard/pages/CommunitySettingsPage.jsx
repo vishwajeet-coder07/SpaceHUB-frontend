@@ -12,7 +12,7 @@ const CommunitySettingsPage = () => {
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [bannerError, setBannerError] = useState(false);
 
@@ -96,6 +96,14 @@ const CommunitySettingsPage = () => {
       fetchCommunity();
     }
   }, [id]);
+
+  // Set default section based on screen size
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop && (activeSection === null || activeSection === 'sidebar')) {
+      setActiveSection('profile');
+    }
+  }, []);
 
   useEffect(() => {
     setImageError(false);
@@ -216,6 +224,13 @@ const CommunitySettingsPage = () => {
   }, [roleChanges]);
 
   const handleBack = () => {
+    // On mobile, if a section is active, go back to sidebar menu
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && activeSection && activeSection !== 'sidebar') {
+      setActiveSection(null);
+      return;
+    }
+    // Otherwise, navigate back to community page
     navigate(`/dashboard/community/${id}`);
   };
 
@@ -800,16 +815,22 @@ const CommunitySettingsPage = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-x-hidden">
+    <div className="h-screen bg-gray-100 md:bg-gray-100 flex flex-col overflow-x-hidden">
       {/* Top Navbar */}
-      <div className="sticky top-0 z-20 bg-gray-200 border-b border-gray-300 h-20 flex items-center px-4 rounded-b-xl">
+      <div className="sticky top-0 z-20 bg-white md:bg-gray-200 border-b border-gray-200 md:border-gray-300 h-14 md:h-20 flex items-center px-4 md:rounded-b-xl">
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
+          <button onClick={handleBack} className="cursor-pointer hover:opacity-80 transition-opacity">
+            <img src="/back arrow.svg" alt="Back" className="w-6 h-6" />
+          </button>
+          <button onClick={() => navigate('/')} className="hidden md:block cursor-pointer hover:opacity-80 transition-opacity">
           <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
           </button>
         </div>
          <div className="flex-1 text-center">
+           <div className="flex items-center gap-2">
+             <img src="/setting.svg" alt="Settings" className="w-6 h-6" />
            <h1 className="text-lg font-semibold text-gray-800">Settings</h1>
+           </div>
          </div>
         <div className="flex items-center gap-3">
           <button 
@@ -822,8 +843,533 @@ const CommunitySettingsPage = () => {
       </div>
 
        {/* Main Content */}
-       <div className="flex-1 bg-gray-100 flex items-center justify-center p-6">
-         <div className="bg-gray-200 rounded-2xl w-full max-w-6xl h-full flex flex-col shadow-lg">
+       <div className="flex-1 bg-gray-100 md:bg-gray-100 flex items-center justify-center p-0 md:p-6 overflow-y-auto">
+         {/* Mobile Layout - Single Column */}
+         <div className="md:hidden w-full h-full bg-white flex flex-col">
+           {/* Mobile Sidebar Navigation */}
+           {activeSection === null || activeSection === 'sidebar' ? (
+             <div className="flex-1 p-6 space-y-3">
+               <button
+                 onClick={() => setActiveSection('profile')}
+                 className="w-full text-left px-4 py-4 rounded-md bg-gray-300 hover:bg-zinc-400 transition-colors text-base font-medium text-gray-800"
+               >
+                 Community Profile
+               </button>
+               <button
+                 onClick={() => setActiveSection('channels')}
+                 className="w-full text-left px-4 py-4 rounded-md bg-gray-300 hover:bg-zinc-400 transition-colors text-base font-medium text-gray-800"
+               >
+                 Group
+               </button>
+               <button
+                 onClick={() => setActiveSection('roles')}
+                 className="w-full text-left px-4 py-4 rounded-md bg-gray-300 hover:bg-zinc-400 transition-colors text-base font-medium text-gray-800"
+               >
+                 Roles
+               </button>
+               
+               {/* Danger Zone */}
+               <div className="pt-4 space-y-3 border-t border-gray-200 mt-4">
+                 <button
+                   onClick={() => setShowDeleteModal(true)}
+                   className="w-full text-left px-4 py-4 rounded-md text-red-600 hover:bg-red-100 transition-colors text-base font-medium flex items-center gap-3"
+                 >
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                   </svg>
+                   Delete community
+                 </button>
+                 <button
+                   onClick={() => setShowLeaveModal(true)}
+                   className="w-full text-left px-4 py-4 rounded-md text-red-600 hover:bg-red-100 transition-colors text-base font-medium flex items-center gap-3"
+                 >
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                   </svg>
+                   Log out
+                 </button>
+               </div>
+             </div>
+           ) : (
+             /* Mobile Content Area */
+             <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
+               {/* Mobile Profile Section */}
+               {activeSection === 'profile' && (
+                 <div className="flex-1 p-3 overflow-hidden">
+                   <div className="bg-white rounded-xl shadow-md p-4 h-full flex flex-col">
+                   <h2 className="text-lg font-bold text-gray-800 mb-3">Community Profile</h2>
+                   
+                   <div className="flex-1 overflow-y-auto">
+                   {/* Profile Section */}
+                   <div className="mb-3">
+                     <h3 className="text-sm font-semibold text-gray-800 mb-2">Profile</h3>
+                     <div className="flex items-center gap-3 mb-2">
+                       <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                         {profileImagePreview ? (
+                           <img
+                             src={profileImagePreview}
+                             alt="Preview"
+                             className="w-full h-full object-cover"
+                           />
+                         ) : community?.imageUrl && !imageError ? (
+                           <img
+                             src={safeUrl(community.imageUrl)}
+                             alt={title}
+                             className="w-full h-full object-cover"
+                             referrerPolicy="no-referrer"
+                             onError={() => setImageError(true)}
+                           />
+                         ) : (
+                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                             <div className="text-3xl font-bold text-gray-400">
+                               {title.charAt(0).toUpperCase()}
+                             </div>
+                           </div>
+                         )}
+                         <button
+                           onClick={profileImagePreview ? handleRemoveProfileImage : handleImageUpload}
+                           className="absolute -right-1 -top-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors cursor-pointer z-10 shadow-lg"
+                           type="button"
+                         >
+                           {profileImagePreview ? (
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                             </svg>
+                           ) : (
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                             </svg>
+                           )}
+                         </button>
+                       </div>
+                       <button
+                         onClick={handleImageUpload}
+                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors text-xs"
+                       >
+                         {profileImageFile ? 'Change' : 'Upload'}
+                       </button>
+                     </div>
+                     <input
+                       ref={fileInputRef}
+                       type="file"
+                       accept="image/*"
+                       onChange={handleImageChange}
+                       className="hidden"
+                     />
+                   </div>
+
+                   {/* Community Name Section */}
+                   <div className="mb-3">
+                     <label className="block text-gray-800 text-xs font-medium mb-1">Community name</label>
+                     <div className="relative">
+                       <input
+                         type="text"
+                         value={communityName}
+                         onChange={(e) => handleCommunityNameChange(e.target.value)}
+                         className={`w-full bg-gray-50 border border-gray-300 text-gray-800 px-3 py-2 rounded-lg outline-none placeholder:text-gray-400 pr-8 text-sm ${communityNameError ? 'ring-1 ring-red-500 border-red-500' : 'focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500'}`}
+                         placeholder="Enter community name"
+                         maxLength={30}
+                       />
+                       <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                         </svg>
+                       </div>
+                     </div>
+                     {communityNameError ? (
+                       <p className="text-red-500 text-xs mt-0.5">{communityNameError}</p>
+                     ) : (
+                       <p className="text-gray-500 text-xs mt-0.5">{communityName.length}/30</p>
+                     )}
+                   </div>
+
+                   {/* Banner Section */}
+                   <div className="mb-3">
+                     <label className="block text-gray-800 text-xs font-medium mb-1">Banner</label>
+                     <div className="rounded-lg overflow-hidden bg-gray-100 mb-2 border border-gray-200">
+                       {bannerImagePreview ? (
+                         <img
+                           src={bannerImagePreview}
+                           alt="Banner Preview"
+                           className="w-full h-24 object-cover"
+                         />
+                       ) : community?.bannerUrl && !bannerError ? (
+                         <img
+                           src={safeUrl(community.bannerUrl)}
+                           alt="Banner"
+                           className="w-full h-24 object-cover"
+                           referrerPolicy="no-referrer"
+                           onError={() => setBannerError(true)}
+                         />
+                       ) : (
+                         <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+                           <span className="text-gray-400 text-xs">No banner</span>
+                         </div>
+                       )}
+                     </div>
+                     <button
+                       onClick={handleBannerUpload}
+                       className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-semibold transition-colors w-full text-xs"
+                     >
+                       {bannerImageFile ? 'Change banner' : 'Upload'}
+                     </button>
+                     <input
+                       ref={bannerInputRef}
+                       type="file"
+                       accept="image/*"
+                       onChange={handleBannerChange}
+                       className="hidden"
+                     />
+                   </div>
+
+                   {/* Description Section */}
+                   <div className="mb-3">
+                     <label className="block text-gray-800 text-xs font-medium mb-1">Description</label>
+                     <textarea
+                       value={description}
+                       onChange={(e) => setDescription(e.target.value)}
+                       className="w-full bg-gray-50 border border-gray-300 text-gray-800 px-3 py-2 rounded-lg outline-none placeholder:text-gray-400 resize-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                       rows={2}
+                       placeholder="A curious mind who enjoys coding, design, Tech and community-driven projects..."
+                       maxLength={80}
+                     />
+                     <p className="text-gray-500 text-xs mt-0.5">{description.length}/80</p>
+                   </div>
+                   </div>
+                   </div>
+                 </div>
+               )}
+
+               {/* Mobile Groups Section */}
+               {activeSection === 'channels' && (
+                 <div className="flex-1 p-3 overflow-hidden">
+                   <div className="bg-white rounded-xl shadow-md p-4 h-full flex flex-col">
+                   <h2 className="text-lg font-bold text-gray-800 mb-3">Group</h2>
+                   <h3 className="text-sm font-semibold text-gray-800 mb-2">Group name</h3>
+                   <div className="flex-1 overflow-y-auto">
+                   {loadingGroups ? (
+                     <div className="text-gray-500 text-xs">Loading groups...</div>
+                   ) : (
+                     <div className="space-y-2">
+                       {groups.map((group, index) => {
+                         const charCount = (group.name || '').length;
+                         return (
+                           <div key={group.id || index} className="flex flex-col gap-1">
+                             <div className="flex items-center gap-2">
+                               <div className="flex-1 relative">
+                                 <input
+                                   type="text"
+                                   value={group.name || ''}
+                                   onChange={(e) => handleGroupChange(index, e.target.value)}
+                                   onBlur={() => handleGroupBlur(index)}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') {
+                                       handleGroupBlur(index);
+                                     }
+                                   }}
+                                   className="w-full bg-gray-50 border border-gray-300 text-gray-800 px-3 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                   placeholder="Group name"
+                                   autoFocus={editingGroupId === index}
+                                   maxLength={30}
+                                 />
+                               </div>
+                               <button
+                                 onClick={() => handleEditGroup(index)}
+                                 className="text-gray-600 hover:text-gray-800 transition-colors p-1.5"
+                                 title="Edit group"
+                               >
+                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                 </svg>
+                               </button>
+                               <button
+                                 onClick={() => handleDeleteGroupClick(index)}
+                                 className="text-red-600 hover:text-red-700 transition-colors p-1.5"
+                                 title="Delete group"
+                               >
+                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                                 </svg>
+                               </button>
+                             </div>
+                             <div className="flex items-center justify-end pr-12">
+                               <p className="text-xs text-gray-500">{charCount}/30</p>
+                             </div>
+                           </div>
+                         );
+                       })}
+                       {groups.length === 0 && (
+                         <div className="text-gray-500 text-xs mt-2">No groups yet.</div>
+                       )}
+                     </div>
+                   )}
+                   </div>
+                   </div>
+                 </div>
+               )}
+
+               {/* Mobile Roles Section */}
+               {activeSection === 'roles' && (
+                 <div className="flex-1 p-3 overflow-hidden">
+                   <div className="bg-white rounded-xl shadow-md p-4 h-full flex flex-col">
+                   <h2 className="text-lg font-bold text-gray-800 mb-3">Roles</h2>
+                   
+                   <div className="flex-1 overflow-y-auto">
+                   {/* Community Admin Section */}
+                   {communityOwner && (
+                     <div className="mb-3">
+                       <h3 className="text-sm font-semibold text-gray-800 mb-2">Community admin</h3>
+                       <div className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2">
+                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                           {communityOwner.avatarPreviewUrl ? (
+                             <img 
+                               src={communityOwner.avatarPreviewUrl} 
+                               alt={communityOwner.username || communityOwner.email}
+                               className="w-full h-full rounded-full object-cover"
+                               referrerPolicy="no-referrer"
+                             />
+                           ) : (
+                             <span className="text-gray-600 font-semibold text-sm">
+                               {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
+                             </span>
+                           )}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <div className="text-gray-800 font-medium truncate text-sm">
+                             {communityOwner.username || communityOwner.email}
+                           </div>
+                         </div>
+                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                           <path d="M19 9l-7 7-7-7" />
+                         </svg>
+                       </div>
+                     </div>
+                   )}
+
+                   {/* Search Bar */}
+                   <div className="mb-3">
+                     <div className="relative">
+                       <svg 
+                         className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                         fill="none" 
+                         stroke="currentColor" 
+                         viewBox="0 0 24 24"
+                       >
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                       </svg>
+                       <input
+                         type="text"
+                         placeholder="Search"
+                         value={searchQuery}
+                         onChange={(e) => setSearchQuery(e.target.value)}
+                         className="w-full bg-gray-50 border border-gray-300 text-gray-800 px-8 py-2 rounded-lg outline-none placeholder:text-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                       />
+                     </div>
+                   </div>
+
+                   {/* Community Members Section */}
+                   <div>
+                     <h3 className="text-sm font-semibold text-gray-800 mb-2">Community Members</h3>
+                     {loadingMembers ? (
+                       <div className="text-gray-500 text-xs">Loading members...</div>
+                     ) : (
+                       <div className="space-y-2">
+                         {(() => {
+                           const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+                           const currentUserEmail = userData?.email || '';
+                           
+                           return members
+                             .filter(member => {
+                               if (!searchQuery.trim()) return true;
+                               const query = searchQuery.toLowerCase();
+                               const username = (member.username || member.email || '').toLowerCase();
+                               const email = (member.email || '').toLowerCase();
+                               return username.includes(query) || email.includes(query);
+                             })
+                             .map((member) => {
+                               const memberId = member.email || member.id;
+                               const originalRole = (member.role || 'MEMBER').toUpperCase();
+                               const pendingRole = roleChanges[member.email];
+                               const currentRole = pendingRole ? pendingRole.toUpperCase() : originalRole;
+                               const roleUpper = currentRole;
+                               const isCurrentUser = member.email && currentUserEmail && 
+                                 member.email.toLowerCase() === currentUserEmail.toLowerCase();
+                               
+                               return (
+                                 <div 
+                                   key={memberId}
+                                   className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 flex items-center gap-2"
+                                 >
+                                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                     {member.avatarPreviewUrl ? (
+                                       <img 
+                                         src={member.avatarPreviewUrl} 
+                                         alt={member.username || member.email}
+                                         className="w-full h-full rounded-full object-cover"
+                                         referrerPolicy="no-referrer"
+                                       />
+                                     ) : (
+                                       <span className="text-gray-600 font-semibold text-sm">
+                                         {(member.username || member.email || 'U').charAt(0).toUpperCase()}
+                                       </span>
+                                     )}
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <div className="text-gray-800 font-medium truncate text-sm">
+                                       {member.username || member.email}
+                                     </div>
+                                     {currentRole && (
+                                       <div className="text-xs text-gray-500">
+                                         {roleUpper === 'ADMIN' 
+                                           ? 'Admin' 
+                                           : roleUpper === 'WORKSPACE_OWNER' || roleUpper === 'OWNER'
+                                           ? 'Workspace Owner'
+                                           : roleUpper === 'MEMBER'
+                                           ? 'Member'
+                                           : roleUpper}
+                                       </div>
+                                     )}
+                                   </div>
+                                   {!isCurrentUser && (
+                                     <div className="relative" ref={el => dropdownRefs.current[memberId] = el}>
+                                       <button
+                                         onClick={() => setOpenDropdownId(openDropdownId === memberId ? null : memberId)}
+                                         className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                       >
+                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                           <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                         </svg>
+                                       </button>
+                                       {openDropdownId === memberId && (
+                                         <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg z-50 min-w-[180px] border border-gray-200">
+                                           {roleUpper !== 'ADMIN' && (
+                                             <button
+                                               onClick={() => handleRoleChange(member.email, 'ADMIN')}
+                                               className="w-full text-left px-3 py-2 text-xs text-gray-800 hover:bg-gray-100 transition-colors"
+                                             >
+                                               Change role to Admin
+                                             </button>
+                                           )}
+                                           {roleUpper !== 'WORKSPACE_OWNER' && roleUpper !== 'OWNER' && (
+                                             <button
+                                               onClick={() => handleRoleChange(member.email, 'WORKSPACE_OWNER')}
+                                               className="w-full text-left px-3 py-2 text-xs text-gray-800 hover:bg-gray-100 transition-colors"
+                                             >
+                                               Change role to Workspace Owner
+                                             </button>
+                                           )}
+                                           {roleUpper !== 'MEMBER' && (
+                                             <button
+                                               onClick={() => handleRoleChange(member.email, 'MEMBER')}
+                                               className="w-full text-left px-3 py-2 text-xs text-gray-800 hover:bg-gray-100 transition-colors"
+                                             >
+                                               Change role to Member
+                                             </button>
+                                           )}
+                                         </div>
+                                       )}
+                                     </div>
+                                   )}
+                                 </div>
+                               );
+                             });
+                         })()}
+                         {members.filter(member => {
+                           if (!searchQuery.trim()) return true;
+                           const query = searchQuery.toLowerCase();
+                           const username = (member.username || member.email || '').toLowerCase();
+                           const email = (member.email || '').toLowerCase();
+                           return username.includes(query) || email.includes(query);
+                         }).length === 0 && (
+                           <div className="text-gray-500 text-xs text-center py-4">
+                             {searchQuery.trim() ? 'No members found' : 'No members yet'}
+                           </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
+                   </div>
+                   </div>
+                 </div>
+               )}
+
+               {/* Mobile Bottom Action Buttons */}
+               {activeSection === 'profile' && (
+                 <div className="bg-white border-t border-gray-200 p-2 flex gap-2">
+                   <button
+                     onClick={handleDonSave}
+                     className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold transition-colors text-sm"
+                   >
+                     Don't save
+                   </button>
+                   <button
+                     onClick={handleSave}
+                     disabled={!hasChanges || saving}
+                     className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors text-sm ${
+                       hasChanges && !saving
+                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                     }`}
+                   >
+                     {saving ? 'Saving...' : 'Save changes'}
+                   </button>
+                 </div>
+               )}
+
+               {activeSection === 'channels' && (
+                 <div className="bg-white border-t border-gray-200 p-2 flex gap-2">
+                   <button
+                     onClick={handleDonSave}
+                     className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold transition-colors text-sm"
+                   >
+                     Don't save
+                   </button>
+                   <button
+                     onClick={handleSaveGroups}
+                     disabled={!hasGroupChanges}
+                     className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors text-sm ${
+                       hasGroupChanges
+                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                     }`}
+                   >
+                     Save changes
+                   </button>
+                 </div>
+               )}
+
+               {activeSection === 'roles' && (
+                 <div className="bg-white border-t border-gray-200 p-2 flex gap-2">
+                   <button
+                     onClick={handleDontSaveRoles}
+                     disabled={!hasRoleChanges}
+                     className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors text-sm ${
+                       hasRoleChanges
+                         ? 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                     }`}
+                   >
+                     Don't save
+                   </button>
+                   <button
+                     onClick={handleSaveRoles}
+                     disabled={!hasRoleChanges || saving}
+                     className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors text-sm ${
+                       hasRoleChanges && !saving
+                         ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                     }`}
+                   >
+                     {saving ? 'Saving...' : 'Save changes'}
+                   </button>
+                 </div>
+               )}
+             </div>
+           )}
+         </div>
+
+         {/* Desktop Layout */}
+         <div className="hidden md:block bg-gray-200 rounded-2xl w-full max-w-6xl h-full flex flex-col shadow-lg">
            {/* Settings Container */}
            <div className="flex-1 flex bg-[#282828] rounded-2xl overflow-hidden">
             {/* Left Sidebar */}
@@ -1232,8 +1778,8 @@ const CommunitySettingsPage = () => {
                               className="text-gray-800 font-semibold text-sm"
                               style={{ display: communityOwner.avatarPreviewUrl ? 'none' : 'flex' }}
                             >
-                              {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
-                            </span>
+                                {(communityOwner.username || communityOwner.email || 'U').charAt(0).toUpperCase()}
+                              </span>
                           </div>
                           <div className="flex-1">
                             <div className="text-white font-medium">
@@ -1243,7 +1789,7 @@ const CommunitySettingsPage = () => {
                                   {communityOwner.role === 'OWNER' || communityOwner.role === 'WORKSPACE_OWNER' 
                                     ? 'Workspace Owner' 
                                     : communityOwner.role === 'ADMIN'
-                                    ? 'Admin'
+                                    ? 'Admin' 
                                     : communityOwner.role}
                                 </span>
                               )}
@@ -1332,8 +1878,8 @@ const CommunitySettingsPage = () => {
                                       className="text-gray-800 font-semibold text-sm"
                                       style={{ display: member.avatarPreviewUrl ? 'none' : 'flex' }}
                                     >
-                                      {(member.username || member.email || 'U').charAt(0).toUpperCase()}
-                                    </span>
+                                        {(member.username || member.email || 'U').charAt(0).toUpperCase()}
+                                      </span>
                                   </div>
                                   <div className="flex-1">
                                     <div className="text-white font-medium">
