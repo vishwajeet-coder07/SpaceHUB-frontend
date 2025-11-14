@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { acceptJoinRequest, rejectJoinRequest, respondToFriendRequest } from '../../../shared/services/API';
+import { acceptJoinRequest, rejectJoinRequest, respondToFriendRequest, getPresignedDownloadUrl } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import webSocketService from '../../../shared/services/WebSocketService';
 import {
@@ -36,21 +36,82 @@ const InboxModal = ({ isOpen, onClose }) => {
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
   const requestsRef = useRef(requests);
+  const [avatarUrls, setAvatarUrls] = useState({}); // Cache for presigned URLs
 
   useEffect(() => {
     requestsRef.current = requests;
   }, [requests]);
+
+  // Update requests and pending with latest avatar URLs
+  const requestsWithAvatars = useMemo(() => {
+    return requests.map(req => ({
+      ...req,
+      avatar: req.avatar || (req.avatarFile && avatarUrls[req.avatarFile]) || null
+    }));
+  }, [requests, avatarUrls]);
+
+  const pendingWithAvatars = useMemo(() => {
+    return pending.map(item => ({
+      ...item,
+      avatar: item.avatar || (item.avatarFile && avatarUrls[item.avatarFile]) || null
+    }));
+  }, [pending, avatarUrls]);
+
+  // Fetch presigned URLs for all avatar files in requests and pending
+  useEffect(() => {
+    const fetchAvatarUrls = async () => {
+      const allItems = [...requests, ...pending];
+      const filesToFetch = new Set();
+      
+      // Collect all unique file paths that need presigned URLs
+      allItems.forEach(item => {
+        if (item.avatarFile && !avatarUrls[item.avatarFile]) {
+          filesToFetch.add(item.avatarFile);
+        }
+      });
+      
+      if (filesToFetch.size === 0) return;
+      
+      // Fetch presigned URLs for all files
+      const fetchPromises = Array.from(filesToFetch).map(async (filePath) => {
+        try {
+          // Determine content type from file extension
+          const contentType = filePath.toLowerCase().endsWith('.png') ? 'image/png' :
+                             filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' :
+                             filePath.toLowerCase().endsWith('.gif') ? 'image/gif' :
+                             filePath.toLowerCase().endsWith('.webp') ? 'image/webp' :
+                             'image/png';
+          
+          const url = await getPresignedDownloadUrl(filePath, contentType);
+          if (url) {
+            setAvatarUrls(prev => ({ ...prev, [filePath]: url }));
+          }
+        } catch (error) {
+          console.error(`Failed to get presigned URL for ${filePath}:`, error);
+        }
+      });
+      
+      await Promise.all(fetchPromises);
+    };
+    
+    if (requests.length > 0 || pending.length > 0) {
+      fetchAvatarUrls();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, pending]);
 
 
   const transformFriendRequest = (req, idx = 0) => {
 
     if (req.senderName || req.senderEmail) {
       const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown User';
-      const avatarUrl = req.senderProfileImageUrl 
-        ? (req.senderProfileImageUrl.startsWith('http') 
-            ? req.senderProfileImageUrl 
-            : `https://codewithketan.me/api/v1/${req.senderProfileImageUrl}`)
+      // Store file path - will be converted to presigned URL in useEffect
+      const avatarFile = req.senderProfileImageUrl && !req.senderProfileImageUrl.startsWith('http') 
+        ? req.senderProfileImageUrl 
         : null;
+      const avatarUrl = req.senderProfileImageUrl?.startsWith('http') 
+        ? req.senderProfileImageUrl 
+        : (avatarUrls[req.senderProfileImageUrl] || null);
       
       return {
         id: `friend-${req.id || req.senderEmail || idx}`,
@@ -62,6 +123,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         firstName: req.senderName?.split(' ')[0],
         lastName: req.senderName?.split(' ').slice(1).join(' '),
         avatar: avatarUrl,
+        avatarFile: avatarFile, // Store file path for async fetching
         notificationId: req.id,
         read: req.read || false,
         createdAt: req.createdAt
@@ -94,11 +156,13 @@ const InboxModal = ({ isOpen, onClose }) => {
     // Handle new WebSocket format
     if (req.senderName || req.senderEmail) {
       const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown';
-      const avatarUrl = req.senderProfileImageUrl 
-        ? (req.senderProfileImageUrl.startsWith('http') 
-            ? req.senderProfileImageUrl 
-            : `https://codewithketan.me/api/v1/${req.senderProfileImageUrl}`)
+      // Store file path - will be converted to presigned URL in useEffect
+      const avatarFile = req.senderProfileImageUrl && !req.senderProfileImageUrl.startsWith('http') 
+        ? req.senderProfileImageUrl 
         : null;
+      const avatarUrl = req.senderProfileImageUrl?.startsWith('http') 
+        ? req.senderProfileImageUrl 
+        : (avatarUrls[req.senderProfileImageUrl] || null);
       
       return {
         id: `${req.communityId || communityId}-${req.referenceId || req.id}`,
@@ -109,6 +173,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         requesterEmail: req.senderEmail,
         userId: req.referenceId || req.id,
         avatar: avatarUrl,
+        avatarFile: avatarFile, // Store file path for async fetching
         notificationId: req.id,
         read: req.read || false,
         createdAt: req.createdAt
@@ -574,19 +639,28 @@ const InboxModal = ({ isOpen, onClose }) => {
                   <p className="text-gray-400 text-xs mt-1">You don't have any pending requests</p>
                 </div>
               ) : (
-                requests.map((request) => (
+                requestsWithAvatars.map((request) => (
                   <div key={request.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
                     {/* Avatar */}
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                       {request.avatar ? (
-                        <img src={request.avatar} alt={request.requester} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                        <img 
+                          src={request.avatar} 
+                          alt={request.requester} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextSibling) {
+                              e.target.nextSibling.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className="w-full h-full bg-gray-300 flex items-center justify-center" style={{ display: request.avatar ? 'none' : 'flex' }}>
                           <span className="text-xs font-semibold text-gray-600">
                             {request.requester?.charAt(0) || 'U'}
                           </span>
                         </div>
-                      )}
                     </div>
 
                     {/* Request Info */}
@@ -642,21 +716,30 @@ const InboxModal = ({ isOpen, onClose }) => {
                   <p className="text-gray-400 text-xs mt-1">You don't have any pending friend requests</p>
                 </div>
               ) : (
-                pending.map((item) => {
+                pendingWithAvatars.map((item) => {
                   const displayName = item.requester || item.username || item.name || 'Unknown';
                   return (
                     <div key={item.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
                       {/* Avatar */}
                       <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                         {item.avatar ? (
-                          <img src={item.avatar} alt={displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                          <img 
+                            src={item.avatar} 
+                            alt={displayName} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className="w-full h-full bg-gray-300 flex items-center justify-center" style={{ display: item.avatar ? 'none' : 'flex' }}>
                             <span className="text-xs font-semibold text-gray-600">
                               {displayName?.charAt(0) || 'U'}
                             </span>
                           </div>
-                        )}
                       </div>
 
                       {/* Request Info */}

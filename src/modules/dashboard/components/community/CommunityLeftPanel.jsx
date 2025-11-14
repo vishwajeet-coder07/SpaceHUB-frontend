@@ -856,8 +856,7 @@ const GroupSection = ({ groupName, open, onToggle, chatRooms, voiceRooms, onAddC
   const [fetchedVoiceRoomsData, setFetchedVoiceRoomsData] = useState([]); // Store full voice room objects
   const [loadingChatrooms, setLoadingChatrooms] = useState(false);
   const [loadingVoiceRooms, setLoadingVoiceRooms] = useState(false);
-  
-  // Fetch chatrooms when group dropdown opens
+
   useEffect(() => {
     if (open && roomCode) {
       const fetchChatrooms = async () => {
@@ -1431,15 +1430,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
             id: lg.id || lg.groupId || communityId,
             chatRoomId: chatRoomId || lg.id || communityId,
             name: lg.name || lg.groupName || title || 'Local Group',
-            chatRooms: ['general'], // Default general channel
-            voiceRooms: ['general'], // Default general channel
+            chatRooms: ['general'], 
+            voiceRooms: ['general'],
             roomCode: chatRoomCode, // Use chatRoomCode from response
           },
         ];
 
         setGroups(transformedGroups);
         if (preserveOpenState && previousOpenGroups) {
-          // Preserve open state for existing groups
           setOpenGroups((prev) => {
             const newState = transformedGroups.reduce((acc, g) => {
               acc[g.name] = previousOpenGroups[g.name] !== undefined ? previousOpenGroups[g.name] : true;

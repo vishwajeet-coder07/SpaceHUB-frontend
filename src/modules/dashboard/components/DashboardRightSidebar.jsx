@@ -189,13 +189,22 @@ const DashboardRightSidebar = ({ onClose }) => {
                 const email = user.email || '';
                 const avatarUrl = user.avatarUrl || user.avatar || '/avatars/avatar-1.png';
                 
-                // Check friendshipStatus from API response
-                // If friendshipStatus is null/undefined, show "Add Friend" button
-                // Otherwise, show "Requested" button
                 const friendshipStatus = user.friendshipStatus;
-                const isNull = friendshipStatus === null || friendshipStatus === undefined;
-                const isRequested = !isNull || requested[user?.userId || user?.id];
                 const friendId = user?.userId || user?.id;
+                const isNone = friendshipStatus === null || friendshipStatus === undefined || friendshipStatus === 'NONE';
+                const isRequestSent = friendshipStatus === 'REQUEST_SENT';
+                const isFriend = friendshipStatus === 'FRIEND';
+                const isJustRequested = requested[friendId];
+                const isDisabled = addingFriend[friendId] || isRequestSent || isFriend || isJustRequested;
+
+                let buttonText = 'Add Friend';
+                if (addingFriend[friendId]) {
+                  buttonText = 'Sending...';
+                } else if (isFriend) {
+                  buttonText = 'Already Friend';
+                } else if (isRequestSent || isJustRequested) {
+                  buttonText = 'Requested';
+                }
                 
                 return (
                   <div key={user.userId || user.id || email || idx} className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200">
@@ -227,15 +236,11 @@ const DashboardRightSidebar = ({ onClose }) => {
                     </div>
                     <button
                       onClick={() => handleAddFriend(user)}
-                      disabled={addingFriend[friendId] || isRequested}
-                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${isRequested ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                      disabled={isDisabled}
+                      className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${isDisabled ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                     >
-                      <img src="/icons/add_frnd.svg" alt="Add friend" className="w-4 h-4" />
-                      {addingFriend[friendId]
-                        ? 'Sending...'
-                        : isRequested
-                          ? 'Requested'
-                          : 'Add Friend'}
+                      {!isFriend && <img src="/icons/add_frnd.svg" alt="Add friend" className="w-4 h-4" />}
+                      {buttonText}
                     </button>
                   </div>
                 );

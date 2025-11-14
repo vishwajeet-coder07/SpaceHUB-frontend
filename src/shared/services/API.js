@@ -950,6 +950,17 @@ export async function joinVoiceRoom(janusRoomId, displayName) {
   return handleJson(response);
 }
 
+// Get presigned download URL for file
+export async function getPresignedDownloadUrl(file, contentType = 'image/png') {
+  const response = await authenticatedFetch(`${BASE_URL}files/presigned/download`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file, contentType })
+  });
+  const data = await handleJson(response);
+  return data?.data || data?.url || null;
+}
+
 async function handleJson(response) {
   let data;
   try {

@@ -52,7 +52,6 @@ const LandingPage = () => {
   const [submitMessage, setSubmitMessage] = useState('');
 
   const scrollToSection = (sectionId) => {
-    // Map 'features' to 'Features' to match the actual ID
     const id = sectionId === 'features' ? 'Features' : sectionId;
     const element = document.getElementById(id);
     if (element) {
@@ -71,9 +70,8 @@ const LandingPage = () => {
   
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.slice(1); // Remove the # symbol
+      const hash = window.location.hash.slice(1);
       if (hash) {
-        // Small delay to ensure DOM is ready
         setTimeout(() => {
           scrollToSection(hash);
         }, 100);
@@ -82,8 +80,7 @@ const LandingPage = () => {
 
     handleHashChange();
 
-    window.addEventListener('hashchange', handleHashChange);
-
+    window.addEventListener('hashchange', handleHashChange)
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
@@ -104,7 +101,6 @@ const LandingPage = () => {
     };
 
     document.addEventListener('click', handleAnchorClick);
-
     return () => {
       document.removeEventListener('click', handleAnchorClick);
     };
@@ -113,11 +109,9 @@ const LandingPage = () => {
   const isValidEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
-
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setSubmitMessage('');
-
     if (!email.trim()) {
       setSubmitMessage('Please enter your email address');
       return;

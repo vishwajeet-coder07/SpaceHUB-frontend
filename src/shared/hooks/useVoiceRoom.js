@@ -199,7 +199,6 @@ export const useVoiceRoom = (janusRoomId, sessionId, handleId, userId, enabled =
     } else if (event.type === 'left') {
       log(`User left: ${event.userId}`);
       setParticipants(prev => prev.filter(p => p.userId !== event.userId));
-      // Remove audio element for this user
       const audioId = `remote-audio-${event.userId}`;
       const audio = document.getElementById(audioId);
       if (audio) {
