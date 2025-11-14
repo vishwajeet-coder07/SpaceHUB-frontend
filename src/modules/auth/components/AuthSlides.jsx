@@ -34,30 +34,21 @@ const AuthSlides = ({
               index === currentImageIndex ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <img
-              src={image}
-              alt={`Auth slide ${index + 1}`}
-              className="w-full h-full object-contain"
-            />
+            <div className="w-full h-full flex items-center justify-center p-8 lg:p-12">
+              <img
+                src={image}
+                alt={`Auth slide ${index + 1}`}
+                className="w-full h-full object-contain max-w-full max-h-full"
+              />
+            </div>
           </div>
         ))}
       </div>
 
     
-      <div className="lg:hidden w-full min-h-90 bg-accent flex flex-col justify-center items-center px-0 py-2">
-        <div className="text-center px-2 w-full">
-          <h1 className="text-lg font-bold text-blue-800 leading-tight text-heading">
-            {title.split('\n').map((line, index) => (
-              <React.Fragment key={index}>
-                {line}
-                {index < title.split('\n').length - 1 && <br />}
-              </React.Fragment>
-            ))}
-          </h1>
-        </div>
-        
-        <div className="w-full">
-          <div className="relative w-full h-75 flex items-center justify-center">
+      <div className="lg:hidden w-full h-[45vh] bg-[#FFFFFF] flex flex-col justify-center items-center px-0 py-2">
+        <div className="w-full flex-1 flex items-center justify-center px-2 py-1">
+          <div className="relative w-full h-full flex items-center justify-center">
             {images.map((image, index) => (
               <div
                 key={index}
@@ -65,11 +56,13 @@ const AuthSlides = ({
                   index === currentImageIndex ? 'opacity-100' : 'opacity-0'
                 }`}
               >
-                <img
-                  src={image}
-                  alt={`Auth slide ${index + 1}`}
-                  className="w-full h-full object-contain"
-                />
+                <div className="w-full h-full flex items-center justify-center p-2">
+                  <img
+                    src={image}
+                    alt={`Auth slide ${index + 1}`}
+                    className="w-full h-full object-contain max-w-full max-h-full scale-110"
+                  />
+                </div>
               </div>
             ))}
           </div>

@@ -59,6 +59,11 @@ const LoginPage = () => {
     return null;
   };
 
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setInvalidCredentials(false);
@@ -71,6 +76,9 @@ const LoginPage = () => {
     const phoneLike = normalizePhone(identifier);
     if (!emailLike && !phoneLike) {
       setIdentifierError(true);
+      if (isMobile()) {
+        showToast('Enter a valid email or Indian mobile number (+91XXXXXXXXXX).', 'error');
+      }
       setLoading(false);
       return;
     }
@@ -83,7 +91,7 @@ const LoginPage = () => {
         const userWithId = { ...resolvedUser, ...(effectiveEmail ? { email: effectiveEmail } : {}) };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
         
-        // Fetch profile summary to get profile image
+        
         try {
           if (effectiveEmail) {
             const profileData = await getProfileSummary(effectiveEmail);
@@ -97,12 +105,12 @@ const LoginPage = () => {
           }
         } catch (error) {
           console.error('Failed to fetch profile summary:', error);
-          // Continue with login even if profile fetch fails
+          
         }
         
         login(userWithId, token);
         try {
-          // Persist identifiers for later use
+         
           sessionStorage.setItem('lastIdentifier', identifierToSend);
           if (emailLike) {
             sessionStorage.setItem('lastEmail', identifierToSend);
@@ -135,14 +143,8 @@ const LoginPage = () => {
     setIdentifier(value);
     setInvalidCredentials(false);
     setError('');
-    setIdentifierError(false);
-    runDebounced('identifier', () => {
-      if (value && !validateIdentifier(value)) {
-        setIdentifierError(true);
-      } else {
+    
         setIdentifierError(false);
-      }
-    });
   };
 
   const validatePassword = (password) => {
@@ -151,18 +153,14 @@ const LoginPage = () => {
   };
 
   const handlePasswordChange = (e) => {
-    const value = e.target.value;
+    let value = e.target.value;
+    // Filter out emojis from password
+    value = value.replace(/[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/gu, '');
     setPassword(value);
     setInvalidCredentials(false);
     setError('');
-    setPasswordError(false);
-    runDebounced('password', () => {
-      if (value && !validatePassword(value)) {
-        setPasswordError(true);
-      } else {
+
         setPasswordError(false);
-      }
-    });
   };
 
   return (
@@ -189,24 +187,24 @@ const LoginPage = () => {
           }
         `}
       </style>
-      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-white">
+      <div className="w-screen h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-hidden text-body bg-white">
       <AuthSlides />
 
-  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
-        <div className="w-full max-w-[31rem] pb-5 mb-5">
-          <div className="text-center mb-6 lg:mb-8">
-            <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
+  <div className="flex-1 flex items-center justify-center p-1 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg overflow-y-auto">
+        <div className="w-full max-w-[31rem] pb-1 mb-1 lg:pb-5 lg:mb-5">
+          <div className="text-center mb-1 lg:mb-8">
+            <div className="mx-auto h-12 w-12 lg:h-40 lg:w-40 flex items-center justify-center pt-1 lg:pt-10 ">
               <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
-                <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
+                <img src="/favicon.png" alt="Logo" className="h-8 w-10 lg:h-15 lg:w-22" />
               </button>
             </div>
-              <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Login to your account</h3>
-            <p className="text-muted text-sm lg:text-[1.25rem] font-normal">
+              <h3 className="text-lg lg:text-[1.75rem] font-semibold text-default mb-0.5 lg:mb-1">Login to your account</h3>
+            <p className="text-muted text-xs lg:text-[1.25rem] font-normal">
               Welcome back, Please enter your details
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-1.5 lg:space-y-6">
             <div>
               <label htmlFor="identifier" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                 Email or Mobile <p className='text-red-500 text-sm lg:text-md font-thin'>{invalidCredentials && '(Invalid credential)'}</p>
@@ -231,11 +229,9 @@ const LoginPage = () => {
                    />
               </div>
               {identifierError && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                  <p className="text-xs text-blue-600 font-medium mb-1">
+                <p className="hidden lg:block mt-1 text-sm text-red-500">
                     Enter a valid email or Indian mobile number (+91XXXXXXXXXX).
                   </p>
-                </div>
               )}
             </div>
 
@@ -282,13 +278,6 @@ const LoginPage = () => {
                   </button>
                 </div>
               </div>
-              {passwordError && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                  <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
-                    <span className="text-xs text-blue-500">Password must be at least 8 characters, with a number, with one uppercase letter and one special character (#, @, !, %, &).</span>
-                  </p>
-                </div>
-              )}
             </div>
             <div className="flex items-center justify-end mb-4">
               <div className="text-sm mb-2">
@@ -300,7 +289,7 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              disabled={loading || !identifier || !password || identifierError || passwordError}
+              disabled={loading || !identifier || !password || identifierError}
               className="w-full h-[2.4rem] lg:h-auto flex justify-center py-2 lg:py-3 px-4 border border-transparent rounded-md text-white btn-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 font-semibold text-sm lg:text-base disabled:opacity-60"
             >
               {loading ? 'Logging in...' : 'Login'}

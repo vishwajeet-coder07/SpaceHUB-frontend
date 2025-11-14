@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { requestForgotPassword, validateOtp, resendForgotOtp } from '../../../shared/services/API';
 import AuthSlides from '../components/AuthSlides';
@@ -14,6 +14,8 @@ const ForgotPasswordPage = () => {
   const [forgotToken, setForgotToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const timerIntervalRef = useRef(null);
 
   const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
   const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
@@ -29,6 +31,37 @@ const ForgotPasswordPage = () => {
     return !!normalizePhone(value);
   };
 
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024; 
+  };
+
+ 
+  useEffect(() => {
+    if (resendTimer > 0) {
+      timerIntervalRef.current = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [resendTimer]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
@@ -37,6 +70,11 @@ const ForgotPasswordPage = () => {
       const phoneLike = normalizePhone(identifier);
       if (!emailLike && !phoneLike) {
         setIdentifierError(true);
+        if (isMobile()) {
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Enter a valid email or Indian mobile number (+91XXXXXXXXXX).', type: 'error' }
+          }));
+        }
         return;
       }
       const identifierToSend = emailLike ? identifier.trim() : phoneLike;
@@ -48,6 +86,7 @@ const ForgotPasswordPage = () => {
           window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: 'OTP sent!', type: 'success' }
           }));
+          setResendTimer(30); 
           setStep('otp');
         })
         .catch((err) => {
@@ -69,6 +108,10 @@ const ForgotPasswordPage = () => {
         .then((res) => {
           try {
             sessionStorage.setItem('resetIdentifier', identifier);
+           
+            if (isValidEmail(identifier)) {
+              sessionStorage.setItem('resetEmail', identifier);
+            }
             const token = (res && res.data && res.data.accessToken) ? res.data.accessToken : (res && res.accessToken);
             if (token) sessionStorage.setItem('resetAccessToken', token);
           } catch {
@@ -77,7 +120,7 @@ const ForgotPasswordPage = () => {
           window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: 'OTP verified successfully!', type: 'success' }
           }));
-          return navigate('/reset');
+          navigate('/reset');
         })
         .catch((err) => {
           console.error('Invalid OTP:', err.message);
@@ -95,7 +138,7 @@ const ForgotPasswordPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    if (!forgotToken) return;
+    if (!forgotToken || resendTimer > 0) return;
     setLoading(true);
     setError('');
     resendForgotOtp(forgotToken)
@@ -103,6 +146,7 @@ const ForgotPasswordPage = () => {
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: 'OTP resent successfully!', type: 'success' }
         }));
+        setResendTimer(30); 
       })
       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
@@ -120,6 +164,7 @@ const ForgotPasswordPage = () => {
     setOtp('');
     setInvalidOtp(false);
     setOtpError(false);
+    setResendTimer(0); 
   };
 
   const validateEmail = (email) => {
@@ -130,43 +175,40 @@ const ForgotPasswordPage = () => {
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setIdentifier(value);
-    if (value && !validateIdentifier(value)) {
-      setIdentifierError(true);
-    } else {
-      setIdentifierError(false);
-    }
+    
+    setIdentifierError(false);
   };
 
   return (
-      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body">
+      <div className="w-screen h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-hidden text-body">
       <AuthSlides />
 
-  <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg">
+  <div className="flex-1 flex items-center justify-center p-1 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg overflow-y-auto">
         <div className="w-full max-w-md">
-          <div className="text-center mb-6 lg:mb-8">
-             <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-10 ">
+          <div className="text-center mb-1 lg:mb-8">
+             <div className="mx-auto h-12 w-12 lg:h-40 lg:w-40 flex items-center justify-center pt-1 lg:pt-10 ">
                <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
-                 <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-15 lg:w-22" />
+                 <img src="/favicon.png" alt="Logo" className="h-8 w-10 lg:h-15 lg:w-22" />
                </button>
              </div>
             {step === 'email' ? (
               <>
-                <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Verify your account</h3>
-                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Enter your email or mobile to receive OTP</p>
+                <h3 className="text-lg lg:text-[1.75rem] font-semibold text-default mb-0.5 lg:mb-1">Verify your account</h3>
+                <p className="text-muted text-xs lg:text-[1.25rem] font-normal">Enter your email or mobile to receive OTP</p>
               </>
             ) : (
               <>
-                <h3 className="text-xl lg:text-[1.75rem] font-semibold text-default mb-1">Enter otp</h3>
-                <p className="text-muted text-sm lg:text-[1.25rem] font-normal">Verify to reset your password</p>
+                <h3 className="text-lg lg:text-[1.75rem] font-semibold text-default mb-0.5 lg:mb-1">Enter otp</h3>
+                <p className="text-muted text-xs lg:text-[1.25rem] font-normal">Verify to reset your password</p>
               </>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-1.5 lg:space-y-6">
             {step === 'email' ? (
               <div>
                 <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
-                  Email or Mobile <p className='text-red-500 text-sm lg:text-md font-thin'>{identifierError && '(Invalid credential)'}</p>
+                  Email or Mobile
                 </label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -188,9 +230,9 @@ const ForgotPasswordPage = () => {
                     />
                   </div>
                   {identifierError && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                      <p className="text-xs text-blue-600 font-medium mb-1">Enter a valid email or Indian mobile number (+91XXXXXXXXXX).</p>
-                    </div>
+                    <p className="hidden lg:block mt-1 text-sm text-red-500">
+                      Enter a valid email or Indian mobile number (+91XXXXXXXXXX).
+                    </p>
                   )}
                 </div>
             ) : (
@@ -231,13 +273,23 @@ const ForgotPasswordPage = () => {
                   )}
                 </div>
                 <div className="text-right mt-2">
-                  <a href="#" onClick={handleResendOtp} className={`text-default underline hover:text-blue-700 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    {loading ? 'Sending...' : 'Resend otp'}
+                  <a 
+                    href="#" 
+                    onClick={handleResendOtp} 
+                    className={`text-default underline font-medium ${
+                      loading || resendTimer > 0 
+                        ? 'opacity-50 cursor-not-allowed pointer-events-none text-gray-500' 
+                        : 'hover:text-blue-700'
+                    }`}
+                  >
+                    {loading 
+                      ? 'Sending...' 
+                      : resendTimer > 0 
+                        ? `Resend otp (${resendTimer}s)` 
+                        : 'Resend otp'
+                    }
                   </a>
                 </div>
-                {otpError && (
-                  <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
-                )}
               </div>
             )}
 

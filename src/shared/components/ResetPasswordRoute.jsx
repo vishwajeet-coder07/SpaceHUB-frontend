@@ -11,7 +11,8 @@ const ResetPasswordRoute = ({ children }) => {
     return <LoadingSpinner message="Checking authentication..." />;
   }
 
-  const hasResetToken = sessionStorage.getItem('resetAccessToken') && sessionStorage.getItem('resetEmail');
+  const hasResetToken = sessionStorage.getItem('resetAccessToken') && 
+    (sessionStorage.getItem('resetEmail') || sessionStorage.getItem('resetIdentifier'));
 
   if (!hasResetToken && !isAuthenticated) {
     return <Navigate to="/forgot-password" state={{ from: location }} replace />;

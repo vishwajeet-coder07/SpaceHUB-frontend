@@ -27,8 +27,10 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [registrationToken, setRegistrationToken] = useState('');
   const [error, setError] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
   const debounceRefs = useRef({});
   const throttleRefs = useRef({ requestOtp: 0, verifyOtp: 0, resendOtp: 0 });
+  const timerIntervalRef = useRef(null);
 
   const showToast = (message, type = 'info') => {
     if (typeof window === 'undefined') return;
@@ -60,6 +62,32 @@ const SignupPage = () => {
       Object.values(debounceRefs.current).forEach((timer) => clearTimeout(timer));
     };
   }, []);
+
+  
+  useEffect(() => {
+    if (resendTimer > 0) {
+      timerIntervalRef.current = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [resendTimer]);
 
   const hasEmoji = (value) => /[\u{1F300}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}]/u.test(value || '');
   const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !hasEmoji(value);
@@ -119,26 +147,32 @@ const SignupPage = () => {
       const updated = { ...prev, [name]: value };
 
       if (name === 'password' || name === 'confirmPassword') {
-        setPasswordMismatch(false);
-        runDebounced('passwordMatch', () => {
-          const nextPassword = name === 'password' ? value : updated.password;
-          const nextConfirm = name === 'confirmPassword' ? value : updated.confirmPassword;
-          if (nextPassword && nextConfirm) {
-            setPasswordMismatch(nextPassword !== nextConfirm);
+       
+        const nextPassword = name === 'password' ? value : updated.password;
+        const nextConfirm = name === 'confirmPassword' ? value : updated.confirmPassword;
+        
+        
+        if (nextPassword && nextConfirm) {
+          const doNotMatch = nextPassword !== nextConfirm;
+
+          if (confirmPasswordBlurred) {
+            setPasswordMismatch(doNotMatch);
           } else {
+           
             setPasswordMismatch(false);
           }
-        }, 200);
+        } else {
+          
+          setPasswordMismatch(false);
+        }
       }
 
       return updated;
     });
 
     if (name === 'email') {
+      
       setEmailError(false);
-      runDebounced('email', () => {
-        setEmailError(Boolean(value) && !isValidEmail(value));
-      });
     }
 
     if (name === 'password') {
@@ -147,6 +181,25 @@ const SignupPage = () => {
         const passwordRegex = /^(?=.*[A-Z])(?=.*[#@!%&])(?=.*[0-9])(?!.*\s).{8,}$/;
         setPasswordError(Boolean(value) && (!passwordRegex.test(value) || hasEmoji(value)));
       });
+    }
+  };
+
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024; // lg breakpoint
+  };
+
+  const handleEmailBlur = (e) => {
+    const emailValue = e.target.value;
+    
+    if (emailValue) {
+      const hasError = !isValidEmail(emailValue);
+      setEmailError(hasError);
+      if (hasError && isMobile()) {
+        showToast('Email Requirements: Must be a valid email address, must contain @ symbol and a domain name.', 'error');
+      }
+    } else {
+      setEmailError(false);
     }
   };
 
@@ -177,10 +230,45 @@ const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordBlurred, setConfirmPasswordBlurred] = useState(false);
 
   const handleRequestOtpAndNext = (e) => {
     e.preventDefault();
-    if (emailError || passwordError || !formData.email || !formData.password || passwordMismatch || hasEmoji(formData.email) || hasEmoji(formData.password)) {
+    // Validate email on submit
+    let hasEmailError = false;
+    if (formData.email) {
+      const isEmailValid = isValidEmail(formData.email);
+      hasEmailError = !isEmailValid;
+      setEmailError(hasEmailError);
+      if (hasEmailError) {
+        if (isMobile()) {
+          showToast('Email Requirements: Must be a valid email address, must contain @ symbol and a domain name.', 'error');
+        }
+        return; 
+      }
+    }
+    
+    // Check password errors and show toast on mobile
+    if (passwordError) {
+      if (isMobile()) {
+        showToast('Password Requirements: Password must be at least 8 characters, with one uppercase letter, with a number and one special character (#, @, !, %, &).', 'error');
+      }
+      return;
+    }
+    if (passwordMismatch) {
+      if (isMobile()) {
+        showToast('Passwords do not match.', 'error');
+      }
+      return;
+    }
+    if (hasEmoji(formData.email) || hasEmoji(formData.password)) {
+      if (isMobile()) {
+        showToast('Emojis are not allowed in email or password fields.', 'error');
+      }
+      return;
+    }
+    if (!formData.email || !formData.password) {
       return;
     }
     if (shouldThrottleAction('requestOtp', 2500, 'Please wait a moment before requesting another OTP.')) {
@@ -196,17 +284,18 @@ const SignupPage = () => {
         const token = (res && res.data) ? res.data : '';
         setRegistrationToken(token);
         
-        // Save registration token to sessionStorage
+        
         if (token) {
           sessionStorage.setItem('registrationToken', token);
         }
         
-        // Save user data (email, firstName, lastName) to sessionStorage
+        
         sessionStorage.setItem('signupEmail', email);
         sessionStorage.setItem('signupFirstName', firstName);
         sessionStorage.setItem('signupLastName', lastName);
         
         showToast('OTP sent to your email!', 'success');
+        setResendTimer(30);
         setStep(3);
       })
       .catch((err) => {
@@ -290,15 +379,13 @@ const SignupPage = () => {
 
   const handleResendOtp = (e) => {
     e.preventDefault();
-    if (!registrationToken || !formData.email) return;
-    if (shouldThrottleAction('resendOtp', 30000, 'OTP already sent. Please wait 30 seconds before resending.')) {
-      return;
-    }
+    if (!registrationToken || !formData.email || resendTimer > 0) return;
     setLoading(true);
     setError('');
     resendRegisterOtp(formData.email, registrationToken)
       .then(() => {
         showToast('OTP resent successfully!', 'success');
+        setResendTimer(30); 
       })
       .catch((err) => {
         console.error('Failed to resend OTP:', err.message);
@@ -315,6 +402,7 @@ const SignupPage = () => {
     setError('');
     setInvalidOtp(false);
     setOtpError(false);
+    setResendTimer(0); 
   };
 
   return (
@@ -342,31 +430,31 @@ const SignupPage = () => {
           }
         `}
       </style>
-      <div className="w-screen min-h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-x-hidden text-body bg-blue-200/90">
+      <div className="w-screen h-screen flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden lg:fixed lg:top-0 lg:left-0 overflow-hidden text-body bg-white lg:bg-blue-200/90">
       <AuthSlides />
 
          <div
-           className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg"
+           className="flex-1 flex items-start lg:items-center justify-center p-0 lg:p-12 bg-[#EEEEEE] lg:h-full lg:min-h-screen lg:overflow-y-auto lg:rounded-l-4xl rounded-t-[2.25rem] lg:rounded-tr-none sm:rounded-t-[2.25rem] lg:-ml-4 -mt-2 lg:mt-0 relative z-10 lg:shadow-lg shadow-lg overflow-y-auto"
          >
-          <div className="w-full max-w-[32rem] mb-8 lg:mb-5">
-            <div className="text-center mb-8 lg:mb-17">
-               <div className="mx-auto h-24 w-24 lg:h-40 lg:w-40 flex items-center justify-center pt-4 lg:pt-25 ">
+          <div className="w-full max-w-[32rem] mb-4 lg:mb-5 py-2 lg:py-0 px-2 lg:px-0">
+            <div className="text-center mb-3 lg:mb-17">
+               <div className="mx-auto h-14 w-14 lg:h-40 lg:w-40 flex items-center justify-center pt-2 lg:pt-25 ">
                  <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-80 transition-opacity">
-                   <img src="/favicon.png" alt="Logo" className="h-12 w-16 lg:h-17 lg:w-24" />
+                   <img src="/favicon.png" alt="Logo" className="h-9 w-12 lg:h-17 lg:w-24" />
                  </button>
                </div>
         
                 {step === 3 ? (
                   <>
-                    <h3 className="text-xl lg:text-[1.75rem] font-medium text-default mb-1 lg:mb-2">Verify your Email</h3>
-                    <p className="text-muted text-sm lg:text-[1.25rem] font-body">
+                    <h3 className="text-lg lg:text-[1.75rem] font-medium text-default mb-0.5 lg:mb-2">Verify your Email</h3>
+                    <p className="text-muted text-xs lg:text-[1.25rem] font-body">
                      Please verify your email to activate your account
                     </p>
                   </>
                 ) : (
                   <>
-                    <h3 className="text-xl lg:text-[1.75rem] font-medium text-default mb-1 lg:mb-2">Signup to your account</h3>
-                    <p className="text-muted text-sm lg:text-[1.25rem] font-body">
+                    <h3 className="text-lg lg:text-[1.75rem] font-medium text-default mb-0.5 lg:mb-2">Signup to your account</h3>
+                    <p className="text-muted text-xs lg:text-[1.25rem] font-body">
                      Create your account to start collaborating.
                     </p>
                   </>
@@ -374,7 +462,7 @@ const SignupPage = () => {
          
             </div>
             {step === 1 ? (
-              <form className="space-y-4 lg:space-y-6" onSubmit={handleStepOneSubmit}>
+              <form className="space-y-3 lg:space-y-6" onSubmit={handleStepOneSubmit}>
                 <div className="m-0 p-0">
                   <label htmlFor="firstName" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     First name <span className="text-red-500">*</span>
@@ -468,7 +556,7 @@ const SignupPage = () => {
                 </div>
               </form>
             ) : step === 2 ? (
-              <form className="space-y-4 lg:space-y-6" onSubmit={handleRequestOtpAndNext}>
+              <form className="space-y-3 lg:space-y-6" onSubmit={handleRequestOtpAndNext}>
                 <div>
                   <label htmlFor="email" className="flex items-center gap-2 text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Enter email <span className="text-red-500">*</span>
@@ -488,12 +576,13 @@ const SignupPage = () => {
                       required
                       value={formData.email}
                       onChange={handleChange}
+                      onBlur={handleEmailBlur}
                       className={`w-full pl-10 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your email"
                     />
                   </div>
                   {emailError && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                    <div className="hidden lg:block mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
                       <p className="text-xs text-blue-600 font-medium mb-1">Email Requirements : 
 
                     <span className="text-xs text-blue-500 space-y-0.5">
@@ -524,7 +613,7 @@ const SignupPage = () => {
                     />
                   </div>
                   {mobileError && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                    <div className="hidden lg:block mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
                       <p className="text-xs text-blue-600 font-medium">Enter a valid 10-digit Indian mobile number starting with 6-9.</p>
                     </div>
                   )}
@@ -548,6 +637,8 @@ const SignupPage = () => {
                       required
                       value={formData.password}
                       onChange={handleChange}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       data-show={showPassword}
                       className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Enter your password"
@@ -570,11 +661,22 @@ const SignupPage = () => {
                     </button>
                   </div>
                   {passwordError && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                      <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
-                        <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter, with a number and one special character (#, @, !, %, &).</span>
-                      </p>
-                    </div>
+                    <>
+                      {/* Show on mobile when password field is focused or has value */}
+                      {(passwordFocused || formData.password) && (
+                        <div className="lg:hidden mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                          <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
+                            <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter, with a number and one special character (#, @, !, %, &).</span>
+                          </p>
+                        </div>
+                      )}
+                      {/* Show on desktop always */}
+                      <div className="hidden lg:block mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                        <p className="text-xs text-blue-600 font-medium mb-1">Password Requirements :
+                          <span className="text-xs text-blue-500">Password must be at least 8 characters, with one uppercase letter, with a number and one special character (#, @, !, %, &).</span>
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -597,8 +699,19 @@ const SignupPage = () => {
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
+                      onBlur={(e) => {
+                        setConfirmPasswordBlurred(true);
+                        // Check if passwords match when user leaves the field
+                        const currentPassword = formData.password;
+                        const currentConfirm = e.target.value || formData.confirmPassword;
+                        if (currentPassword && currentConfirm) {
+                          setPasswordMismatch(currentPassword !== currentConfirm);
+                        } else {
+                          setPasswordMismatch(false);
+                        }
+                      }}
                       data-show={showConfirmPassword}
-                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordMismatch ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
+                      className={`password-input w-full pl-10 pr-12 py-2 lg:py-3 text-sm lg:text-base border-2 rounded-md ring-primary transition-colors bg-gray-50 placeholder-[#ADADAD] h-[2.2rem] lg:h-[2.75rem] max-w-[33rem] ${passwordMismatch && confirmPasswordBlurred ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500'}`}
                       placeholder="Confirm your password"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -621,10 +734,17 @@ const SignupPage = () => {
                       </button>
                     </div>
                   </div>
-                  {passwordMismatch && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
-                      <p className="text-xs text-blue-600 font-medium">Passwords do not match.</p>
-                    </div>
+                  {passwordMismatch && confirmPasswordBlurred && (
+                    <>
+                      {/* Show on mobile after blur */}
+                      <div className="lg:hidden mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                        <p className="text-xs text-blue-600 font-medium">Passwords do not match.</p>
+                      </div>
+                      {/* Show on desktop after blur */}
+                      <div className="hidden lg:block mt-2 p-2 bg-blue-50 border border-blue-200 rounded-sm">
+                        <p className="text-xs text-blue-600 font-medium">Passwords do not match.</p>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -643,7 +763,7 @@ const SignupPage = () => {
                 </div>
               </form>
             ) : (
-              <form className="space-y-4 lg:space-y-6" onSubmit={handleVerifyOtpAndRegister}>
+              <form className="space-y-3 lg:space-y-6" onSubmit={handleVerifyOtpAndRegister}>
                 <div>
                   <label htmlFor="otp" className="block text-base lg:text-[1.25rem] font-medium text-default mb-1 lg:mb-2 text-left">
                     Enter otp {invalidOtp && <span className="text-red-500 font-normal">(Invalid otp)</span>}
@@ -670,13 +790,23 @@ const SignupPage = () => {
                     placeholder="Enter otp"
                   />
                   <div className="text-right pt-5">
-                    <a href="#" onClick={handleResendOtp} className={`text-default underline hover:text-blue-700 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      {loading ? 'Sending...' : 'Resend otp'}
+                    <a 
+                      href="#" 
+                      onClick={handleResendOtp} 
+                      className={`text-default underline font-medium ${
+                        loading || resendTimer > 0 
+                          ? 'opacity-50 cursor-not-allowed pointer-events-none text-gray-500' 
+                          : 'hover:text-blue-700'
+                      }`}
+                    >
+                      {loading 
+                        ? 'Sending...' 
+                        : resendTimer > 0 
+                          ? `Resend otp (${resendTimer}s)` 
+                          : 'Resend otp'
+                      }
                     </a>
                   </div>
-                  {otpError && (
-                    <p className="mt-2 text-xs text-red-600">Please enter a valid 6-digit OTP.</p>
-                  )}
                 </div>
 
                 <button
