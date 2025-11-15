@@ -1419,14 +1419,14 @@ const CommunitySettingsPage = () => {
               <div className="px-4 py-4 border-t border-gray-700 space-y-2">
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="w-full text-left px-4 py-2 rounded-md text-sm font-medium text-orange-500 hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
                   <img src="/icons/delete.svg" alt="Delete community" className="w-4 h-4" />
                   Delete community
                 </button>
                 <button
                   onClick={() => setShowLeaveModal(true)}
-                  className="w-full text-left px-4 py-2 rounded-lg text-sm font-medium text-orange-500 hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />

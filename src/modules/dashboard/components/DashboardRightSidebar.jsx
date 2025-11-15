@@ -54,7 +54,6 @@ const DashboardRightSidebar = ({ onClose }) => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, handleSearch]);
 
-  // Auto-focus search input when component mounts
   const searchInputRef = useRef(null);
   useEffect(() => {
     if (searchInputRef.current) {
@@ -140,7 +139,7 @@ const DashboardRightSidebar = ({ onClose }) => {
               <img
                 src="/icons/search_icon.svg"
                 alt="Search users"
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none"
               />
               <input
                 ref={searchInputRef}
