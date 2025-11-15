@@ -1150,7 +1150,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 px-4 py-4 md:p-4 md:sm:p-6">
+      <div className="flex-1 px-4 py-4 md:p-4 md:sm:p-6 overflow-y-auto">
         {activeTab === 'Community'
           ? renderList(
               communities,

@@ -1493,15 +1493,15 @@ const CommunitySettingsPage = () => {
                             </div>
                           )}
                           {(profileImagePreview || (community?.imageUrl && !imageError)) && (
-                            <button
+                          <button
                               onClick={handleRemoveProfileImage}
                               className="absolute -right-1 -top-1 w-7 h-7 rounded-full bg-gray-300 hover:bg-gray-400 text-gray-700 flex items-center justify-center transition-colors cursor-pointer z-10"
-                              type="button"
-                            >
+                            type="button"
+                          >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                               </svg>
-                            </button>
+                          </button>
                           )}
                         </div>
                         <button

@@ -4,7 +4,6 @@ import { useNavigate, useMatch } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import { getProfileSummary, getFriendsList } from '../../../shared/services/API';
-import webSocketService from '../../../shared/services/WebSocketService';
 import {
   selectSelectedView,
   selectShowCreate,
@@ -263,49 +262,8 @@ const Dashboard = () => {
     };
   }, [dispatch]);
 
-  const previousUserEmailRef = useRef(null);
-
-  useEffect(() => {
-    const sessionUserRaw = sessionStorage.getItem('userData');
-    let sessionUser = {};
-    try {
-      sessionUser = sessionUserRaw ? JSON.parse(sessionUserRaw) : {};
-    } catch {
-      sessionUser = {};
-    }
-
-    const effectiveEmail = user?.email || sessionUser?.email;
-
-    if (!effectiveEmail) {
-      // Disconnect if no email
-      if (previousUserEmailRef.current) {
-        webSocketService.disconnect();
-        previousUserEmailRef.current = null;
-      }
-      return;
-    }
-
-    // Only connect if email changed or not connected
-    if (previousUserEmailRef.current !== effectiveEmail) {
-      // Disconnect previous connection if switching users
-      if (previousUserEmailRef.current) {
-        webSocketService.disconnect();
-      }
-      previousUserEmailRef.current = effectiveEmail;
-      webSocketService.connect(effectiveEmail);
-    } else {
-      // Same email, just ensure connected (won't reconnect if already connected)
-      webSocketService.connect(effectiveEmail);
-    }
-
-    return () => {
-      // Only disconnect on unmount, not on user change (handled above)
-      // This prevents disconnecting when user object reference changes but email is same
-    };
-  }, [user?.email]); // Only depend on email, not entire user object
-
   const handleLogout = () => {
-    webSocketService.disconnect();
+    // WebSocket disconnection is handled in AuthProvider
     logout();
     navigate('/');
   };
