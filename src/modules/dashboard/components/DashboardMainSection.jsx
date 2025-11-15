@@ -612,7 +612,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             
               if (existingIndex !== -1) {
                 const existing = prev[existingIndex];
-                if (existing.id?.startsWith('temp-') && receivedMsg.id && !receivedMsg.id.startsWith('temp-')) {
+                const existingIdStr = existing.id ? String(existing.id) : '';
+                const receivedIdStr = receivedMsg.id ? String(receivedMsg.id) : '';
+                if (existingIdStr.startsWith('temp-') && receivedIdStr && !receivedIdStr.startsWith('temp-')) {
                   console.log('Replacing optimistic message with server message');
                   const updated = [...prev];
                   updated[existingIndex] = receivedMsg;

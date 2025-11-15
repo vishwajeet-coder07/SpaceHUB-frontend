@@ -463,7 +463,7 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
 };
 
 // Invite People Modal
-const InviteModal = ({ isOpen, onClose, communityId, isLocalGroup = false }) => {
+const InviteModal = ({ isOpen, onClose, communityId, isLocalGroup = false, currentUserRole = '' }) => {
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -471,9 +471,22 @@ const InviteModal = ({ isOpen, onClose, communityId, isLocalGroup = false }) => 
   const { user } = useAuth();
   const modalRef = useRef(null);
 
+  const isAuthorized = currentUserRole === 'ADMIN' || 
+                      currentUserRole === 'OWNER' || 
+                      currentUserRole === 'WORKSPACE_OWNER';
+
   const generateInviteLink = useCallback(async () => {
     if (!communityId || !user?.email) {
       setError('Group ID or user email not found');
+      return;
+    }
+
+    // Check authorization before generating invite link
+    if (!isAuthorized) {
+      setError('Only workspace owners and admins can generate invite links');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Only workspace owners and admins can generate invite links', type: 'error' }
+      }));
       return;
     }
 
@@ -513,7 +526,7 @@ const InviteModal = ({ isOpen, onClose, communityId, isLocalGroup = false }) => 
     } finally {
       setLoading(false);
     }
-  }, [communityId, user?.email, isLocalGroup]);
+  }, [communityId, user?.email, isLocalGroup, isAuthorized]);
 
   useEffect(() => {
     if (isOpen) {
@@ -1512,13 +1525,25 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
       }
     };
     window.addEventListener('community:refresh-groups', onRefresh);
-    const onOpenInvite = () => setShowInviteModal(true);
+    const onOpenInvite = () => {
+      // Only allow workspace owners and admins to generate invite links
+      const isAuthorized = currentUserRole === 'ADMIN' || 
+                          currentUserRole === 'OWNER' || 
+                          currentUserRole === 'WORKSPACE_OWNER';
+      if (isAuthorized) {
+        setShowInviteModal(true);
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Only workspace owners and admins can generate invite links', type: 'error' }
+        }));
+      }
+    };
     window.addEventListener('community:open-invite', onOpenInvite);
     return () => {
       window.removeEventListener('community:refresh-groups', onRefresh);
       window.removeEventListener('community:open-invite', onOpenInvite);
     };
-  }, [communityId, fetchGroups]);
+  }, [communityId, fetchGroups, currentUserRole]);
 
   const handleAddChatRoom = (groupName) => {
     // Prevent room creation in Announcement group
@@ -1765,7 +1790,17 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
   const handleDropdownAction = (action) => {
     setShowDropdown(false);
     if (action === 'invite') {
-      setShowInviteModal(true);
+      // Only allow workspace owners and admins to generate invite links
+      const isAuthorized = currentUserRole === 'ADMIN' || 
+                          currentUserRole === 'OWNER' || 
+                          currentUserRole === 'WORKSPACE_OWNER';
+      if (isAuthorized) {
+        setShowInviteModal(true);
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Only workspace owners and admins can generate invite links', type: 'error' }
+        }));
+      }
     } else if (action === 'create-group') {
       // Only allow workspace owners and admins to create groups
       const isAuthorized = currentUserRole === 'ADMIN' || 
@@ -1884,12 +1919,14 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         {showDropdown && (
           <div className="absolute top-full left-0 right-0 bg-[#282828] rounded-b-md overflow-hidden shadow-lg z-50">
             <div className="pt-2 pb-2 border-t border-gray-600">
-              <button
-                onClick={() => handleDropdownAction('invite')}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
-              >
-                Invite people
-              </button>
+              {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
+                <button
+                  onClick={() => handleDropdownAction('invite')}
+                  className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white hover:text-black transition-colors"
+                >
+                  Invite people
+                </button>
+              )}
               {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
                 <button
                   onClick={() => handleDropdownAction('create-group')}
@@ -1998,6 +2035,7 @@ const CommunityLeftPanel = ({ community, onBack, isLocalGroup = false }) => {
         communityName={title}
         communityId={communityId}
         isLocalGroup={isLocalGroup}
+        currentUserRole={currentUserRole}
       />
 
       {/* Create Channel Modal */}

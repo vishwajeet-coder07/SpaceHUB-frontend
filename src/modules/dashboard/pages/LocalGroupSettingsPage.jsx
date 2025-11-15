@@ -25,6 +25,7 @@ const LocalGroupSettingsPage = () => {
   const inviteModalRef = useRef(null);
   const [joinRequests, setJoinRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState('');
 
   // Listen for openInbox event
   useEffect(() => {
@@ -46,6 +47,17 @@ const LocalGroupSettingsPage = () => {
         const res = await getLocalGroupSettings(id);
         const data = res?.data || res || {};
         setSettings(data);
+        
+        // Determine user role - for local groups, creator is ADMIN
+        const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
+        if (userEmail) {
+          try {
+            const cached = sessionStorage.getItem(`localGroupDetails:${id}`);
+            const lg = cached ? JSON.parse(cached) : null;
+            const creator = lg?.creatorEmail || lg?.createdByEmail || lg?.creator || data?.creatorEmail || data?.createdByEmail || data?.creator || '';
+            setCurrentUserRole(creator && creator.toLowerCase() === userEmail.toLowerCase() ? 'ADMIN' : 'MEMBER');
+          } catch {}
+        }
       } catch (e) {
         setError(e.message || 'Failed to load local-group settings');
       } finally {
@@ -53,7 +65,7 @@ const LocalGroupSettingsPage = () => {
       }
     };
     fetchSettings();
-  }, [id]);
+  }, [id, user?.email]);
 
   useEffect(() => {
     const fetchJoinRequests = async () => {
@@ -83,6 +95,18 @@ const LocalGroupSettingsPage = () => {
       return;
     }
 
+    // Check authorization before generating invite link
+    const isAuthorized = currentUserRole === 'ADMIN' || 
+                        currentUserRole === 'OWNER' || 
+                        currentUserRole === 'WORKSPACE_OWNER';
+    if (!isAuthorized) {
+      setInviteError('Only workspace owners and admins can generate invite links');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message: 'Only workspace owners and admins can generate invite links', type: 'error' }
+      }));
+      return;
+    }
+
     setInviteLoading(true);
     setInviteError('');
 
@@ -106,7 +130,7 @@ const LocalGroupSettingsPage = () => {
     } finally {
       setInviteLoading(false);
     }
-  }, [id, user?.email, maxUses, expiresInHours]);
+  }, [id, user?.email, maxUses, expiresInHours, currentUserRole]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -225,15 +249,17 @@ const LocalGroupSettingsPage = () => {
             )}
           </div>
 
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">Invite Members</h3>
-            <button
-              onClick={handleOpenInviteModal}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Generate Invite Link
-            </button>
-          </div>
+          {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'WORKSPACE_OWNER') && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Invite Members</h3>
+              <button
+                onClick={handleOpenInviteModal}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Generate Invite Link
+              </button>
+            </div>
+          )}
 
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-4">Join Requests</h3>

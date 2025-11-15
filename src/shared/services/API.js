@@ -23,9 +23,20 @@ export async function loginUser(payload) {
   // console.log('token', token);
   if (token) {
     sessionStorage.setItem('accessToken', token);
+    // Check for email in response (can be at data.email or data.data.email)
+    const responseEmail = data?.email || data?.data?.email;
+    
     if (data.user || data.data?.user) {
       const userObj = data.user || data.data?.user;
+      // If email is in the response (e.g., when logging in with phone number), ensure it's saved
+      if (responseEmail && !userObj.email) {
+        userObj.email = String(responseEmail);
+      }
       sessionStorage.setItem('userData', JSON.stringify(userObj));
+    } else if (responseEmail) {
+      // If no user object but email exists in response, save it to sessionStorage
+      const userData = { email: String(responseEmail) };
+      sessionStorage.setItem('userData', JSON.stringify(userData));
     }
   }
 

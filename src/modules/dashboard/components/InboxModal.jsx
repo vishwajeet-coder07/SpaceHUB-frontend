@@ -36,13 +36,12 @@ const InboxModal = ({ isOpen, onClose }) => {
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
   const requestsRef = useRef(requests);
-  const [avatarUrls, setAvatarUrls] = useState({}); // Cache for presigned URLs
+  const [avatarUrls, setAvatarUrls] = useState({});
 
   useEffect(() => {
     requestsRef.current = requests;
   }, [requests]);
 
-  // Update requests and pending with latest avatar URLs
   const requestsWithAvatars = useMemo(() => {
     return requests.map(req => ({
       ...req,
@@ -57,13 +56,11 @@ const InboxModal = ({ isOpen, onClose }) => {
     }));
   }, [pending, avatarUrls]);
 
-  // Fetch presigned URLs for all avatar files in requests and pending
   useEffect(() => {
     const fetchAvatarUrls = async () => {
       const allItems = [...requests, ...pending];
       const filesToFetch = new Set();
       
-      // Collect all unique file paths that need presigned URLs
       allItems.forEach(item => {
         if (item.avatarFile && !avatarUrls[item.avatarFile]) {
           filesToFetch.add(item.avatarFile);
@@ -72,10 +69,8 @@ const InboxModal = ({ isOpen, onClose }) => {
       
       if (filesToFetch.size === 0) return;
       
-      // Fetch presigned URLs for all files
       const fetchPromises = Array.from(filesToFetch).map(async (filePath) => {
         try {
-          // Determine content type from file extension
           const contentType = filePath.toLowerCase().endsWith('.png') ? 'image/png' :
                              filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' :
                              filePath.toLowerCase().endsWith('.gif') ? 'image/gif' :
@@ -97,7 +92,6 @@ const InboxModal = ({ isOpen, onClose }) => {
     if (requests.length > 0 || pending.length > 0) {
       fetchAvatarUrls();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requests, pending]);
 
 
@@ -105,7 +99,6 @@ const InboxModal = ({ isOpen, onClose }) => {
 
     if (req.senderName || req.senderEmail) {
       const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown User';
-      // Store file path - will be converted to presigned URL in useEffect
       const avatarFile = req.senderProfileImageUrl && !req.senderProfileImageUrl.startsWith('http') 
         ? req.senderProfileImageUrl 
         : null;
@@ -123,7 +116,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         firstName: req.senderName?.split(' ')[0],
         lastName: req.senderName?.split(' ').slice(1).join(' '),
         avatar: avatarUrl,
-        avatarFile: avatarFile, // Store file path for async fetching
+        avatarFile: avatarFile,
         notificationId: req.id,
         read: req.read || false,
         createdAt: req.createdAt
@@ -156,7 +149,6 @@ const InboxModal = ({ isOpen, onClose }) => {
     // Handle new WebSocket format
     if (req.senderName || req.senderEmail) {
       const displayName = req.senderName || req.senderEmail?.split('@')[0] || 'Unknown';
-      // Store file path - will be converted to presigned URL in useEffect
       const avatarFile = req.senderProfileImageUrl && !req.senderProfileImageUrl.startsWith('http') 
         ? req.senderProfileImageUrl 
         : null;
@@ -173,7 +165,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         requesterEmail: req.senderEmail,
         userId: req.referenceId || req.id,
         avatar: avatarUrl,
-        avatarFile: avatarFile, // Store file path for async fetching
+        avatarFile: avatarFile, 
         notificationId: req.id,
         read: req.read || false,
         createdAt: req.createdAt
@@ -214,14 +206,12 @@ const InboxModal = ({ isOpen, onClose }) => {
                 };
   };
 
-  // Mark all notifications as read when inbox is opened
   useEffect(() => {
     if (isOpen) {
       dispatch(markAllAsRead());
     }
   }, [isOpen, dispatch]);
 
-  // WebSocket notification handler - ALWAYS ACTIVE (not just when modal is open)
   useEffect(() => {
     const storedEmail = JSON.parse(sessionStorage.getItem('userData') || '{}')?.email || '';
     const userEmail = user?.email || storedEmail;

@@ -87,8 +87,11 @@ const LoginPage = () => {
       .then(async (data) => {
         console.log('Login successful');
         const resolvedUser = data?.user || data?.data?.user || {};
-        const effectiveEmail = resolvedUser?.email || (emailLike ? identifierToSend : undefined);
-        const userWithId = { ...resolvedUser, ...(effectiveEmail ? { email: effectiveEmail } : {}) };
+        // If email is directly in the response (can be at data.email or data.data.email)
+        const responseEmail = (data?.email || data?.data?.email) ? String(data?.email || data?.data?.email) : undefined;
+        const effectiveEmail = resolvedUser?.email || responseEmail || (emailLike ? identifierToSend : undefined);
+        // Always ensure email is in userData
+        const userWithId = { ...resolvedUser, email: effectiveEmail || resolvedUser?.email || responseEmail || '' };
         const token = data?.accessToken || data?.token || data?.jwt || data?.data?.accessToken || data?.data?.token;
         
         
