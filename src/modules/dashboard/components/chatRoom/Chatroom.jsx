@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadFileAndGetUrl } from '../../../../shared/services/API';
+import { uploadFileAndGetUrl, getPresignedDownloadUrl } from '../../../../shared/services/API';
 
 const systemVariantStyles = {
   'chat-join': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
@@ -25,12 +25,77 @@ const ChatRoom = ({
   const [showEmoji, setShowEmoji] = useState(false);
   const [attachments, setAttachments] = useState([]); 
   const [expandedMessageIds, setExpandedMessageIds] = useState({});
+  const [presignedUrls, setPresignedUrls] = useState({}); // Cache for presigned URLs
 
   const fileInputRef = useRef(null);
   const messageInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   const emojis = useMemo(() => ['😊', '😂', '🎉', '🔥', '👍', '❤️'], []);
+
+  // Fetch presigned URLs for fileKeys
+  useEffect(() => {
+    const fetchPresignedUrls = async () => {
+      const fileKeysToFetch = new Set();
+      
+      messages.forEach((msg) => {
+        // Check images
+        if (Array.isArray(msg.images)) {
+          msg.images.forEach((img) => {
+            // If it's a fileKey (not a full URL), add to fetch list
+            if (img && !img.startsWith('http') && !presignedUrls[img]) {
+              fileKeysToFetch.add(img);
+            }
+          });
+        }
+        // Check fileUrl/fileKey for non-image files
+        if (msg.isFile && msg.fileKey && !msg.fileKey.startsWith('http') && !presignedUrls[msg.fileKey]) {
+          fileKeysToFetch.add(msg.fileKey);
+        }
+        if (msg.isFile && msg.fileUrl && !msg.fileUrl.startsWith('http') && !presignedUrls[msg.fileUrl]) {
+          fileKeysToFetch.add(msg.fileUrl);
+        }
+      });
+
+      if (fileKeysToFetch.size === 0) return;
+
+      const fetchPromises = Array.from(fileKeysToFetch).map(async (fileKey) => {
+        try {
+          // Determine content type from file extension
+          const extension = fileKey.split('.').pop()?.toLowerCase();
+          const contentTypeMap = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'pdf': 'application/pdf',
+            'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls': 'application/vnd.ms-excel',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'zip': 'application/zip',
+            'txt': 'text/plain'
+          };
+          const contentType = contentTypeMap[extension] || 'application/octet-stream';
+          
+          const url = await getPresignedDownloadUrl(fileKey, contentType);
+          if (url) {
+            setPresignedUrls(prev => ({ ...prev, [fileKey]: url }));
+          }
+        } catch (error) {
+          console.error(`Failed to get presigned URL for ${fileKey}:`, error);
+        }
+      });
+
+      await Promise.all(fetchPromises);
+    };
+
+    if (messages.length > 0) {
+      fetchPresignedUrls();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   // Auto-focus message input when component mounts or title changes
   useEffect(() => {
@@ -48,7 +113,7 @@ const ChatRoom = ({
     const newAttachments = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
-      s3Url: null,
+      fileKey: null,
       uploading: true,
       fileName: file.name,
       contentType: file.type || 'application/octet-stream'
@@ -59,9 +124,9 @@ const ChatRoom = ({
     
     newAttachments.forEach(async (attachment, index) => {
       try {
-        const s3Url = await uploadFileAndGetUrl(attachment.file);
+        const uploadResult = await uploadFileAndGetUrl(attachment.file);
         
-        // Update attachment with S3 URL and mark as not uploading
+        // Update attachment with fileKey and mark as not uploading
         setAttachments((prev) => {
           const updated = [...prev];
           const attachmentIndex = prev.findIndex(
@@ -70,7 +135,9 @@ const ChatRoom = ({
           if (attachmentIndex !== -1) {
             updated[attachmentIndex] = {
               ...updated[attachmentIndex],
-              s3Url,
+              fileKey: uploadResult.fileKey,
+              fileName: uploadResult.fileName || attachment.fileName,
+              contentType: uploadResult.contentType || attachment.contentType,
               uploading: false
             };
           }
@@ -130,8 +197,8 @@ const ChatRoom = ({
 
   const handleSend = () => {
     const trimmed = message.trim();
-    // Filter out attachments that are still uploading or don't have S3 URLs
-    const readyAttachments = attachments.filter((att) => !att.uploading && att.s3Url);
+    // Filter out attachments that are still uploading or don't have fileKey
+    const readyAttachments = attachments.filter((att) => !att.uploading && att.fileKey);
     
     // Allow sending if there's any message content (including emojis) or ready attachments
     if (!trimmed && readyAttachments.length === 0) {
@@ -147,7 +214,7 @@ const ChatRoom = ({
     const selfName = currentUser?.username || currentUser?.email || 'You';
     
     if (sendMessage) {
-      // For WebSocket-based direct chat, pass text and attachments with S3 URL
+      // For WebSocket-based direct chat, pass text and attachments with fileKey
       sendMessage(trimmed, readyAttachments);
     } else {
       // For regular chat (community), send FILE type messages for files and regular message for text
@@ -165,7 +232,7 @@ const ChatRoom = ({
               att.fileName?.toLowerCase().split('.').pop()
             );
           return isImage;
-        }).map((a) => a.s3Url),
+        }).map((a) => a.fileKey),
         attachments: readyAttachments // Pass attachments so onSend can send FILE type messages
       };
       onSend?.(newMsg);
@@ -394,11 +461,19 @@ const ChatRoom = ({
                               <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 max-w-full">
-                          {m.images.map((img, i) => (
-                                <div key={i} className="rounded-lg overflow-hidden bg-gray-200 relative group">
-                              <img src={img} alt="attachment" className="w-full h-auto object-cover" />
+                          {m.images.map((img, i) => {
+                            // Get presigned URL if img is a fileKey
+                            const imageUrl = img.startsWith('http') ? img : (presignedUrls[img] || img);
+                            const downloadUrl = img.startsWith('http') ? img : (presignedUrls[img] || null);
+                            
+                            return (
+                              <div key={i} className="rounded-lg overflow-hidden bg-gray-200 relative group">
+                                <img src={imageUrl} alt="attachment" className="w-full h-auto object-cover" onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }} />
+                                {downloadUrl && (
                                   <button
-                                    onClick={() => downloadFile(img, `image-${i + 1}`)}
+                                    onClick={() => downloadFile(downloadUrl, `image-${i + 1}`)}
                                     className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="Download"
                                   >
@@ -406,44 +481,53 @@ const ChatRoom = ({
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M5 20h14a2 2 0 002-2v-1M7 20a2 2 0 01-2-2v-1" />
                                     </svg>
                                   </button>
-                            </div>
-                          ))}
+                                )}
+                              </div>
+                            );
+                          })}
                             </div>
                           </div>
                         </div>
                       )}
                       
                       {/* File download link for non-image files with inline header */}
-                      {m.isFile && !m.isImage && m.fileUrl && (
-                        <div className="mt-2 w-full">
-                          <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
-                            isSelf 
-                              ? 'bg-yellow-100/90 border-yellow-400 border border-yellow-300' 
-                              : 'bg-gray-200 border-black/70 border border-gray-300'
-                          }`}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <img
-                                src={m.avatar || '/avatars/avatar-1.png'}
-                                alt={m.author}
-                                className="w-7 h-7 rounded-full object-cover"
-                                onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
-                              />
-                              <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
-                              <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
+                      {m.isFile && !m.isImage && (m.fileKey || m.fileUrl) && (() => {
+                        const fileKey = m.fileKey || m.fileUrl;
+                        const downloadUrl = fileKey.startsWith('http') ? fileKey : (presignedUrls[fileKey] || null);
+                        
+                        if (!downloadUrl) return null; // Wait for presigned URL to load
+                        
+                        return (
+                          <div className="mt-2 w-full">
+                            <div className={`rounded-sm border-l-4 px-4 py-3 w-full ${
+                              isSelf 
+                                ? 'bg-yellow-100/90 border-yellow-400 border border-yellow-300' 
+                                : 'bg-gray-200 border-black/70 border border-gray-300'
+                            }`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <img
+                                  src={m.avatar || '/avatars/avatar-1.png'}
+                                  alt={m.author}
+                                  className="w-7 h-7 rounded-full object-cover"
+                                  onError={(e) => { e.target.src = '/avatars/avatar-1.png'; }}
+                                />
+                                <span className="font-semibold text-gray-800 text-sm">{m.author}</span>
+                                <span className="text-xs text-gray-500">{formatTime(m.createdAt)}</span>
+                              </div>
+                              <button
+                                onClick={() => downloadFile(downloadUrl, m.fileName || 'file')}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
+                                title="Download"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
+                              </button>
                             </div>
-                            <button
-                              onClick={() => downloadFile(m.fileUrl, m.fileName || 'file')}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 transition-colors"
-                              title="Download"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="text-sm font-medium">{m.fileName || 'Download file'}</span>
-                            </button>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                     
                   </div>
@@ -546,7 +630,7 @@ const ChatRoom = ({
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={isReadOnly || (!message.trim() && attachments.filter(att => !att.uploading && att.s3Url).length === 0) || attachments.some(att => att.uploading)}
+            disabled={isReadOnly || (!message.trim() && attachments.filter(att => !att.uploading && att.fileKey).length === 0) || attachments.some(att => att.uploading)}
             className="p-1.5 sm:p-2 text-white hover:text-gray-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Send"
           >

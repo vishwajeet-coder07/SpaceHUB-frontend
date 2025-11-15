@@ -385,19 +385,18 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         const normalized = Array.isArray(rawMessages)
           ? rawMessages
               .filter((msg, idx, arr) => {
-                // Filter out CONFIRM type messages (case-insensitive)
                 if (msg.type && msg.type.toUpperCase() === 'CONFIRM') {
                   return false;
                 }
-                // Filter out optimistic messages with null messageId (duplicates)
+            
                 if (msg.messageId === null && msg.optimistic === true) {
                   return false;
                 }
-                // Deduplicate by messageUuid - keep only the first occurrence
+
                 if (msg.messageUuid) {
                   const firstIndex = arr.findIndex(m => m.messageUuid === msg.messageUuid);
                   if (firstIndex !== idx) {
-                    return false; // This is a duplicate
+                    return false; 
                   }
                 }
                 return true;
@@ -408,8 +407,11 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               const isSelf = senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase();
               
               // Handle FILE type messages
-              if (msg.type === 'FILE' || msg.fileUrl) {
+              if (msg.type === 'FILE' || msg.fileUrl || msg.fileKey) {
+                const fileKey = msg.fileKey || msg.file_key || '';
                 const fileUrl = msg.fileUrl || msg.file_url || '';
+                // Use fileKey if available, otherwise fall back to fileUrl
+                const fileIdentifier = fileKey || fileUrl;
                 const fileName = msg.fileName || msg.file_name || msg.text || 'file';
                 const contentType = msg.contentType || msg.content_type || '';
                 
@@ -428,8 +430,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   createdAt: timestamp,
                   avatar: isSelf ? selfAvatar : friendAvatar,
                   isSelf,
-                  images: isImage ? [fileUrl] : [],
-                  fileUrl: fileUrl,
+                  images: isImage ? [fileIdentifier] : [],
+                  fileKey: fileKey || null,
+                  fileUrl: fileUrl || null,
                   fileName: fileName,
                   contentType: contentType,
                   isFile: true,
@@ -460,8 +463,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               };
             })
           : [];
-
-        // Sort messages by time (chronological order - oldest first)
         const sortedNormalized = sortMessagesByTime(normalized);
         setMessages(sortedNormalized);
       } catch (historyError) {
@@ -506,7 +507,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         
           const mapMessage = (msg) => {
             // Handle FILE type messages
-            if (msg.type === 'FILE') {
+            if (msg.type === 'FILE' || msg.fileUrl || msg.fileKey) {
+              const fileKey = msg.fileKey || msg.file_key || '';
+              const fileUrl = msg.fileUrl || '';
+              const fileIdentifier = fileKey || fileUrl;
               const isImage = msg.contentType?.startsWith('image/') || 
                 ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
                   msg.fileName?.toLowerCase().split('.').pop()
@@ -525,8 +529,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   ? (user?.avatarUrl || '/avatars/avatar-1.png')
                   : friendAvatar,
                 isSelf: msg.senderEmail === currentUserEmail || (msg.sender && msg.sender === currentUserEmail),
-                images: isImage ? [msg.fileUrl] : [],
-                fileUrl: msg.fileUrl,
+                images: isImage ? [fileIdentifier] : [],
+                fileKey: fileKey || null,
+                fileUrl: fileUrl || null,
                 fileName: msg.fileName,
                 contentType: msg.contentType,
                 isFile: true,
@@ -594,7 +599,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               })
               .map((msg) => {
                 // Handle FILE type messages in history
-                if (msg.type === 'FILE' || msg.fileUrl) {
+                if (msg.type === 'FILE' || msg.fileUrl || msg.fileKey) {
+                  const fileKey = msg.fileKey || msg.file_key || '';
+                  const fileUrl = msg.fileUrl || '';
+                  const fileIdentifier = fileKey || fileUrl;
                   const isImage = msg.contentType?.startsWith('image/') || 
                     ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(
                       msg.fileName?.toLowerCase().split('.').pop()
@@ -613,8 +621,9 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                       ? (user?.avatarUrl || '/avatars/avatar-1.png')
                       : friendAvatar,
                     isSelf: msg.senderEmail === currentUserEmail || (msg.sender && msg.sender === currentUserEmail),
-                    images: isImage ? [msg.fileUrl] : [],
-                    fileUrl: msg.fileUrl,
+                    images: isImage ? [fileIdentifier] : [],
+                    fileKey: fileKey || null,
+                    fileUrl: fileUrl || null,
                     fileName: msg.fileName,
                     contentType: msg.contentType,
                     isFile: true,
@@ -991,8 +1000,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
           if (wsState === WebSocket.OPEN) {
             try {
-              // Send file messages first if attachments have S3 URLs
-              const readyAttachments = attachments ? attachments.filter(att => att.s3Url && !att.uploading) : [];
+              // Send file messages first if attachments have fileKey
+              const readyAttachments = attachments ? attachments.filter(att => att.fileKey && !att.uploading) : [];
               
               if (readyAttachments.length > 0) {
                 readyAttachments.forEach((attachment) => {
@@ -1000,7 +1009,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                     const fileMessage = {
                       type: 'FILE',
                       fileName: attachment.fileName || attachment.file?.name || 'file',
-                      fileUrl: attachment.s3Url,
+                      fileKey: attachment.fileKey,
                       contentType: attachment.contentType || attachment.file?.type || 'application/octet-stream',
                       senderEmail: userEmail,
                       receiverEmail: friendEmail
@@ -1028,8 +1037,8 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                     createdAt: new Date().toISOString(),
                     avatar: user?.avatarUrl || '/avatars/avatar-1.png',
                     isSelf: true,
-                    images: isImage ? [fileMessage.fileUrl] : [],
-                    fileUrl: fileMessage.fileUrl,
+                    images: isImage ? [fileMessage.fileKey] : [],
+                    fileKey: fileMessage.fileKey,
                     fileName: fileMessage.fileName,
                     contentType: fileMessage.contentType,
                     isFile: true,

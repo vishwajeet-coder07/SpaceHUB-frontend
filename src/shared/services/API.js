@@ -738,7 +738,7 @@ export async function uploadProfileImage({ imageFile, email }) {
   return handleJson(response);
 }
 
-// Upload file and get S3 URL
+// Upload file and get fileKey and fileUrl
 export async function uploadFileAndGetUrl(file) {
   const formData = new FormData();
   formData.append('file', file);
@@ -754,7 +754,13 @@ export async function uploadFileAndGetUrl(file) {
     throw new Error(data?.message || data?.error || 'Failed to upload file');
   }
   
-  return data?.data?.fileUrl || data?.fileUrl || null;
+  // Return both fileKey and fileUrl from the response
+  return {
+    fileKey: data?.data?.fileKey || data?.fileKey || null,
+    fileUrl: data?.data?.fileUrl || data?.fileUrl || null,
+    fileName: data?.data?.fileName || data?.fileName || file.name,
+    contentType: data?.data?.contentType || data?.contentType || file.type || 'application/octet-stream'
+  };
 }
 
 export async function deleteAccount({ email, currentPassword }) {
