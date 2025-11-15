@@ -635,6 +635,13 @@ export async function getFriendsList(userEmail) {
   return handleJson(response);
 }
 
+export async function deleteNotificationByReference(referenceId) {
+  const response = await authenticatedFetch(`${BASE_URL}notifications/reference/${referenceId}`, {
+    method: 'DELETE'
+  });
+  return handleJson(response);
+}
+
 export async function respondToFriendRequest({ userEmail, requesterEmail, accept }) {
   const response = await authenticatedFetch(`${BASE_URL}friends/respond`, {
     method: 'POST',

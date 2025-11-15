@@ -9,15 +9,6 @@ const formatFriendName = (friend) => {
   if (friend.username) {
     return friend.username;
   }
-  if (friend.firstName && friend.lastName) {
-    return `${friend.firstName} ${friend.lastName}`;
-  }
-  if (friend.first && friend.last) {
-    return `${friend.first} ${friend.last}`;
-  }
-  if (friend.name) {
-    return friend.name;
-  }
   return 'Unknown';
 };
 import {
@@ -674,9 +665,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             }));
           }
         
-          // Attempt to reconnect after a delay
           setTimeout(() => {
-            // Check if friend/email still matches and no connection exists
             if (currentFriendEmail && currentUserEmail && 
                 (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED)) {
               try {

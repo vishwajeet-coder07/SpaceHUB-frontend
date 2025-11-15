@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { acceptJoinRequest, rejectJoinRequest, respondToFriendRequest, getPresignedDownloadUrl } from '../../../shared/services/API';
+import { acceptJoinRequest, rejectJoinRequest, respondToFriendRequest, getPresignedDownloadUrl, deleteNotificationByReference } from '../../../shared/services/API';
 import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import webSocketService from '../../../shared/services/WebSocketService';
 import {
@@ -118,6 +118,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         avatar: avatarUrl,
         avatarFile: avatarFile,
         notificationId: req.id,
+        referenceId: req.referenceId, 
         read: req.read || false,
         createdAt: req.createdAt
       };
@@ -167,6 +168,7 @@ const InboxModal = ({ isOpen, onClose }) => {
         avatar: avatarUrl,
         avatarFile: avatarFile, 
         notificationId: req.id,
+        referenceId: req.referenceId, 
         read: req.read || false,
         createdAt: req.createdAt
       };
@@ -477,6 +479,15 @@ const InboxModal = ({ isOpen, onClose }) => {
           userEmail: request.requesterEmail
         });
       }
+      
+      if (request.referenceId) {
+        try {
+          await deleteNotificationByReference(request.referenceId);
+        } catch (deleteErr) {
+          console.warn('Failed to delete notification:', deleteErr);
+        }
+      }
+      
       dispatch(removeRequest(requestId));
     } catch (err) {
       console.error('Error accepting request:', err);
@@ -523,6 +534,14 @@ const InboxModal = ({ isOpen, onClose }) => {
           creatorEmail: userEmail,
           userEmail: request.requesterEmail
         });
+      }
+
+      if (request.referenceId) {
+        try {
+          await deleteNotificationByReference(request.referenceId);
+        } catch (deleteErr) {
+          console.warn('Failed to delete notification:', deleteErr);
+        }
       }
 
       dispatch(removeRequest(requestId));
