@@ -383,7 +383,26 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         if (cancelled) return;
 
         const normalized = Array.isArray(rawMessages)
-          ? rawMessages.map((msg, idx) => {
+          ? rawMessages
+              .filter((msg, idx, arr) => {
+                // Filter out CONFIRM type messages (case-insensitive)
+                if (msg.type && msg.type.toUpperCase() === 'CONFIRM') {
+                  return false;
+                }
+                // Filter out optimistic messages with null messageId (duplicates)
+                if (msg.messageId === null && msg.optimistic === true) {
+                  return false;
+                }
+                // Deduplicate by messageUuid - keep only the first occurrence
+                if (msg.messageUuid) {
+                  const firstIndex = arr.findIndex(m => m.messageUuid === msg.messageUuid);
+                  if (firstIndex !== idx) {
+                    return false; // This is a duplicate
+                  }
+                }
+                return true;
+              })
+              .map((msg, idx) => {
               const senderEmail = msg.senderEmail || msg.sender || msg.from || msg.userEmail || msg.email || '';
               const timestamp = msg.timestamp || msg.createdAt || msg.sentAt || msg.time || new Date().toISOString();
               const isSelf = senderEmail && senderEmail.toLowerCase() === userEmail.toLowerCase();
@@ -402,6 +421,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                 
                 return {
                   id: msg.id || msg.messageId || msg._id || `history-file-${idx}`,
+                  messageUuid: msg.messageUuid,
                   author: isSelf ? (user?.username || userEmail) : friendName,
                   email: senderEmail,
                   text: fileName,
@@ -429,6 +449,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
 
               return {
                 id: msg.id || msg.messageId || msg._id || `history-${idx}`,
+                messageUuid: msg.messageUuid,
                 author: isSelf ? (user?.username || userEmail) : friendName,
                 email: senderEmail,
                 text,
@@ -493,6 +514,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               
               return {
                 id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
+                messageUuid: msg.messageUuid,
                 author: msg.senderEmail === currentUserEmail 
                   ? (user?.username || currentUserEmail) 
                   : friendName,
@@ -527,6 +549,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             
             return {
               id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
+              messageUuid: msg.messageUuid,
               author: msg.senderEmail === currentUserEmail 
                 ? (user?.username || currentUserEmail) 
                 : friendName,
@@ -546,7 +569,22 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             // Sort raw messages first
             const sorted = sortMessagesByTime(data.messages);
             const historyMessages = sorted
-              .filter((msg) => {
+              .filter((msg, idx, arr) => {
+                // Filter out CONFIRM type messages (case-insensitive)
+                if (msg.type && msg.type.toUpperCase() === 'CONFIRM') {
+                  return false;
+                }
+                // Filter out optimistic messages with null messageId (duplicates)
+                if (msg.messageId === null && msg.optimistic === true) {
+                  return false;
+                }
+                // Deduplicate by messageUuid - keep only the first occurrence
+                if (msg.messageUuid) {
+                  const firstIndex = arr.findIndex(m => m.messageUuid === msg.messageUuid);
+                  if (firstIndex !== idx) {
+                    return false; // This is a duplicate
+                  }
+                }
                 const sender = msg.senderEmail || msg.sender;
                 const receiver = msg.receiverEmail || msg.receiver;
                 return (
@@ -564,6 +602,7 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
                   
                   return {
                     id: msg.id || msg.messageId || `msg-file-${Date.now()}-${Math.random()}`,
+                    messageUuid: msg.messageUuid,
                     author: msg.senderEmail === currentUserEmail 
                       ? (user?.username || currentUserEmail) 
                       : friendName,
@@ -592,6 +631,15 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
           }
           
           // Handle single message
+          // Filter out CONFIRM type messages (case-insensitive)
+          if (data.type && data.type.toUpperCase() === 'CONFIRM') {
+            return; // Skip this message
+          }
+          // Filter out optimistic messages with null messageId (duplicates)
+          if (data.messageId === null && data.optimistic === true) {
+            return; // Skip this message
+          }
+
           const sender = data.senderEmail || data.sender;
           const receiver = data.receiverEmail || data.receiver;
           const isForCurrentChat = 
@@ -605,6 +653,10 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
             // console.log('Adding message to state:', receivedMsg);
             setMessages((prev) => {
               const existingIndex = prev.findIndex(m => {
+                // Check by messageUuid if available
+                if (data.messageUuid && m.messageUuid === data.messageUuid) {
+                  return true;
+                }
                 if (m.id === receivedMsg.id) return true;
                 if (m.text === receivedMsg.text && m.email === receivedMsg.email) {
                   const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(receivedMsg.createdAt).getTime());

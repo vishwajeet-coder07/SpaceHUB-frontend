@@ -5,16 +5,12 @@ import { useAuth } from '../../../shared/contexts/AuthContextContext';
 import webSocketService from '../../../shared/services/WebSocketService';
 import {
   selectRequests,
-  selectPending,
   selectInboxActiveTab,
   selectInboxLoading,
   selectInboxError,
   selectProcessingRequest,
   setRequests,
-  setPending,
   addRequest,
-  addPending,
-  removePending,
   setActiveTab,
   setLoading,
   setError,
@@ -31,7 +27,6 @@ const InboxModal = ({ isOpen, onClose }) => {
   
   const activeTab = useSelector(selectInboxActiveTab);
   const requests = useSelector(selectRequests);
-  const pending = useSelector(selectPending);
   const loading = useSelector(selectInboxLoading);
   const error = useSelector(selectInboxError);
   const processingRequest = useSelector(selectProcessingRequest);
@@ -49,19 +44,11 @@ const InboxModal = ({ isOpen, onClose }) => {
     }));
   }, [requests, avatarUrls]);
 
-  const pendingWithAvatars = useMemo(() => {
-    return pending.map(item => ({
-      ...item,
-      avatar: item.avatar || (item.avatarFile && avatarUrls[item.avatarFile]) || null
-    }));
-  }, [pending, avatarUrls]);
-
   useEffect(() => {
     const fetchAvatarUrls = async () => {
-      const allItems = [...requests, ...pending];
       const filesToFetch = new Set();
       
-      allItems.forEach(item => {
+      requests.forEach(item => {
         if (item.avatarFile && !avatarUrls[item.avatarFile]) {
           filesToFetch.add(item.avatarFile);
         }
@@ -89,10 +76,10 @@ const InboxModal = ({ isOpen, onClose }) => {
       await Promise.all(fetchPromises);
     };
     
-    if (requests.length > 0 || pending.length > 0) {
+    if (requests.length > 0) {
       fetchAvatarUrls();
     }
-  }, [requests, pending]);
+  }, [requests, avatarUrls]);
 
 
   const transformFriendRequest = (req, idx = 0) => {
@@ -187,26 +174,6 @@ const InboxModal = ({ isOpen, onClose }) => {
     };
   };
 
-  const transformPendingRequest = (req, idx = 0) => {
-                let displayName = 'Pending user';
-                const candidateName = req.friendName || req.username || req.name || req.receiverName || req.receiverUsername;
-                if (candidateName) {
-                  displayName = candidateName;
-                } else if (req.friendEmail || req.receiverEmail || req.email) {
-                  const rawEmail = req.friendEmail || req.receiverEmail || req.email;
-                  displayName = rawEmail.split('@')[0];
-                }
-
-                return {
-      id: `pending-${req.id || req.friendEmail || req.receiverEmail || req.email || idx}`,
-                  type: req.type || 'friend',
-                  name: displayName,
-                  requester: displayName,
-                  avatar: req.avatar || req.avatarUrl || req.profileImage || null,
-                  raw: req,
-                  rawJson: JSON.stringify(req, null, 2),
-                };
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -314,31 +281,9 @@ const InboxModal = ({ isOpen, onClose }) => {
           }
           break;
         }
-        case 'pending_friend_request': {
-          const pendingReq = transformPendingRequest(data);
-          dispatch(addPending(pendingReq));
-          if (isOpen) {
-        dispatch(setLoading(false));
-          }
-          break;
-        }
-        case 'pending_requests_bulk': {
-          const pendingRequests = Array.isArray(data)
-            ? data.map((req, idx) => transformPendingRequest(req, idx))
-            : [];
-          dispatch(setPending(pendingRequests));
-          if (isOpen) {
-        dispatch(setLoading(false));
-          }
-          if (pendingRequests.length === 0) {
-            dispatch(setPending([]));
-          }
-          break;
-        }
         case 'friend_request_response':
-          dispatch(removePending(`pending-${data.requesterEmail || data.email}`));
           if (data.accepted) {
-        window.dispatchEvent(new CustomEvent('toast', {
+            window.dispatchEvent(new CustomEvent('toast', {
               detail: { message: 'Friend request accepted!', type: 'success' }
             }));
           }
@@ -378,14 +323,6 @@ const InboxModal = ({ isOpen, onClose }) => {
             (Array.isArray(data.communityRequests) && data.communityRequests.length === 0)
           ) {
             dispatch(setRequests([]));
-          }
-          if (data.pendingRequests) {
-            const pendingReqs = Array.isArray(data.pendingRequests)
-              ? data.pendingRequests.map((req, idx) => transformPendingRequest(req, idx))
-              : [];
-            dispatch(setPending(pendingReqs));
-          } else if (Array.isArray(data.pendingRequests) && data.pendingRequests.length === 0) {
-            dispatch(setPending([]));
           }
           if (isOpen) {
             dispatch(setLoading(false));
@@ -583,38 +520,9 @@ const InboxModal = ({ isOpen, onClose }) => {
             <h2 className="text-lg md:text-xl font-bold text-gray-800">Inbox</h2>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-6 md:gap-8">
-            <button
-              onClick={() => dispatch(setActiveTab('request'))}
-              className={`pb-2.5 text-sm font-medium transition-colors relative ${
-                activeTab === 'request'
-                  ? 'text-gray-800'
-                  : 'text-gray-400'
-              }`}
-            >
-              Request
-              {activeTab === 'request' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></span>
-              )}
-            </button>
-            <button
-              onClick={() => dispatch(setActiveTab('pending'))}
-              className={`pb-2.5 text-sm font-medium transition-colors relative ${
-                activeTab === 'pending'
-                  ? 'text-purple-600 font-semibold'
-                  : 'text-gray-400'
-              }`}
-            >
-              Pending
-              {activeTab === 'pending' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></span>
-              )}
-            </button>
-          </div>
         </div>
 
-        {/* Content Area for requests and pending requests */}
+        {/* Content Area for requests */}
         <div className="flex-1 overflow-y-auto min-h-0 md:min-h-[450px] bg-blue-100/90 px-3 md:px-4 py-3 md:py-4">
           {loading ? (
             // Shimmer loading effect
@@ -637,7 +545,7 @@ const InboxModal = ({ isOpen, onClose }) => {
             <div className="text-center text-red-500 py-12 text-sm">
               {error}
             </div>
-          ) : activeTab === 'request' ? (
+          ) : (
             <div className="space-y-3">
               {!loading && requests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -712,54 +620,6 @@ const InboxModal = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                 ))
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {!loading && pending.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-gray-500 text-sm font-medium">No pending requests</p>
-                  <p className="text-gray-400 text-xs mt-1">You don't have any pending friend requests</p>
-                </div>
-              ) : (
-                pendingWithAvatars.map((item) => {
-                  const displayName = item.requester || item.username || item.name || 'Unknown';
-                  return (
-                    <div key={item.id} className="flex items-center gap-3 md:gap-4 bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                        {item.avatar ? (
-                          <img 
-                            src={item.avatar} 
-                            alt={displayName} 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              if (e.target.nextSibling) {
-                                e.target.nextSibling.style.display = 'flex';
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div className="w-full h-full bg-gray-300 flex items-center justify-center" style={{ display: item.avatar ? 'none' : 'flex' }}>
-                            <span className="text-xs font-semibold text-gray-600">
-                              {displayName?.charAt(0) || 'U'}
-                            </span>
-                          </div>
-                      </div>
-
-                      {/* Request Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-800 leading-tight truncate">
-                          {displayName}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
           )}
