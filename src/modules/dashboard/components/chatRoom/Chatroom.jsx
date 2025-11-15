@@ -116,9 +116,12 @@ const ChatRoom = ({
 
   const shouldClampMessage = (text) => {
     if (!text) return false;
-    const approxLineBreaks = (text.match(/\n/g) || []).length + 1;
+    // Ensure text is a string
+    const textStr = String(text);
+    if (!textStr) return false;
+    const approxLineBreaks = (textStr.match(/\n/g) || []).length + 1;
     if (approxLineBreaks > 15) return true;
-    return text.length > 900;
+    return textStr.length > 900;
   };
 
   const toggleExpand = (id) => {
@@ -310,7 +313,7 @@ const ChatRoom = ({
                     )}
                     <div className="flex justify-center mt-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${variantClass}`}>
-                        {m.text}
+                        {typeof m.text === 'string' ? m.text : (m.text ? String(m.text) : '')}
                       </span>
                     </div>
                   </React.Fragment>
@@ -359,7 +362,7 @@ const ChatRoom = ({
                                 : {}
                             }
                           >
-                            {m.text}
+                            {typeof m.text === 'string' ? m.text : (m.text ? String(m.text) : '')}
                           </div>
                           {shouldClampMessage(m.text) && (
                             <button

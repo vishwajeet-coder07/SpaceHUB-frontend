@@ -521,14 +521,26 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
               };
             }
             
-            // Regular text message
+            const getTextContent = (msg) => {
+              const content = msg.content || msg.message || msg.text;
+              if (typeof content === 'string') return content;
+              if (typeof content === 'number') return String(content);
+              if (content && typeof content === 'object') {
+                if (content.text) return String(content.text);
+                if (content.message) return String(content.message);
+                if (content.content) return String(content.content);
+                return '';
+              }
+              return '';
+            };
+            
             return {
               id: msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`,
               author: msg.senderEmail === currentUserEmail 
                 ? (user?.username || currentUserEmail) 
                 : friendName,
               email: msg.senderEmail || msg.sender || '',
-              text: msg.content || msg.message || msg.text || '',
+              text: getTextContent(msg),
               createdAt: msg.timestamp || msg.createdAt || msg.sentAt || new Date().toISOString(),
               avatar: msg.senderEmail === currentUserEmail
                 ? (user?.avatarUrl || '/avatars/avatar-1.png')
@@ -654,8 +666,6 @@ const DashboardMainSection = ({ selectedFriend, onOpenAddFriends, showRightSideb
         setWsConnected(false);
         setWsStatus('not-connected');
       
-        // Attempt to reconnect if connection was lost unexpectedly
-        // Only reconnect if we still have a friend selected and it wasn't a clean close
         if (event.code !== 1000 && event.code !== 1001 && currentFriendEmail && currentUserEmail) {
           // Only show toast on desktop
           if (window.innerWidth >= 768) {
