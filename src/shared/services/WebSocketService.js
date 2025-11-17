@@ -201,5 +201,4 @@ class WebSocketService {
 }
 
 const webSocketService = new WebSocketService();
-export default webSocketService;
-
+export default webSocketService
