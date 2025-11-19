@@ -429,8 +429,8 @@ const RoomSection = ({ title, open, onToggle, onAdd, channels, isVoice = false, 
 
       {/* Voice Room Confirmation Modal */}
       {voiceRoomModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white md:bg-black rounded-lg shadow-lg max-w-md w-full border md:border-gray-700">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 modal-backdrop">
+          <div className="bg-white md:bg-black rounded-lg shadow-lg max-w-md w-full border md:border-gray-700 modal-content">
             <div className="px-6 py-4">
               <h3 className="text-lg font-semibold text-gray-900 md:text-white">
                 Voice Room: {voiceRoomModal.channelName}

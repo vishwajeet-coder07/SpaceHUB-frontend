@@ -15,7 +15,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div>
+        <div className="animate-fade-in">
           <div style={{ fontFamily: 'Inter, sans-serif' }}>
             <TopToast />
             <Routes>

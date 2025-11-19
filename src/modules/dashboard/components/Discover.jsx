@@ -28,7 +28,7 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
     return (
       <div
         onClick={() => onClick?.(community)}
-        className="rounded-lg overflow-hidden shadow-sm bg-transparent cursor-pointer aspect-square"
+        className="rounded-lg overflow-hidden shadow-sm bg-transparent cursor-pointer aspect-square hover-lift transition-all duration-300 animate-fade-in"
       >
         {/* Top section - Image */}
         <div className="h-[66%] bg-gray-400 relative">
@@ -80,7 +80,7 @@ const CommunityCard = ({ community, onClick, isMobile = false }) => {
     <div
       key={community.id || community.communityId || title}
       onClick={() => onClick?.(community)}
-      className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow transform transition-transform hover:scale-[1.02] bg-transparent cursor-pointer"
+      className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] bg-transparent cursor-pointer hover-lift animate-fade-in"
     >
       {/* Top banner area */}
       <div className="h-40 sm:h-44 bg-gray-400">

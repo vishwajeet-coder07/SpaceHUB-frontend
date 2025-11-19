@@ -496,10 +496,10 @@ const InboxModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-center md:justify-end z-50 p-0 md:pt-10 md:pr-6">
+    <div className="fixed inset-0 bg-[#282828]/50 flex items-start justify-center md:justify-end z-50 p-0 md:pt-10 md:pr-6 modal-backdrop">
       <div 
         ref={modalRef}
-        className="bg-white rounded-none md:rounded-xl shadow-2xl w-full h-full md:w-[420px] md:max-h-[calc(100vh-80px)] md:h-auto flex flex-col overflow-hidden"
+        className="bg-white rounded-none md:rounded-xl shadow-2xl w-full h-full md:w-[420px] md:max-h-[calc(100vh-80px)] md:h-auto flex flex-col overflow-hidden modal-content"
       >
         {/* Header */}
         <div className="bg-white px-4 md:px-6 py-4 md:py-5 relative">
