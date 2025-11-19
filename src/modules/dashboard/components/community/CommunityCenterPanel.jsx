@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../../shared/contexts/AuthContextContext';
-import { getCommunityMembers, joinRoom } from '../../../../shared/services/API';
+import { getCommunityMembers, joinRoom, joinVoiceRoom } from '../../../../shared/services/API';
 import ChatRoom from '../chatRoom/Chatroom';
 import VoiceRoom from '../voiceRoom/VoiceRoom';
 import { useVoiceRoom } from '../../../../shared/hooks/useVoiceRoom';
@@ -122,13 +122,63 @@ const CommunityCenterPanel = ({ community, roomCode, onToggleRightPanel = null, 
                 voiceData = null;
               }
             } else {
+              // No join response in sessionStorage - automatically join the voice room
               const userEmail = user?.email || JSON.parse(sessionStorage.getItem('userData') || '{}')?.email;
-              voiceData = {
-                janusRoomId,
-                sessionId: null,
-                handleId: null,
-                userId: userEmail
-              };
+              if (userEmail) {
+                // Set initial voiceData with null sessionId/handleId (will be updated after join)
+                voiceData = {
+                  janusRoomId,
+                  sessionId: null,
+                  handleId: null,
+                  userId: userEmail
+                };
+                
+                // Automatically join the voice room
+                (async () => {
+                  try {
+                    const joinResponse = await joinVoiceRoom(janusRoomId, userEmail);
+                    console.log('Auto-joined voice room:', joinResponse);
+                    
+                    sessionStorage.setItem(joinResponseKey, JSON.stringify(joinResponse));
+                    const responseData = joinResponse?.data || joinResponse;
+                    const sessionId = responseData?.sessionId;
+                    const handleId = responseData?.handleId;
+                    
+                    if (sessionId && handleId) {
+                      const updatedVoiceData = {
+                        janusRoomId,
+                        sessionId,
+                        handleId,
+                        userId: userEmail
+                      };
+                      setVoiceRoomData(updatedVoiceData);
+                      
+                      window.dispatchEvent(new CustomEvent('voice-room:joined', {
+                        detail: { janusRoomId, sessionId, handleId, userId: userEmail }
+                      }));
+                      
+                      // Update stored channel selection with updated voice room data
+                      const stored = getStoredChannel();
+                      if (stored) {
+                        storeChannelSelection({
+                          ...stored,
+                          voiceRoomData: updatedVoiceData
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Failed to auto-join voice room:', error);
+                    if (error.message && !error.message.includes('403')) {
+                      window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: error.message || 'Failed to join voice room', type: 'error' }
+                      }));
+                    }
+                    setVoiceRoomData(null);
+                  }
+                })();
+              } else {
+                voiceData = null;
+              }
             }
           }
           setVoiceRoomData(voiceData);
