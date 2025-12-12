@@ -15,8 +15,11 @@ SpaceHUB is a modern, responsive web application built with React and Vite that 
 -   **High Performance**: Powered by Vite for instant server starts and lightning-fast HMR (Hot Module Replacement).
 
 ### Screenshots
-![alt text](<Screenshot 1.png>)
-![alt text](<Screenshot 2.png>)
+![Dashboard](screenshots/screenshot-1.png)
+![Social](screenshots/screenshot-2.png)
+![Discover](screenshots/screenshot-3.png)
+![Community](screenshots/screenshot-4.png)
+![Settings](screenshots/screenshot-5.png)
 
 ### User Experience
 -   **Responsive Design**: A fluid interface built with Tailwind CSS that works perfectly on desktop, tablet, and mobile.
